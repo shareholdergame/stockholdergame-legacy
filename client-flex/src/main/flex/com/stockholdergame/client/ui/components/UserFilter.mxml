@@ -1,0 +1,123 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:c="com.stockholdergame.client.ui.components.*"
+         styleName="topAlignedContainer">
+
+    <mx:Metadata>
+        [Event(name="filterApplied", type="com.stockholdergame.client.ui.events.UserFilterEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.account.MyAccountDto;
+        import com.stockholdergame.client.model.session.SessionManager;
+        import com.stockholdergame.client.model.dto.account.UserFilterDto;
+        import com.stockholdergame.client.ui.events.UserFilterEvent;
+
+        [Bindable]
+        public var friendFilterDisabled:Boolean = false;
+
+        private var _filter:UserFilterDto = new UserFilterDto();
+
+        public function set filter(value:UserFilterDto):void {
+            _filter = value;
+            userNameTxt.text = value.userName != null && value.userName.length > 0 ? value.userName : "";
+            friendsChk.selected = value.friendFilters != null && value.friendFilters.length == 1 &&
+                    value.friendFilters[0] == UserFilterDto.FRIENDS_ONLY;
+            fromMyCityChk.selected = value.city != null;
+            fromMyCountryChk.selected = value.country != null;
+            myLanguageChk.selected = value.locale != null;
+        }
+
+        public function get filter():UserFilterDto {
+            return _filter;
+        }
+
+        private function onFilterBtnClick(event:MouseEvent):void {
+            applyFilter();
+        }
+
+        private function onResetFilterBtnClick(event:MouseEvent):void {
+            userNameTxt.text = "";
+            friendsChk.selected = false;
+            fromMyCityChk.selected = false;
+            fromMyCountryChk.selected = false;
+            myLanguageChk.selected = false;
+            applyFilter();
+        }
+
+        public function applyFilter():void {
+            var accountInfo:MyAccountDto = SessionManager.instance.getAccountInfo();
+
+            if (userNameTxt.text.length > 0) {
+                _filter.userName = userNameTxt.text;
+            } else {
+                _filter.userName = null;
+            }
+            if (friendsChk.selected) {
+                _filter.friendFilters = [UserFilterDto.FRIENDS_ONLY];
+            } else {
+                _filter.friendFilters = friendFilterDisabled ? _filter.friendFilters : null;
+            }
+            if (fromMyCityChk.selected) {
+                _filter.city = accountInfo.profile.city;
+            } else {
+                _filter.city = null;
+            }
+            if (fromMyCountryChk.selected) {
+                _filter.country = accountInfo.profile.country;
+            } else {
+                _filter.country = null;
+            }
+            if (myLanguageChk.selected) {
+                _filter.locale = accountInfo.locale;
+            } else {
+                _filter.locale = null;
+            }
+            dispatchEvent(new UserFilterEvent(_filter));
+        }
+
+        private function onTextInput(event:Event):void {
+            if (userNameTxt.text != null && (userNameTxt.text.length > 2 || userNameTxt.text.length == 0)) {
+                applyFilter();
+            }
+        }
+
+        ]]></mx:Script>
+
+    <mx:Form width="100%" paddingLeft="5" paddingRight="5" paddingTop="5" paddingBottom="5">
+        <mx:FormItem>
+            <mx:Label text="{resourceManager.getString('common', 'user.name.label')}"/>
+        </mx:FormItem>
+        <mx:FormItem width="100%">
+            <mx:TextInput id="userNameTxt" width="100%" maxChars="24" change="onTextInput(event)"/>
+        </mx:FormItem>
+        <mx:FormItem width="100%">
+            <mx:Text text="{resourceManager.getString('common', 'user.name.advice.label')}" truncateToFit="true"/>
+        </mx:FormItem>
+        <mx:FormItem>
+            <mx:CheckBox id="friendsChk" label="{resourceManager.getString('common', 'friends.label')}"
+                         enabled="{!friendFilterDisabled}"
+                         click="onFilterBtnClick(event)"/>
+        </mx:FormItem>
+        <mx:FormItem>
+            <mx:CheckBox id="fromMyCityChk" label="{resourceManager.getString('common', 'my.city.label')}"
+                         click="onFilterBtnClick(event)"/>
+        </mx:FormItem>
+        <mx:FormItem>
+            <mx:CheckBox id="fromMyCountryChk" label="{resourceManager.getString('common', 'my.country.label')}"
+                         click="onFilterBtnClick(event)"/>
+        </mx:FormItem>
+        <mx:FormItem>
+            <mx:CheckBox id="myLanguageChk" label="{resourceManager.getString('common', 'my.language.label')}"
+                         click="onFilterBtnClick(event)"/>
+        </mx:FormItem>
+        <mx:FormItem horizontalAlign="center" width="100%">
+            <mx:HBox width="100%" styleName="containerWithGaps">
+                <c:StkButton id="filterBtn" styleName="filterButton" toolTip="{resourceManager.getString('common', 'filter.button')}"
+                             click="onFilterBtnClick(event)"/>
+                <c:StkButton id="resetFilterBtn" styleName="clearFilterButton" toolTip="{resourceManager.getString('common', 'reset.button')}"
+                             click="onResetFilterBtnClick(event)"/>
+            </mx:HBox>
+        </mx:FormItem>
+    </mx:Form>
+</mx:VBox>

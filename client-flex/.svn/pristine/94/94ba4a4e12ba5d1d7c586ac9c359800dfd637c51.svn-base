@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" horizontalGap="0" borderStyle="solid" borderThickness="1">
+
+    <mx:Script><![CDATA[
+        import mx.collections.ArrayCollection;
+
+        [Bindable]
+        public var shares:ArrayCollection;
+
+        ]]></mx:Script>
+
+    <mx:Repeater id="shareRep" dataProvider="{shares}">
+        <mx:HBox height="24" width="24" backgroundColor="{StyleManager.getColorName(shareRep.currentItem.color)}"
+                borderStyle="solid" borderThickness="1" borderSides="right">
+        </mx:HBox>
+    </mx:Repeater>
+</mx:HBox>

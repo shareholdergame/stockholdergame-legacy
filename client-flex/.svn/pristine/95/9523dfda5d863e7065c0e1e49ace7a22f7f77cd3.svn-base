@@ -1,0 +1,454 @@
+<?xml version="1.0"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml"  initialize="onInitialize()">
+
+    <mx:Metadata>
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.CompensationDto;
+        import com.stockholdergame.client.model.dto.game.CompetitorMoveDto;
+        import com.stockholdergame.client.model.dto.game.MoveStepDto;
+        import com.stockholdergame.client.model.dto.game.SharePriceDto;
+        import com.stockholdergame.client.model.dto.game.ShareQuantityDto;
+        import com.stockholdergame.client.model.dto.game.variant.CardDto;
+        import com.stockholdergame.client.model.dto.game.variant.CardOperationDto;
+        import com.stockholdergame.client.model.dto.game.variant.GameVariantHolder;
+        import com.stockholdergame.client.ui.IconResources;
+        import com.stockholdergame.client.ui.components.*;
+        import com.stockholdergame.client.ui.components.game.CardToolTip;
+        import com.stockholdergame.client.util.sort.SortUtil;
+        import com.stockholdergame.client.util.style.StkColorUtil;
+
+        import mx.collections.ArrayCollection;
+        import mx.containers.HBox;
+        import mx.controls.Image;
+        import mx.controls.Label;
+        import mx.core.UIComponent;
+        import mx.events.PropertyChangeEvent;
+        import mx.events.ToolTipEvent;
+
+        [Bindable]
+        public var competitorMove:CompetitorMoveDto;
+
+        public var verticalRowSize:int = 20;
+
+        public var horizontalCellSize:int = 63;
+
+        private static const iconSize:int = 8;
+
+        public var lastMoveCompetitorsQuantity:int = 0;
+
+        private var _zyrianovStyle:Boolean = false;
+
+        public function get zyrianovStyle():Boolean {
+            return _zyrianovStyle;
+        }
+
+        public function set zyrianovStyle(value:Boolean):void {
+            var oldStyle:Boolean = _zyrianovStyle;
+            _zyrianovStyle = value;
+            if (oldStyle != _zyrianovStyle) {
+                createSteps();
+            }
+        }
+
+        private function createSteps():void {
+            if (competitorMove != null) {
+                this.removeAllChildren();
+
+                var steps:ArrayCollection = competitorMove.steps;
+                var blockX:int = 0;
+                var blockY:int = 0;
+                var labelX:int = 0;
+                var horizontalPadding:int = 2;
+                var verticalIconPadding:int = 4;
+                var canvas:Canvas;
+                var label:Label;
+                var arrow:Image;
+                var box:HBox;
+                var shareIds:ArrayCollection = new ArrayCollection();
+                for each (var moveStep:MoveStepDto in steps) {
+                    if (moveStep.stepType == MoveStepDto.ZERO_STEP) {
+                        continue;
+                    }
+
+                    if (moveStep.shareQuantities != null && moveStep.shareQuantities.length > 0) {
+                        if (moveStep.stepType == MoveStepDto.REPURCHASE_STEP || moveStep.stepType == MoveStepDto.BANKRUPTING_STEP) {
+                            blockX = isLastMove() ? 0 : (horizontalCellSize * 11) + (horizontalPadding * 5);
+                            blockY = blockY + verticalRowSize + horizontalPadding;
+                        }
+
+                        var shareQuantities:ArrayCollection = moveStep.shareQuantities;
+                        canvas = new Canvas();
+                        labelX = 0;
+                        for each (var shareQuantity:ShareQuantityDto in shareQuantities) {
+                            if (moveStep.stepType == MoveStepDto.REPURCHASE_STEP) {
+                                box = new HBox();
+                                box.x = labelX;
+                                box.y = 0;
+                                box.height = verticalRowSize;
+                                box.width = horizontalCellSize;
+                                box.setStyle("horizontalAlign", "right");
+                                box.setStyle("horizontalGap", horizontalPadding);
+                                box.setStyle("paddingRight", horizontalPadding);
+                                box.toolTip = resourceManager.getString('common', 'annulled.shares.label');
+
+                                var strikeLabel:StrikeLabel = new StrikeLabel();
+                                strikeLabel.text = shareQuantity.prevStepQuantity != shareQuantity.quantity || shareQuantity.buySellQuantity > 0
+                                        ? "" + shareQuantity.prevStepQuantity : "";
+                                strikeLabel.setStyle("color", StkColorUtil.moveOrderColorMapping[competitorMove.moveOrder - 1]);
+                                strikeLabel.setStyle("textAlign", shareQuantity.buySellQuantity > 0 ? "left" : "right");
+                                strikeLabel.setStyle("strokePosition", "center");
+                                strikeLabel.setStyle("strokeThickness", 1);
+
+                                box.addChild(strikeLabel);
+
+                                if (shareQuantity.buySellQuantity > 0) {
+                                    label = new Label();
+                                    label.text = "" + shareQuantity.buySellQuantity;
+                                    label.toolTip = resourceManager.getString('common', 'repurchased.shares.label');
+                                    label.setStyle("textAlign", "right");
+                                    label.setStyle("color", StkColorUtil.moveOrderColorMapping[competitorMove.moveOrder - 1]);
+                                    box.addChild(label);
+                                }
+
+                                canvas.addChild(box);
+                            } else {
+                                label = new Label();
+                                label.text = shareQuantity.quantity > 0 || shareQuantity.buySellQuantity != 0 ? "" + shareQuantity.quantity : "";
+                                label.x = labelX;
+                                label.y = 0;
+                                label.width = horizontalCellSize - iconSize;
+                                label.height = verticalRowSize;
+                                label.setStyle("textAlign", "right");
+                                label.setStyle("color", StkColorUtil.moveOrderColorMapping[competitorMove.moveOrder - 1]);
+                                if (shareQuantity.buySellQuantity != 0) {
+                                    label.toolTip = shareQuantity.buySellQuantity > 0
+                                            ? resourceManager.getString('common', 'was.bought.label', [shareQuantity.buySellQuantity])
+                                            : resourceManager.getString('common', 'was.sold.label', [Math.abs(shareQuantity.buySellQuantity)]);
+                                    if (!zyrianovStyle) {
+                                        arrow = new Image();
+                                        arrow.source = shareQuantity.buySellQuantity > 0 ? IconResources.UP_ARROW : IconResources.DOWN_ARROW;
+                                        arrow.x = labelX + horizontalCellSize - iconSize;
+                                        arrow.y = verticalIconPadding;
+                                        canvas.addChild(arrow);
+                                    }
+                                }
+                                canvas.addChild(label);
+                            }
+                            labelX = labelX + horizontalCellSize;
+                        }
+                        canvas.x = blockX;
+                        canvas.y = blockY;
+                        canvas.width = labelX;
+                        canvas.height = verticalRowSize;
+                        canvas.setStyle("borderStyle", "solid");
+                        canvas.setStyle("backgroundColor", StkColorUtil.moveOrderBackgroundColorMapping[competitorMove.moveOrder - 1]);
+                        canvas.setStyle("borderColor", StkColorUtil.moveOrderBackgroundColorMapping[competitorMove.moveOrder - 1]);
+                        canvas.setStyle("backgroundAlpha", 0.4);
+                        canvas.setStyle("cornerRadius", 6);
+                        canvas.horizontalScrollPolicy = "off";
+                        addChild(canvas);
+                        var canvasWidth:int = canvas.width;
+                        blockX = blockX + canvasWidth + horizontalPadding;
+
+                        canvas = new Canvas();
+                        label = new Label();
+                        label.text = "" + moveStep.cashValue;
+                        label.x = 0;
+                        label.y = 0;
+                        label.width = horizontalCellSize - horizontalPadding;
+                        label.height = verticalRowSize;
+                        label.setStyle("textAlign", "right");
+                        label.setStyle("fontStyle", "italic");
+                        label.setStyle("color", StkColorUtil.moveOrderColorMapping[competitorMove.moveOrder - 1]);
+                        canvas.addChild(label);
+                        canvas.x = blockX;
+                        canvas.y = blockY;
+                        canvas.width = horizontalCellSize;
+                        canvas.height = verticalRowSize;
+                        canvas.setStyle("borderStyle", "solid");
+                        canvas.setStyle("backgroundColor", StkColorUtil.moveOrderBackgroundColorMapping[competitorMove.moveOrder - 1]);
+                        canvas.setStyle("borderColor", StkColorUtil.moveOrderBackgroundColorMapping[competitorMove.moveOrder - 1]);
+                        canvas.setStyle("backgroundAlpha", 0.7);
+                        canvas.setStyle("cornerRadius", 6);
+                        addChild(canvas);
+                        blockX = blockX + horizontalCellSize + horizontalPadding;
+                    }
+
+                    if (moveStep.sharePrices != null && moveStep.sharePrices.length > 0 && competitorMove.moveNumber > 0) {
+                        var sharePrices:ArrayCollection = moveStep.sharePrices;
+
+                        canvas = new Canvas();
+                        canvas.graphics.clear();
+                        canvas.x = blockX;
+                        canvas.y = 0;
+                        canvas.height = verticalRowSize;
+                        canvas.width = horizontalCellSize;
+                        canvas.toolTip = "" + competitorMove.appliedCardId;
+                        canvas.addEventListener(ToolTipEvent.TOOL_TIP_CREATE, onToolTipCreate);
+                        canvas.horizontalScrollPolicy = "off";
+
+                        var bigCard:Boolean = isBigCard(competitorMove.appliedCard.card);
+
+                        if (bigCard) {
+                            canvas.setStyle("backgroundColor", StyleManager.getColorName("#E3E2D3"));
+                            canvas.setStyle("borderColor", StyleManager.getColorName("#E3E2D3"));
+                            canvas.setStyle("cornerRadius", 6);
+                            canvas.setStyle("borderStyle", "solid");
+                        }
+
+                        var cardOperations:ArrayCollection = competitorMove.appliedCard.card.cardOperations;
+
+                        var otherOperationX:int = horizontalCellSize / 6, otherOperationY:int;
+                        if (cardOperations.length > 2) {
+                            otherOperationY = 3;
+                        } else {
+                            otherOperationY = verticalRowSize / 2;
+                        }
+
+                        for each (var sharePrice1:CardOperationDto in cardOperations) {
+                            if (sharePrice1.isShareFixed) {
+                                label = new Label();
+                                label.text = sharePrice1.operation + " " + sharePrice1.operandValue
+                                        + (_zyrianovStyle ? resourceManager.getString("common", sharePrice1.colorLetter) : "");
+                                label.setStyle("color", StyleManager.getColorName(zyrianovStyle ? StkColorUtil.moveOrderColorMapping[competitorMove.moveOrder - 1] : "white"));
+                                label.setStyle("fontWeight", "bold");
+
+                                if (_zyrianovStyle) {
+                                    label.x = 0;
+                                    label.y = 0;
+                                    label.width = horizontalCellSize - horizontalPadding;
+                                    label.height = verticalRowSize;
+                                    label.setStyle("textAlign", "right");
+                                    canvas.addChild(label);
+                                } else {
+                                    box = new HBox();
+                                    box.x = horizontalCellSize / 3;
+                                    box.y = 0;
+                                    box.height = bigCard ? verticalRowSize - horizontalPadding : verticalRowSize;
+                                    box.width = horizontalCellSize * 2 / 3;
+                                    box.setStyle("horizontalAlign", "right");
+                                    box.setStyle("backgroundColor", StyleManager.getColorName(sharePrice1.shareColor));
+                                    box.setStyle("borderColor", StyleManager.getColorName(sharePrice1.shareColor));
+                                    box.setStyle("cornerRadius", 6);
+                                    box.setStyle("borderStyle", "solid");
+
+                                    box.addChild(label);
+                                    canvas.addChild(box);
+                                }
+                            } else {
+                                if (!_zyrianovStyle) {
+                                    var circle:UIComponent = new UIComponent();
+                                    circle.graphics.beginFill(StyleManager.getColorName(sharePrice1.shareColor));
+                                    circle.graphics.drawCircle(0, 0, 3);
+                                    circle.graphics.endFill();
+                                    circle.x = otherOperationX;
+                                    circle.y = otherOperationY;
+                                    canvas.addChild(circle);
+                                    otherOperationY = otherOperationY + 6;
+                                }
+                            }
+                        }
+                        addChild(canvas);
+                        blockX = blockX + horizontalCellSize + horizontalPadding;
+
+                        canvas = new Canvas();
+                        labelX = 0;
+                        for each (var sharePrice:SharePriceDto in sharePrices) {
+                            var isZeroing:Boolean = sharePrice.price == 10 ? detectZeroing(competitorMove, sharePrice) : false;
+                            var isOutOfMax:Boolean = sharePrice.price == 250 ? detectOutOfMax(competitorMove, sharePrice) : false;
+                            shareIds.addItem(sharePrice.id);
+                            if (sharePrice.operation != null || isFirstCompetitorMove() || isLastCompetitorMove()) {
+                                label = isZeroing || isOutOfMax ? new StrikeLabel() : new Label();
+                                if (label is StrikeLabel) {
+                                    label.setStyle("strokeThickness", 1);
+                                }
+                                label.text = "" + sharePrice.price;
+                                label.x = labelX;
+                                label.y = 0;
+                                label.width = horizontalCellSize - iconSize;
+                                label.height = verticalRowSize;
+                                label.setStyle("textAlign", "right");
+                                if (isZeroing) {
+                                    label.setStyle("strokePosition", "under");
+                                } else if (isOutOfMax) {
+                                    label.setStyle("strokePosition", "over");
+                                }
+                                if (sharePrice.operation != null) {
+                                    label.setStyle("color", StkColorUtil.moveOrderColorMapping[competitorMove.moveOrder - 1]);
+                                    label.toolTip = "" + sharePrice.operation + " " + sharePrice.operandValue
+                                            + (isZeroing ? " " + resourceManager.getString('common', 'share.price.below.zero.label')
+                                                    : isOutOfMax ? " " + resourceManager.getString('common', 'share.price.above.max.label') : "");
+                                    if (!_zyrianovStyle) {
+                                        arrow = new Image();
+                                        arrow.source = isIncreasingOperation(sharePrice.operation) ? IconResources.UP_ARROW : IconResources.DOWN_ARROW;
+                                        arrow.x = labelX + horizontalCellSize - iconSize;
+                                        arrow.y = verticalIconPadding;
+                                        canvas.addChild(arrow);
+                                    }
+                                }
+                                canvas.addChild(label);
+                            }
+                            labelX = labelX + horizontalCellSize;
+                        }
+                        canvas.x = blockX;
+                        canvas.y = blockY;
+                        canvas.width = labelX;
+                        canvas.height = verticalRowSize;
+                        canvas.setStyle("borderStyle", "solid");
+                        canvas.setStyle("backgroundColor", StkColorUtil.moveOrderBackgroundColorMapping[competitorMove.moveOrder - 1]);
+                        canvas.setStyle("borderColor", StkColorUtil.moveOrderBackgroundColorMapping[competitorMove.moveOrder - 1]);
+                        canvas.setStyle("backgroundAlpha", 0.7);
+                        canvas.setStyle("cornerRadius", 6);
+                        addChild(canvas);
+                        blockX = blockX + canvas.width + horizontalPadding;
+
+                        canvas = new Canvas();
+                        label = new Label();
+                        label.text = "" + moveStep.cashValue;
+                        label.x = 0;
+                        label.y = 0;
+                        label.width = horizontalCellSize - horizontalPadding;
+                        label.height = verticalRowSize;
+                        label.setStyle("textAlign", "right");
+                        label.setStyle("fontStyle", "italic");
+                        label.setStyle("color", StkColorUtil.moveOrderColorMapping[competitorMove.moveOrder - 1]);
+                        canvas.addChild(label);
+                        canvas.x = blockX;
+                        canvas.y = blockY;
+                        canvas.width = horizontalCellSize;
+                        canvas.height = verticalRowSize;
+                        canvas.setStyle("borderStyle", "solid");
+                        canvas.setStyle("backgroundColor", StkColorUtil.moveOrderBackgroundColorMapping[competitorMove.moveOrder - 1]);
+                        canvas.setStyle("borderColor", StkColorUtil.moveOrderBackgroundColorMapping[competitorMove.moveOrder - 1]);
+                        canvas.setStyle("cornerRadius", 6);
+                        addChild(canvas);
+                        blockX = blockX + horizontalCellSize + horizontalPadding;
+                    }
+
+                    if (moveStep.compensations != null && moveStep.compensations.length > 0) {
+                        blockX = isLastMove() ? 0 : (horizontalCellSize * 11) + (horizontalPadding * 5);
+                        blockY = blockY + verticalRowSize + horizontalPadding;
+                        canvas = new Canvas();
+                        labelX = 0;
+                        var compensations:ArrayCollection = moveStep.compensations;
+                        for each (var shareId:int in shareIds) {
+                            for each (var compensation:CompensationDto in compensations) {
+                                if (compensation.id == shareId) {
+                                    if (compensation.sum != 0) {
+                                        label = new Label();
+                                        label.text = (compensation.sum > 0 ? "+" : "-") + compensation.sum;
+                                        label.x = labelX;
+                                        label.y = 0;
+                                        label.width = horizontalCellSize - horizontalPadding;
+                                        label.height = verticalRowSize;
+                                        label.setStyle("textAlign", "right");
+                                        label.setStyle("fontStyle", "italic");
+                                        label.setStyle("color", StkColorUtil.moveOrderColorMapping[competitorMove.moveOrder - 1]);
+                                        label.toolTip = resourceManager.getString('common', compensation.sum > 0 ? 'compensation.label' : 'fine.label');
+                                        canvas.addChild(label);
+                                    }
+                                }
+                            }
+                            labelX = labelX + horizontalCellSize;
+                        }
+                        canvas.x = blockX;
+                        canvas.y = blockY;
+                        canvas.width = labelX;
+                        canvas.height = verticalRowSize;
+                        canvas.setStyle("borderStyle", "solid");
+                        canvas.setStyle("backgroundColor", StkColorUtil.moveOrderBackgroundColorMapping[competitorMove.moveOrder - 1]);
+                        canvas.setStyle("borderColor", StkColorUtil.moveOrderBackgroundColorMapping[competitorMove.moveOrder - 1]);
+                        canvas.setStyle("backgroundAlpha", 0.7);
+                        canvas.setStyle("cornerRadius", 6);
+                        addChild(canvas);
+                        canvasWidth = canvas.width;
+                        blockX = blockX + canvasWidth + horizontalPadding;
+
+                        canvas = new Canvas();
+                        label = new Label();
+                        label.text = "" + moveStep.cashValue;
+                        label.x = 0;
+                        label.y = 0;
+                        label.width = horizontalCellSize - horizontalPadding;
+                        label.height = verticalRowSize;
+                        label.setStyle("textAlign", "right");
+                        label.setStyle("fontStyle", "italic");
+                        label.setStyle("color", StkColorUtil.moveOrderColorMapping[competitorMove.moveOrder - 1]);
+                        canvas.addChild(label);
+                        canvas.x = blockX;
+                        canvas.y = blockY;
+                        canvas.width = horizontalCellSize;
+                        canvas.height = verticalRowSize;
+                        canvas.setStyle("borderStyle", "solid");
+                        canvas.setStyle("backgroundColor", StkColorUtil.moveOrderBackgroundColorMapping[competitorMove.moveOrder - 1]);
+                        canvas.setStyle("borderColor", StkColorUtil.moveOrderBackgroundColorMapping[competitorMove.moveOrder - 1]);
+                        canvas.setStyle("backgroundAlpha", 0.7);
+                        canvas.setStyle("cornerRadius", 6);
+                        addChild(canvas);
+                    }
+                }
+            }
+        }
+
+        private static function detectOutOfMax(competitorMove:CompetitorMoveDto, sharePrice:SharePriceDto):Boolean {
+            var prevSharePrice:SharePriceDto = getPreviousSharePrice(competitorMove, sharePrice);
+            return sharePrice.price == 250 && (sharePrice.operandValue == 2 || sharePrice.price - prevSharePrice.price < sharePrice.operandValue);
+        }
+
+        private static function detectZeroing(competitorMove:CompetitorMoveDto, sharePrice:SharePriceDto):Boolean {
+            var prevSharePrice:SharePriceDto = getPreviousSharePrice(competitorMove, sharePrice);
+            return (prevSharePrice.price == 10 && sharePrice.operandValue == 2) || prevSharePrice.price - sharePrice.price < sharePrice.operandValue;
+        }
+
+        private function isLastCompetitorMove():Boolean {
+            return competitorMove.getStepByType(MoveStepDto.LAST_BUY_SELL_STEP).length == 0 && competitorMove.moveOrder == lastMoveCompetitorsQuantity;
+        }
+
+        private static function isBigCard(card:CardDto):Boolean {
+            return card.groupName == 'card.group.big';
+        }
+
+        private function onToolTipCreate(event:ToolTipEvent):void {
+            var cardToolTip:CardToolTip = new CardToolTip();
+            cardToolTip.card = competitorMove.appliedCard;
+            event.toolTip = cardToolTip;
+        }
+
+        private static function isIncreasingOperation(operation:String):Boolean {
+            return operation == 'x' || operation == "+";
+        }
+
+        private function onInitialize():void {
+            this.addEventListener(PropertyChangeEvent.PROPERTY_CHANGE, onPropertyChange);
+        }
+
+        private function onPropertyChange(event:PropertyChangeEvent):void {
+            if (event.property == "competitorMove" && event.oldValue != event.newValue) {
+                createSteps();
+            }
+        }
+
+        private function isFirstCompetitorMove():Boolean {
+            return competitorMove.moveNumber == 1 && competitorMove.moveOrder == 1;
+        }
+
+        private function isLastMove():Boolean {
+            return competitorMove.getStepByType(MoveStepDto.LAST_BUY_SELL_STEP).length == 0;
+        }
+
+        private static function getPreviousSharePrice(competitorMove:CompetitorMoveDto, sharePrice:SharePriceDto):SharePriceDto {
+            var prevPriceMoveStep:MoveStepDto = MoveStepDto(competitorMove.previousCompetitorMove.getStepByType(MoveStepDto.PRICE_CHANGE_STEP).getItemAt(0));
+            var prevSharePrice:SharePriceDto;
+            for each (var sharePrice1:SharePriceDto in prevPriceMoveStep.sharePrices) {
+                if (sharePrice.id == sharePrice1.id) {
+                    prevSharePrice = sharePrice1;
+                }
+            }
+            return prevSharePrice;
+        }
+        ]]></mx:Script>
+
+</mx:Canvas>

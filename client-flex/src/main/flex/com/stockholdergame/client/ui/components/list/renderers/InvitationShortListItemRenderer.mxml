@@ -1,0 +1,147 @@
+<?xml version="1.0"?>
+<list:BaseListItemRenderer xmlns:mx="http://www.adobe.com/2006/mxml"
+                           xmlns:list="com.stockholdergame.client.ui.components.list.renderers.*"
+                           xmlns:c="com.stockholdergame.client.ui.components.*"
+                           xmlns:game="com.stockholdergame.client.ui.components.game.*">
+
+    <mx:Metadata>
+        [Event(name="joinToGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="cancelGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showInviteUserDialog", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="changeInvitationStatus", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.ChangeInvitationStatusDto;
+        import com.stockholdergame.client.model.dto.game.GameDto;
+        import com.stockholdergame.client.model.dto.game.InvitationDto;
+        import com.stockholdergame.client.model.dto.game.lite.GameLiteDto;
+        import com.stockholdergame.client.model.session.SessionManager;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+        import com.stockholdergame.client.util.StringUtil;
+
+        private function onAcceptInvitation():void {
+            dispatchEvent(new BusinessEvent(BusinessActions.JOIN_TO_GAME, GameLiteDto(data).id, true, true));
+        }
+
+        private function onRejectInvitation():void {
+            var invitationStatus:ChangeInvitationStatusDto = new ChangeInvitationStatusDto();
+            invitationStatus.gameId = GameLiteDto(data).id;
+            invitationStatus.inviteeNames = [null];
+            invitationStatus.status = InvitationDto.REJECTED;
+            dispatchEvent(new BusinessEvent(BusinessActions.CHANGE_INVITATION_STATUS, invitationStatus, true, true));
+        }
+
+        private function handleInviteUserButtonClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_INVITE_USER_DIALOG, data, true, true));
+        }
+
+        private function handleCancelGameButtonClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.CANCEL_GAME, GameLiteDto(data).id, true, true));
+        }
+        ]]></mx:Script>
+
+    <mx:Grid width="262" height="262" styleName="listItemContentBox">
+        <mx:GridRow width="100%" height="20">
+            <mx:GridItem width="100%">
+                <mx:Label text="{resourceManager.getString('common', GameLiteDto(data).gameVariantName)}"
+                          styleName="boldFont"/>
+                <mx:Label
+                        text="{resourceManager.getString('common', 'moves.number.label', [GameLiteDto(data).movesQuantity])}"
+                        styleName="boldFont"/>
+            </mx:GridItem>
+        </mx:GridRow>
+        <mx:GridRow height="20" width="100%">
+            <mx:GridItem width="100%">
+                <!--<mx:Image source="@Embed('/images/rounding-up-16.png')" visible="{data.rounding == GameDto.ROUND_UP}"
+                          includeInLayout="{data.rounding == GameDto.ROUND_UP}"
+                          toolTip="{resourceManager.getString('common', 'rounding.label', [resourceManager.getString('common', data.rounding)])}"/>
+                <mx:Image source="@Embed('/images/rounding-down-16.png')"
+                          visible="{data.rounding == GameDto.ROUND_DOWN}"
+                          includeInLayout="{data.rounding == GameDto.ROUND_DOWN}"
+                          toolTip="{resourceManager.getString('common', 'rounding.label', [resourceManager.getString('common', data.rounding)])}"/>-->
+                <mx:Image source="@Embed('/images/switch-16.png')" visible="{data.switchMoveOrder}" includeInLayout="{data.switchMoveOrder}"
+                          toolTip="{resourceManager.getString('common', 'switch.move.order.label')}"/>
+                <mx:Label
+                        text="{resourceManager.getString('common', 'game.letter.label', [GameLiteDto(data).gameLetter])}"
+                        styleName="boldFont" visible="{data.switchMoveOrder}" includeInLayout="{data.switchMoveOrder}"/>
+            </mx:GridItem>
+        </mx:GridRow>
+        <mx:GridRow width="100%" height="100%"
+                    includeInLayout="{GameLiteDto(data).currentUserInitiator}"
+                    visible="{GameLiteDto(data).currentUserInitiator}">
+            <mx:GridItem width="100%">
+                <mx:VBox width="100%" height="100%" styleName="topAlignedContainer">
+                    <mx:Label text="{resourceManager.getString('common', 'invitee.label')}"/>
+                    <mx:HBox width="100%">
+                        <mx:Repeater dataProvider="{GameLiteDto(data).invitedUsers}" id="competitorsRep1"
+                                     startingIndex="0" count="2">
+                            <game:CompetitorView competitor="{competitorsRep1.currentItem}"/>
+                        </mx:Repeater>
+                    </mx:HBox>
+                    <mx:HBox width="100%">
+                        <mx:Repeater dataProvider="{GameLiteDto(data).invitedUsers}" id="competitorsRep2"
+                                     startingIndex="2">
+                            <game:CompetitorView competitor="{competitorsRep2.currentItem}" noAvatar="true"
+                                                 smallSize="true"/>
+                        </mx:Repeater>
+                    </mx:HBox>
+                </mx:VBox>
+            </mx:GridItem>
+        </mx:GridRow>
+        <mx:GridRow width="100%" height="100%"
+                    includeInLayout="{!GameLiteDto(data).currentUserInitiator}"
+                    visible="{!GameLiteDto(data).currentUserInitiator}">
+            <mx:GridItem width="100%">
+                <mx:VBox width="100%" height="100%" styleName="topAlignedContainer">
+                    <mx:Label
+                            text="{GameLiteDto(data).currentUserJoined ? resourceManager.getString('common', 'invitation.accepted.label') : resourceManager.getString('common', 'inviter.label')}"
+                            styleName="{GameLiteDto(data).currentUserJoined ? 'greenBigBoldText' : 'normalAttentionFont'}"/>
+                    <c:UserView user="{GameLiteDto(data).initiator}" width="80"
+                                userNameLabelStyleName="{GameLiteDto(data).initiator.bot ? 'botNameBigFont' : 'userNameBigFont'}"/>
+                    <mx:Label text="{resourceManager.getString('common', 'also.invited.label')}"
+                              includeInLayout="{GameLiteDto(data).invitedUsers.length > 0}"
+                              visible="{GameLiteDto(data).invitedUsers.length > 0}"/>
+                    <mx:HBox width="100%">
+                        <mx:Repeater dataProvider="{GameLiteDto(data).invitedUsers}" id="competitorsRep">
+                            <game:CompetitorView competitor="{competitorsRep.currentItem}" noAvatar="true"
+                                                 smallSize="true"/>
+                        </mx:Repeater>
+                    </mx:HBox>
+                </mx:VBox>
+            </mx:GridItem>
+        </mx:GridRow>
+        <mx:GridRow width="100%" height="36">
+            <mx:GridItem width="100%" height="100%" styleName="listItemControlBar">
+                <c:StkButton styleName="acceptInvitationButton" id="acceptInvitationBtn"
+                             toolTip="{resourceManager.getString('common', 'accept.invitation.button')}"
+                             click="onAcceptInvitation()"
+                             includeInLayout="{!GameLiteDto(data).currentUserInitiator &amp;&amp; !GameLiteDto(data).currentUserJoined
+                       &amp;&amp; !SessionManager.instance.isRemoved()}"
+                             visible="{!GameLiteDto(data).currentUserInitiator &amp;&amp; !GameLiteDto(data).currentUserJoined
+                       &amp;&amp; !SessionManager.instance.isRemoved()}"/>
+                <c:StkButton id="rejectInvitationBtn" styleName="rejectInvitationButton"
+                             toolTip="{resourceManager.getString('common', 'reject.invitation.button')}"
+                             click="onRejectInvitation()"
+                             includeInLayout="{!GameLiteDto(data).currentUserInitiator &amp;&amp; !GameLiteDto(data).currentUserJoined
+                       &amp;&amp; !SessionManager.instance.isRemoved()}"
+                             visible="{!GameLiteDto(data).currentUserInitiator &amp;&amp; !GameLiteDto(data).currentUserJoined
+                       &amp;&amp; !SessionManager.instance.isRemoved()}"/>
+                <!--<c:StkButton id="inviteUserBtn" styleName="invitationButton"
+                             toolTip="{resourceManager.getString('common', 'invite.users.label')}"
+                             visible="{GameLiteDto(data).gameStatus == GameDto.OPEN
+                                   &amp;&amp; GameLiteDto(data).currentUserInitiator &amp;&amp; !SessionManager.instance.isRemoved()}"
+                             includeInLayout="{data.gameStatus == GameDto.OPEN
+                                   &amp;&amp; GameLiteDto(data).currentUserInitiator &amp;&amp; !SessionManager.instance.isRemoved()}"
+                             click="handleInviteUserButtonClick(event)"/>
+                <c:StkButton id="cancelGameBtn" styleName="removeButton"
+                             toolTip="{resourceManager.getString('common', 'cancel.game.label')}"
+                             visible="{GameLiteDto(data).gameStatus == GameDto.OPEN &amp;&amp; GameLiteDto(data).currentUserInitiator}"
+                             includeInLayout="{GameLiteDto(data).gameStatus == GameDto.OPEN &amp;&amp; GameLiteDto(data).currentUserInitiator}"
+                             click="handleCancelGameButtonClick(event)"/>-->
+            </mx:GridItem>
+        </mx:GridRow>
+    </mx:Grid>
+
+</list:BaseListItemRenderer>

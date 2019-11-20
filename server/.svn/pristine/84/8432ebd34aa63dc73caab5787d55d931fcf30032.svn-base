@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:task="http://www.springframework.org/schema/task"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.2.xsd
+           http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task.xsd
+           http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.2.xsd">
+
+    <task:executor id="executor" pool-size="5-20" queue-capacity="1000"/>
+
+    <bean id="applicationEventMulticaster" class="org.springframework.context.event.SimpleApplicationEventMulticaster">
+        <property name="taskExecutor" ref="executor"/>
+    </bean>
+
+    <!-- handlers -->
+    <context:component-scan base-package="com.stockholdergame.server.services.event.handler"/>
+
+    <util:map id="handlerMap" key-type="com.stockholdergame.server.model.event.BusinessEventType"
+              value-type="com.stockholdergame.server.services.event.EventHandler">
+        <entry key="#{T(com.stockholdergame.server.model.event.BusinessEventType).START_GAMES}" value-ref="startGameHandler"/>
+        <entry key="#{T(com.stockholdergame.server.model.event.BusinessEventType).SWITCH_MOVE_ORDER}" value-ref="switchMoveOrderHandler"/>
+        <entry key="#{T(com.stockholdergame.server.model.event.BusinessEventType).ACCOUNT_CREATED}" value-ref="accountCreatedHandler"/>
+        <entry key="#{T(com.stockholdergame.server.model.event.BusinessEventType).UNREAD_CHAT_NOTIFICATION}" value-ref="unreadChatNotificationHandler"/>
+        <entry key="#{T(com.stockholdergame.server.model.event.BusinessEventType).PLAY_BOT}" value-ref="playBotHandler"/>
+    </util:map>
+
+    <!-- listeners -->
+    <bean class="com.stockholdergame.server.services.event.listener.BusinessEventDispatcher">
+        <property name="handlerMap" ref="handlerMap"/>
+    </bean>
+
+</beans>

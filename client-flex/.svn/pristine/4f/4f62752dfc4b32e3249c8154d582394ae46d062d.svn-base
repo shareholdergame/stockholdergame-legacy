@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml"
+         implements="mx.controls.listClasses.IListItemRenderer, mx.controls.listClasses.IDropInListItemRenderer"
+         horizontalScrollPolicy="off" verticalScrollPolicy="off"
+         styleName="baseListItemRenderer">
+
+    <mx:Metadata>
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import mx.controls.listClasses.BaseListData;
+        import mx.controls.listClasses.ListBase;
+        import mx.controls.listClasses.ListBaseContentHolder;
+
+        private var _listData:BaseListData;
+
+        public function get listData():BaseListData {
+            return _listData;
+        }
+
+        public function set listData(value:BaseListData):void {
+            this._listData = value;
+        }
+
+        override public function set styleName(value:Object):void {
+            if (!super.styleName || (!(value is ListBaseContentHolder) && !(value is ListBase))) {
+                super.styleName = value;
+            }
+        }
+
+        ]]></mx:Script>
+</mx:HBox>

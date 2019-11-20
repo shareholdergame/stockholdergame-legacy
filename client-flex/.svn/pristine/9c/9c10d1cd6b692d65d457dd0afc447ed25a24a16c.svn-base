@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:c="com.stockholdergame.client.ui.components.*"
+         currentState="{NO_INVITATIONS_STATE}">
+
+    <mx:Metadata>
+        [Event(name="joinToGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="cancelGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="changeInvitationStatus", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showInvitationsPage", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.lite.GamesList;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+
+        private const NO_INVITATIONS_STATE:String = "noInvitationsState";
+        private const SHOW_INVITATIONS_STATE:String = "showInvitationsState";
+
+        [Bindable]
+        private var _invitationsList:GamesList;
+
+        public function get invitationsList():GamesList {
+            return _invitationsList;
+        }
+
+        public function set invitationsList(value:GamesList):void {
+            _invitationsList = value;
+            currentState = _invitationsList == null || _invitationsList.totalCount == 0 ? NO_INVITATIONS_STATE : SHOW_INVITATIONS_STATE;
+        }
+
+        private function onMyGamesButtonClick(event:MouseEvent, subPageIndex:int):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_INVITATIONS_PAGE, null, true, true));
+        }
+        ]]></mx:Script>
+
+    <c:StkLinkButton label="{resourceManager.getString('common', 'invitations.page.label')}"
+                     click="onMyGamesButtonClick(event, 1)" styleName="largeBoldFont"/>
+
+    <mx:states>
+        <mx:State name="{NO_INVITATIONS_STATE}">
+            <mx:AddChild>
+                <mx:Label text="{resourceManager.getString('common', 'summary.no.invitations')}" styleName="bigFont"/>
+            </mx:AddChild>
+        </mx:State>
+        <mx:State name="{SHOW_INVITATIONS_STATE}">
+            <mx:AddChild>
+                <mx:HorizontalList width="100%" height="270" dataProvider="{_invitationsList.games}" selectable="false" styleName="dashboardList"
+                                   itemRenderer="com.stockholdergame.client.ui.components.list.renderers.InvitationShortListItemRenderer"
+                                   horizontalScrollPolicy="off"/>
+            </mx:AddChild>
+            <mx:AddChild>
+                <mx:Label styleName="bigBoldFont" text="{resourceManager.getString('common', 'total.items', [_invitationsList.totalCount])}"/>
+            </mx:AddChild>
+        </mx:State>
+    </mx:states>
+</mx:VBox>

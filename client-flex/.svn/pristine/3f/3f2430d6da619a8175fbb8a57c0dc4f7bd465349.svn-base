@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+         xmlns:c="com.stockholdergame.client.ui.components.*"
+         currentState="{NO_GAMES_IN_PROGRESS_STATE}">
+
+    <mx:Metadata>
+        [Event(name="playGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showMyGamesPage", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.lite.GamesList;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+
+        private const NO_GAMES_IN_PROGRESS_STATE:String = "noGamesInProgressState";
+        private const SHOW_GAMES_IN_PROGRESS_STATE:String = "showGamesInProgressState";
+
+        [Bindable]
+        private var _gamesInProgressList:GamesList;
+
+        public function get gamesInProgressList():GamesList {
+            return _gamesInProgressList;
+        }
+
+        public function set gamesInProgressList(value:GamesList):void {
+            _gamesInProgressList = value;
+            currentState = _gamesInProgressList == null || _gamesInProgressList.totalCount == 0
+                    ? NO_GAMES_IN_PROGRESS_STATE : SHOW_GAMES_IN_PROGRESS_STATE;
+        }
+
+        private function onMyGamesButtonClick(event:Event):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_GAMES_IN_PROGRESS_PAGE, null, true, true));
+        }
+        ]]></mx:Script>
+
+    <c:StkLinkButton label="{resourceManager.getString('common', 'running.games.title')}"
+                     click="onMyGamesButtonClick(event)" styleName="largeBoldFont"/>
+
+    <mx:states>
+        <mx:State name="{NO_GAMES_IN_PROGRESS_STATE}">
+            <mx:AddChild>
+                <mx:Label text="{resourceManager.getString('common', 'no.games.running')}" styleName="bigFont"/>
+            </mx:AddChild>
+        </mx:State>
+        <mx:State name="{SHOW_GAMES_IN_PROGRESS_STATE}">
+            <mx:AddChild>
+                <mx:HorizontalList width="100%" height="270" dataProvider="{_gamesInProgressList.games}" selectable="false" styleName="dashboardList"
+                                   itemRenderer="com.stockholdergame.client.ui.components.list.renderers.GameShortListItemRenderer"
+                                   horizontalScrollPolicy="off"/>
+            </mx:AddChild>
+            <mx:AddChild>
+                <mx:Label styleName="bigBoldFont" text="{resourceManager.getString('common', 'total.items', [_gamesInProgressList.totalCount])}"/>
+            </mx:AddChild>
+        </mx:State>
+    </mx:states>
+</mx:VBox>

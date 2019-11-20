@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<list:BaseListItemRenderer xmlns:mx="http://www.adobe.com/2006/mxml"
+                           xmlns:list="com.stockholdergame.client.ui.components.list.renderers.*"
+                           xmlns:c="com.stockholdergame.client.ui.components.*"
+                           styleName="listItemContentBox">
+
+    <mx:Metadata>
+        [Event(name="confirmOperation", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="resendVerificationEmail", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="cancelAccountOperation", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.account.AccountOperationDto;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+
+        import mx.controls.listClasses.ListBase;
+        import mx.controls.listClasses.ListBaseContentHolder;
+
+        override public function set styleName(value:Object):void {
+            if (!super.styleName || (!(value is ListBaseContentHolder) && !(value is ListBase))) {
+                super.styleName = value;
+            }
+        }
+
+        private function onConfirmBtnClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.CONFIRM_OPERATION,
+                    {operation:data, verificationCode:verificationCodeText.text}, true, true));
+        }
+
+        private function onResendBtnClick():void {
+            dispatchEvent(new BusinessEvent(BusinessActions.RESEND_VERIFICATION_EMAIL, data.operationType, true, true));
+            resendBtn.enabled = false; // todo - button becomes unavailable till user relogin
+        }
+
+        private function onCancelOperationBtnClick():void {
+            dispatchEvent(new BusinessEvent(BusinessActions.CANCEL_ACCOUNT_OPERATION, data.operationType, true, true));
+        }
+        ]]></mx:Script>
+
+    <mx:DateFormatter id="dateFormatter" formatString="MMM. D, YYYY at H:NN"/>
+
+    <mx:VBox width="100%" height="100%">
+
+        <mx:Label text="{resourceManager.getString('common', data.operationDescriptionKey)}" styleName="bigBoldFont"/>
+        <mx:HBox width="100%" visible="{AccountOperationDto(data).operationType == AccountOperationDto.OPER_TYPE_EMAIL_CHANGED}"
+                 includeInLayout="{AccountOperationDto(data).operationType == AccountOperationDto.OPER_TYPE_EMAIL_CHANGED}">
+            <mx:Form width="50%" paddingBottom="0" paddingLeft="0" paddingRight="0" paddingTop="0">
+                <mx:FormItem label="{resourceManager.getString('common', 'old.value.label')}">
+                    <mx:Label text="{data.oldValue}"/>
+                </mx:FormItem>
+                <mx:FormItem label="{resourceManager.getString('common', 'new.value.label')}">
+                    <mx:Label text="{data.newValue}"/>
+                </mx:FormItem>
+            </mx:Form>
+            <mx:Form width="50%" paddingBottom="0" paddingLeft="0" paddingRight="0" paddingTop="0">
+                <mx:FormItem label="{resourceManager.getString('common', 'initiation.date.label')}">
+                    <mx:Label text="{dateFormatter.format(data.initiationDate)}"/>
+                </mx:FormItem>
+                <mx:FormItem label="{resourceManager.getString('common', 'expiration.date.label')}">
+                    <mx:Label text="{dateFormatter.format(data.expirationDate)}"/>
+                </mx:FormItem>
+            </mx:Form>
+        </mx:HBox>
+
+        <mx:Form width="100%">
+            <mx:FormItem width="100%" label="{resourceManager.getString('common', 'secret.key.label')}"
+                         required="true" direction="horizontal" height="36"
+                         includeInLayout="{!data.confirmed}" visible="{!data.confirmed}">
+                <mx:TextInput id="verificationCodeText" width="100%"/>
+                <c:StkButton label="{resourceManager.getString('common', 'confirm.button')}"
+                             id="confirmBtn"
+                             click="onConfirmBtnClick(event)"/>
+            </mx:FormItem>
+            <mx:FormItem width="100%" includeInLayout="{data.confirmed}" visible="{data.confirmed}">
+                <mx:Label text="{resourceManager.getString('common', 'confirmed.label')}" styleName="greenBigBoldFont"/>
+            </mx:FormItem>
+        </mx:Form>
+
+        <mx:HBox width="100%">
+            <!-- todo - do we really need this? -->
+            <!--<mx:LinkButton id="cancelOperationBtn"
+                           label="{resourceManager.getString('common', 'cancel.operation.button')}"
+                           click="onCancelOperationBtnClick()"/>-->
+            <c:StkLinkButton id="resendBtn" label="{resourceManager.getString('common', 'resend.email.button')}"
+                             click="onResendBtnClick()"/>
+        </mx:HBox>
+
+    </mx:VBox>
+</list:BaseListItemRenderer>

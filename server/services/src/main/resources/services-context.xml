@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.2.xsd
+           http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.2.xsd
+           http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.2.xsd
+           http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.2.xsd">
+
+    <import resource="classpath:/dao-context.xml"/>
+    <import resource="classpath:/gamebot-context.xml"/>
+
+    <aop:aspectj-autoproxy/>
+
+    <context:annotation-config/>
+    <context:component-scan base-package="com.stockholdergame.server.services"/>
+
+    <tx:annotation-driven transaction-manager="transactionManager"/>
+
+    <util:properties id="mailConfiguration" location="classpath:mail.properties"/>
+
+    <bean id="serviceConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="ignoreUnresolvablePlaceholders" value="true"/>
+        <property name="locations">
+            <list>
+                <value>classpath:services.properties</value>
+                <value>file:${config.dir}/application.properties</value>
+            </list>
+        </property>
+        <property name="ignoreResourceNotFound" value="true"/>
+    </bean>
+
+    <bean id="adminEmail" class="java.lang.String">
+        <constructor-arg value="admin@stockholdergame.com"/>
+    </bean>
+
+    <bean id="mapper" class="org.dozer.DozerBeanMapper">
+        <property name="mappingFiles" value="dto-mapping.xml"/>
+    </bean>
+
+    <bean class="com.stockholdergame.server.dto.mapper.DtoMapper" factory-method="getInstance">
+        <property name="mapper" ref="mapper"/>
+    </bean>
+
+    <bean id="mailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+        <property name="javaMailProperties" ref="mailConfiguration"/>
+        <property name="password" value="generidze"/>
+    </bean>
+
+    <bean id="filterRemovedUserAspect" class="com.stockholdergame.server.aspects.FilterRemovedUserAspect"/>
+</beans>

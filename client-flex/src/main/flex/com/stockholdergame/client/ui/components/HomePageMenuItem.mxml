@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:c="com.stockholdergame.client.ui.components.*"
+         currentState="{NO_COUNTER}" horizontalAlign="center" verticalAlign="middle" horizontalGap="5">
+
+    <mx:Metadata>
+        [Event(name="itemClick", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+
+        private const NO_COUNTER:String = "noCounter";
+        private const SHOW_COUNTER:String = "showCounter";
+
+        [Bindable]
+        public var itemLabel:String;
+
+        [Bindable]
+        public var counterLimit:int = 0;
+
+        [Bindable]
+        private var _counterValue:int = 0;
+
+        public function get counterValue():int {
+            return _counterValue;
+        }
+
+        public function set counterValue(value:int):void {
+            _counterValue = value;
+            currentState = _counterValue <= counterLimit ? NO_COUNTER : SHOW_COUNTER;
+        }
+        ]]></mx:Script>
+
+    <mx:states>
+        <mx:State name="{NO_COUNTER}">
+        </mx:State>
+        <mx:State name="{SHOW_COUNTER}">
+            <!--<mx:AddChild position="after" relativeTo="{linkButton}">
+                <mx:Label text="( {_counterValue} )" styleName="bigBoldFontLabel" width="100%" textAlign="center"/>
+            </mx:AddChild>-->
+
+            <!--<mx:AddChild position="before" relativeTo="{linkButton}">
+                <mx:HBox horizontalAlign="center" verticalAlign="middle" styleName="boxAsCircle" height="28" width="28">
+                    <mx:Label text="{_counterValue}" styleName="boldFontLabel" color="white" width="100%" textAlign="center"/>
+                </mx:HBox>
+            </mx:AddChild>-->
+        </mx:State>
+    </mx:states>
+
+    <c:StkLinkButton id="linkButton" label="{itemLabel}" click="{dispatchEvent(new BusinessEvent(BusinessActions.ITEM_CLICK))}" styleName="largeBoldFont"/>
+
+</mx:HBox>

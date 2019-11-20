@@ -1,0 +1,119 @@
+<?xml version="1.0"?>
+<mx:Panel xmlns:mx="http://www.adobe.com/2006/mxml"
+          xmlns:v="com.stockholdergame.client.ui.validators.*" xmlns:c="com.stockholdergame.client.ui.components.*"
+          title="{resourceManager.getString('common', 'sign.up.title')}"
+          width="450">
+
+    <mx:Metadata>
+        [Event(name="signUp", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="getCaptcha", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="checkUserNameExistence", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="checkEmailUsage", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showSignInPage", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.RegistrationDto;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+
+        import mx.resources.ResourceManager;
+
+        [Bindable]
+        private var registrationDto:RegistrationDto = new RegistrationDto();
+
+        private function handleSignUp(event:MouseEvent):void {
+            registrationDto.language = ResourceManager.getInstance().localeChain[0];
+            dispatchEvent(new BusinessEvent(BusinessActions.SIGN_UP, registrationDto));
+        }
+
+        private function handleCheckUserName(event:FocusEvent):void {
+            var newUserName:String = (event.target as TextField).text;
+            if (newUserName.length > 2 && userNameValidator.validate()) {
+                dispatchEvent(new BusinessEvent(BusinessActions.CHECK_USER_NAME_EXISTENCE, newUserName));
+            }
+        }
+
+        private function handleCancel(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_SIGN_IN_PAGE));
+        }
+
+        private function handleCheckEmail(event:FocusEvent):void {
+            var email:String = (event.target as TextField).text;
+            if (email.length > 0 && userEmailValidator.validate()) {
+                dispatchEvent(new BusinessEvent(BusinessActions.CHECK_EMAIL_USAGE, email));
+            }
+        }
+
+        private function performValidation():void {
+            userPasswordValidator.validate();
+        }
+
+        public function resetForm():void {
+            newUserNameTxt.text = "";
+            newUserEmailTxt.text = "";
+            newUserPasswordTxt.text = "";
+            retypeNewUserPasswordTxt.text = "";
+            // CAPTCHA is switched off.
+            //loadCaptcha();
+        }
+
+        private function loadCaptcha():void {
+            dispatchEvent(new BusinessEvent(BusinessActions.GET_CAPTCHA));
+        }
+
+        private function onRefreshCaptchaBtn():void {
+            loadCaptcha();
+        }
+        ]]></mx:Script>
+
+    <mx:Binding source="newUserNameTxt.text" destination="registrationDto.userName"/>
+    <mx:Binding source="newUserPasswordTxt.text" destination="registrationDto.password"/>
+    <mx:Binding source="newUserEmailTxt.text" destination="registrationDto.email"/>
+    <!--<mx:Binding source="captchaAnswerTxt.text" destination="registrationDto.captchaAnswer"/>-->
+
+    <mx:StringValidator id="userNameValidator" source="{newUserNameTxt}" property="text" maxLength="30" minLength="3"/>
+    <!--<mx:StringValidator id="captchaAnswerValidator" source="{captchaAnswerTxt}" property="text" maxLength="100" minLength="1"/>-->
+    <mx:EmailValidator id="userEmailValidator" source="{newUserEmailTxt}" property="text"/>
+    <v:PasswordValidator id="userPasswordValidator" source="{newUserPasswordTxt}"
+                         retypeSource="{retypeNewUserPasswordTxt}"
+                         property="text" retypeProperty="text"
+                         minPasswordLength="6" maxPasswordLength="12"/>
+
+    <mx:Form defaultButton="{signUpButton}" id="registrationForm" width="100%">
+        <mx:FormItem label="{resourceManager.getString('common', 'username.label')}"
+                     required="true" width="100%">
+            <mx:TextInput id="newUserNameTxt" focusOut="handleCheckUserName(event)" width="100%" maxChars="24"/>
+        </mx:FormItem>
+        <mx:FormItem label="{resourceManager.getString('common', 'user.email.label')}"
+                     required="true" width="100%">
+            <mx:TextInput id="newUserEmailTxt" focusOut="handleCheckEmail(event)" width="100%"/>
+        </mx:FormItem>
+        <mx:FormItem label="{resourceManager.getString('common', 'password.label')}"
+                     required="true" width="100%">
+            <mx:TextInput id="newUserPasswordTxt" displayAsPassword="true" width="100%" change="performValidation()" maxChars="12"/>
+        </mx:FormItem>
+        <mx:FormItem label="{resourceManager.getString('common', 'retype.password.label')}"
+                     required="true" width="100%">
+            <mx:TextInput id="retypeNewUserPasswordTxt" displayAsPassword="true" width="100%" change="performValidation()" maxChars="12"/>
+        </mx:FormItem>
+    </mx:Form>
+    <!-- CAPTCHA is switched off -->
+    <!--<mx:HBox width="100%" verticalAlign="middle" paddingLeft="15" paddingRight="15" paddingBottom="15">
+        <mx:Image id="captchaImage" width="200" height="70"/>
+        <mx:VBox height="100%" horizontalAlign="center" width="100%">
+            <mx:TextInput id="captchaAnswerTxt" width="100%"/>
+            <mx:LinkButton id="refreshCaptchaBtn" label="{resourceManager.getString('login', 'refresh.captcha.label')}"
+                           click="onRefreshCaptchaBtn()"/>
+        </mx:VBox>
+    </mx:HBox>-->
+    <mx:ControlBar width="100%">
+        <c:StkLinkButton label="{resourceManager.getString('common', 'return.to.signin.label')}" id="cancelButton"
+                         click="handleCancel(event)"/>
+        <mx:Spacer width="100%"/>
+        <c:StkButton label="{resourceManager.getString('common', 'sign.up.button')}" id="signUpButton"
+                     click="handleSignUp(event)"/>
+    </mx:ControlBar>
+</mx:Panel>

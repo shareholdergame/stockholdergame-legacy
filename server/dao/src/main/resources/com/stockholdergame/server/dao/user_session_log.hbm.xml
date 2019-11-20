@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC
+    "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+    "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+
+<hibernate-mapping>
+    <query name="UserSessionLog.findLastSession">
+        select usl from UserSessionLog usl
+        where usl.id = (select max(usl1.id) from UserSessionLog usl1 where usl1.gamerId = ? and usl1.endTime != null)
+    </query>
+    <query name="UserSessionLog.findUnclosedLogRecords">
+        select usl from UserSessionLog usl where usl.gamerId = ? and usl.endTime = null
+    </query>
+</hibernate-mapping>

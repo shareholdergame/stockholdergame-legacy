@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" height="24" horizontalGap="5" paddingLeft="2">
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.SharePriceDto;
+
+        import mx.utils.ColorUtil;
+
+        [Bindable]
+        public var maxSharePrice:int;
+
+        [Bindable]
+        private var _sharePrice:SharePriceDto;
+
+        public function get sharePrice():SharePriceDto {
+            return _sharePrice;
+        }
+
+        public function set sharePrice(value:SharePriceDto):void {
+            _sharePrice = value;
+        }
+        ]]></mx:Script>
+
+    <mx:HBox width="40">
+        <mx:Label text="{_sharePrice.price}" textAlign="right" styleName="boldFont"/>
+        <!--<mx:Image source="@Embed(source='/images/up-arrow.png')"
+                  includeInLayout="{_sharePrice.oldPrice &lt; _sharePrice.price}"
+                  visible="{_sharePrice.oldPrice &lt; _sharePrice.price}"/>
+        <mx:Image source="@Embed(source='/images/down-arrow.png')"
+                  includeInLayout="{_sharePrice.oldPrice > _sharePrice.price}"
+                  visible="{_sharePrice.oldPrice > _sharePrice.price}"/>-->
+    </mx:HBox>
+    <mx:HBox width="500" horizontalAlign="left" borderColor="{StyleManager.getColorName(_sharePrice.color)}"
+             horizontalScrollPolicy="off" height="100%" styleName="light2Box"
+             backgroundColor="{ColorUtil.adjustBrightness2(StyleManager.getColorName(_sharePrice.color), 85)}">
+        <mx:HBox backgroundColor="{StyleManager.getColorName(_sharePrice.color)}"
+                 borderColor="{StyleManager.getColorName(_sharePrice.color)}" height="22"
+                 width="{500 / maxSharePrice * _sharePrice.price}" styleName="lightBox"/>
+    </mx:HBox>
+</mx:HBox>

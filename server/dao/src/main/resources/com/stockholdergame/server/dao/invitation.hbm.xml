@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC
+    "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+    "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+
+<hibernate-mapping>
+    <query name="Invitation.findCreatedInvitationByGameIdAndInviteeName">
+        select i from Invitation i where i.gameId = ?
+        and i.inviteeId = (select g.id from GamerAccount g where lower(g.userName) = lower(?))
+        and i.status = com.stockholdergame.server.model.game.InvitationStatus.CREATED
+    </query>
+    <query name="Invitation.findByGameId">
+        select i from Invitation i where i.gameId = ?
+    </query>
+    <query name="Invitation.countMyInvitations">
+        select count(i) from Invitation i where i.inviterId = ?
+        and i.status = com.stockholdergame.server.model.game.InvitationStatus.CREATED
+    </query>
+    <query name="Invitation.countInvitationsForMe">
+        select count(i) from Invitation i where i.inviteeId = ?
+        and i.status = com.stockholdergame.server.model.game.InvitationStatus.CREATED
+    </query>
+    <query name="Invitation.countInvitationsByGameId">
+        select count(i) from Invitation i where i.gameId = ? and i.status = ?
+    </query>
+    <query name="Invitation.findExpired">
+        <![CDATA[
+        select i from Invitation i where i.status = com.stockholdergame.server.model.game.InvitationStatus.CREATED
+        and i.expiredTime < ?1
+        ]]>
+    </query>
+    <query name="Invitation.findByInviterId">
+        select i from Invitation i where i.inviterId = ?
+        and i.status = com.stockholdergame.server.model.game.InvitationStatus.CREATED
+    </query>
+</hibernate-mapping>

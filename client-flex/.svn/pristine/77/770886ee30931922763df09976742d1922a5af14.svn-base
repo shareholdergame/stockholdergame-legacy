@@ -1,0 +1,288 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+         xmlns:c="com.stockholdergame.client.ui.components.*"
+         xmlns:game="com.stockholdergame.client.ui.components.game.*"
+         implements="com.stockholdergame.client.ui.components.page.IRefreshablePage, com.stockholdergame.client.ui.components.page.IGamePage"
+         styleName="page" hide="onHide(event)">
+
+    <mx:Metadata>
+        [Event(name="refreshPageData", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="doMove", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="loadGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="closeGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="viewGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showGameChatWindow", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showGameEventPopup", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.CompetitorDto;
+        import com.stockholdergame.client.model.dto.game.GameDto;
+        import com.stockholdergame.client.model.dto.game.RelatedGame;
+        import com.stockholdergame.client.model.dto.game.variant.GameVariantHolder;
+        import com.stockholdergame.client.model.session.Session;
+        import com.stockholdergame.client.model.session.SessionManager;
+        import com.stockholdergame.client.ui.components.*;
+        import com.stockholdergame.client.ui.components.game.CardItem;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+        import com.stockholdergame.client.ui.events.BuySellShareEvent;
+        import com.stockholdergame.client.ui.events.CardEvent;
+        import com.stockholdergame.client.util.StringUtil;
+
+        import mx.collections.ArrayCollection;
+
+        import mx.containers.Box;
+        import mx.containers.BoxDirection;
+        import mx.controls.Alert;
+        import mx.core.Container;
+        import mx.core.DragSource;
+        import mx.events.FlexEvent;
+        import mx.events.IndexChangedEvent;
+        import mx.managers.DragManager;
+
+        [Bindable]
+        private var _game:GameDto;
+
+        public function get game():GameDto {
+            return _game;
+        }
+
+        public function set game(value:GameDto):void {
+            _game = value;
+        }
+
+        private static function handleMouseMove(event:MouseEvent):void {
+            var dragInitiator:CardItem = CardItem(event.currentTarget);
+            if (!dragInitiator.isApplied) {
+                var ds:DragSource = new DragSource();
+                ds.addData(dragInitiator, "card");
+                DragManager.doDrag(dragInitiator, ds, event);
+            }
+        }
+
+        private function handleBuySellShare(event:BuySellShareEvent):void {
+            competitorsRep.dataProvider = _game.competitors;
+        }
+
+        private function onCloseGameBtn(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.CLOSE_GAME));
+        }
+
+        private function onGameChatBtn(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_GAME_CHAT_WINDOW, game));
+        }
+
+        private function onHide(event:FlexEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.CLOSE_GAME));
+        }
+
+        private function onCompetitorSelected(competitorDto:CompetitorDto):void {
+            accountsStack.selectedChild = Container(accountsStack.getChildByName(competitorDto.userName));
+        }
+
+        private function onViewStackChange(event:IndexChangedEvent):void {
+            var accountItem:CompetitorAccountItem = CompetitorAccountItem(accountsStack.getChildAt(event.newIndex));
+            highlightUserTotalBox(accountItem);
+        }
+
+        private function highlightUserTotalBox(accountItem:CompetitorAccountItem):void {
+            if (accountItem != null) {
+                var accountItemName:String = accountItem.name;
+                var userTotalBoxes:Array = totalBox.getChildren();
+                for each (var box:Box in userTotalBoxes) {
+                    if (box.label == accountItemName) {
+                        box.setStyle("borderColor", StyleManager.getColorName("#6F7AB6"));
+                        box.buttonMode = false;
+                    } else {
+                        box.setStyle("borderColor", StyleManager.getColorName("#E3E2D3"));
+                        box.buttonMode = true;
+                    }
+                }
+            }
+        }
+
+        private function onRollOver(event:MouseEvent):void {
+            var box:Box = Box(event.currentTarget);
+            var accountItem:CompetitorAccountItem = CompetitorAccountItem(accountsStack.selectedChild);
+            if (accountItem.name != box.label) {
+                box.setStyle("borderColor", StyleManager.getColorName("#ABB6F6"));
+            }
+        }
+
+        private function onRollOut(event:MouseEvent):void {
+            var box:Box = Box(event.currentTarget);
+            highlightUserTotalBox(CompetitorAccountItem(accountsStack.selectedChild));
+        }
+
+        public function refreshData():void {
+            dispatchEvent(new BusinessEvent(BusinessActions.REFRESH_PAGE_DATA));
+        }
+
+        public function selectCurrentMoverAccount():void {
+            accountsStack.selectedIndex = game.gameStatus == GameDto.RUNNING ? game.currentCompetitorNumber - 1 : 0;
+            highlightUserTotalBox(CompetitorAccountItem(accountsStack.selectedChild));
+        }
+
+        private function onRelatedGameBtnClick(relatedGame:RelatedGame):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.LOAD_GAME, relatedGame.gameId));
+        }
+
+        public function clearData():void {
+        }
+
+        private function isPlayWithRealUser():Boolean {
+            var competitors:ArrayCollection = _game.competitors;
+            for each (var competitorDto:CompetitorDto in competitors) {
+                if (competitorDto.bot) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private function onCardApplied(event:CardEvent):void {
+            competitorsRep.dataProvider = _game.competitors;
+        }
+
+        private function onCardRolledBack(event:CardEvent):void {
+            competitorsRep.dataProvider = _game.competitors;
+        }
+
+        ]]></mx:Script>
+
+    <mx:DateFormatter id="dateFormatter" formatString="{resourceManager.getString('common', 'datetime.format')}"/>
+
+    <mx:HBox width="100%" height="36" styleName="pageHeaderBox">
+        <mx:Label id="gameVariantNameLabel"
+                  text="{resourceManager.getString('common', _game.gameVariantName)}" styleName="lightLargeBoldFont"/>
+        <mx:Label text="{resourceManager.getString('common', 'moves.number.label', [_game.movesQuantity])}"
+                  styleName="lightLargeBoldFont"/>
+        <!--<mx:Image source="@Embed('/images/rounding-up-white.png')" visible="{_game.rounding == GameDto.ROUND_UP}"
+                  includeInLayout="{_game.rounding == GameDto.ROUND_UP}"
+                  toolTip="{resourceManager.getString('common', 'rounding.label', [resourceManager.getString('common', _game.rounding)])}"/>
+        <mx:Image source="@Embed('/images/rounding-down-white.png')" visible="{_game.rounding == GameDto.ROUND_DOWN}"
+                  includeInLayout="{_game.rounding == GameDto.ROUND_DOWN}"
+                  toolTip="{resourceManager.getString('common', 'rounding.label', [resourceManager.getString('common', _game.rounding)])}"/>-->
+        <mx:Image source="@Embed('/images/switch-white.png')" visible="{_game.switchMoveOrder}" includeInLayout="{_game.switchMoveOrder}"
+                  toolTip="{resourceManager.getString('common', 'switch.move.order.label')}"/>
+        <mx:HBox>
+            <mx:Label text="{resourceManager.getString('common', 'game.letter.label', [_game.gameLetter])}"
+                      styleName="lightLargeBoldFont" visible="{_game.switchMoveOrder}"/>
+            <mx:Repeater id="relatedGamesRep" dataProvider="{_game.relatedGames}">
+                <c:StkLinkButton label="{relatedGamesRep.currentItem.gameLetter}"
+                                 click="onRelatedGameBtnClick(event.currentTarget.getRepeaterItem())"
+                                 styleName="largeBoldFont"/>
+            </mx:Repeater>
+        </mx:HBox>
+        <mx:Spacer width="15"/>
+        <mx:HBox width="100%" visible="{_game.gameStatus == GameDto.RUNNING}"
+                 includeInLayout="{_game.gameStatus == GameDto.RUNNING}">
+            <mx:Label text="{resourceManager.getString('common', 'current.move.label', [_game.currentMoveNumber])}"
+                      styleName="lightXLargeBoldFont"/>
+            <mx:Label visible="{_game.movesQuantity == _game.currentMoveNumber}"
+                      includeInLayout="{_game.movesQuantity == _game.currentMoveNumber}"
+                      text="{resourceManager.getString('common', 'final.move.label')}" styleName="attentionLabel"/>
+        </mx:HBox>
+        <mx:HBox width="100%" visible="{_game.gameStatus == GameDto.FINISHED}"
+                 includeInLayout="{_game.gameStatus == GameDto.FINISHED}"
+                 styleName="lightBox">
+            <c:StkLinkButton label="{resourceManager.getString('common', 'view.game.statistics.button')}"
+                             styleName="largeBoldFont"
+                             click="dispatchEvent(new BusinessEvent(BusinessActions.VIEW_GAME, _game.id))"/>
+        </mx:HBox>
+        <mx:Spacer width="100%"/>
+        <mx:VBox>
+            <mx:Label
+                    text="{resourceManager.getString('common', 'started.at.label', [dateFormatter.format(_game.startedTime)])}"
+                    styleName="lightSmallFont"/>
+            <mx:Label
+                    text="{resourceManager.getString('common', 'finished.at.label', [dateFormatter.format(_game.finishedTime)])}"
+                    visible="{_game.gameStatus == GameDto.FINISHED}"
+                    includeInLayout="{_game.gameStatus == GameDto.FINISHED}"
+                    styleName="lightSmallFont"/>
+        </mx:VBox>
+        <c:StkButton id="gameChatBtn" styleName="chatButton"
+                     toolTip="{resourceManager.getString('common', 'game.chat.button')}"
+                     visible="{isPlayWithRealUser()}" includeInLayout="{isPlayWithRealUser()}"
+                     click="onGameChatBtn(event)"/>
+        <c:StkButton id="closeGameBtn" styleName="closeButton"
+                     toolTip="{resourceManager.getString('common', 'close.button')}"
+                     click="onCloseGameBtn(event)"/>
+    </mx:HBox>
+
+    <mx:VBox width="100%" height="100%" styleName="pageContentBox">
+        <mx:HBox width="100%" styleName="containerWithGaps">
+            <mx:VBox width="560" height="100%" styleName="listItem">
+                <mx:HBox width="100%" height="40">
+                    <mx:Label text="{resourceManager.getString('common', 'share.price.label')}"
+                              styleName="bigBoldFont"/>
+                </mx:HBox>
+                <mx:VBox width="100%" height="100%" styleName="listItemContentBox" verticalGap="5">
+                    <mx:Repeater id="sharePriceRep" dataProvider="{_game.currentSharePrices}">
+                        <game:SharePriceScale maxSharePrice="{GameVariantHolder.getMaxSharePrice(_game.gameVariantId)}"
+                                           sharePrice="{sharePriceRep.currentItem}" width="100%"/>
+                    </mx:Repeater>
+                </mx:VBox>
+                <mx:HBox width="100%" height="24">
+                    <mx:Spacer width="40"/>
+                    <mx:Label text="{GameVariantHolder.getSharePriceStep(_game.gameVariantId)}" styleName="boldFont"/>
+                    <mx:Spacer width="440"/>
+                    <mx:Label text="{GameVariantHolder.getMaxSharePrice(_game.gameVariantId)}" styleName="boldFont"/>
+                </mx:HBox>
+            </mx:VBox>
+
+            <mx:HBox height="100%" width="100%" id="totalBox" styleName="containerWithGaps">
+                <mx:Repeater id="competitorsRep" dataProvider="{_game.competitors}">
+                    <mx:VBox height="100%" percentWidth="{100 / _game.competitors.length}"
+                             buttonMode="true" click="onCompetitorSelected(event.currentTarget.getRepeaterItem())"
+                             label="{CompetitorDto(competitorsRep.currentItem).userName}"
+                             borderColor="{StyleManager.getColorName(competitorsRep.currentIndex == accountsStack.selectedIndex ? '#6F7AB6' : '#E3E2D3')}"
+                             borderThickness="2"
+                             rollOver="onRollOver(event)" rollOut="onRollOut(event)"
+                             styleName="{CompetitorDto(competitorsRep.currentItem).winner ? 'winnerBox' : 'listItem'}">
+                        <mx:VBox width="100%" height="39" styleName="bottomAlignedContainer">
+                            <mx:Image source="@Embed(source='/images/curr-user-pointer.png')"
+                                      visible="{StyleManager.getColorName(competitorsRep.currentItem.moveOrder == _game.currentCompetitorNumber)
+                                                                                                      &amp;&amp; _game.gameStatus != GameDto.FINISHED}"
+                                      includeInLayout="{StyleManager.getColorName(competitorsRep.currentItem.moveOrder == _game.currentCompetitorNumber)
+                                                                                                      &amp;&amp; _game.gameStatus != GameDto.FINISHED}"/>
+                            <c:UserView user="{CompetitorDto(competitorsRep.currentItem)}"
+                                        width="{competitorsRep.count > 3 ? 48 : 72}"
+                                        viewDirection="{BoxDirection.HORIZONTAL}" noAvatar="true"
+                                        userNameLabelStyleName="{CompetitorDto(competitorsRep.currentItem).out ? 'competitorOutFont' : (CompetitorDto(competitorsRep.currentItem).bot ? 'botNameNormalFont' : 'userNameNormalFont')}"/>
+                        </mx:VBox>
+                        <mx:VBox height="100%" styleName="listItemContentBox" verticalGap="5"
+                                 width="100%">
+                            <mx:Repeater id="shareQuantitiesRep"
+                                         dataProvider="{competitorsRep.currentItem.currentShareQuantities}">
+                                <mx:Label
+                                        text="{shareQuantitiesRep.currentItem.quantity + (shareQuantitiesRep.currentItem.canRepurchase > 0 ? ' (+' + shareQuantitiesRep.currentItem.canRepurchase + ')' : '')}"
+                                        styleName="{shareQuantitiesRep.currentItem.isWithdrawal ? 'normalAttentionFont' : 'normalFont'}"
+                                        toolTip="{shareQuantitiesRep.currentItem.isWithdrawal ? resourceManager.getString('common', 'withdrawal.tooltip') : ''}"
+                                        height="24"/>
+                            </mx:Repeater>
+                        </mx:VBox>
+                        <mx:HBox width="100%" height="23">
+                            <mx:Label text="{competitorsRep.currentItem.totalFunds}" styleName="boldFont"/>
+                        </mx:HBox>
+                    </mx:VBox>
+                </mx:Repeater>
+            </mx:HBox>
+        </mx:HBox>
+
+        <mx:ViewStack height="100%" width="100%" id="accountsStack" change="onViewStackChange(event)"
+                      styleName="light2Box"
+                      creationComplete="selectCurrentMoverAccount()">
+            <mx:Repeater id="accountRep" dataProvider="{_game.competitors}">
+                <game:CompetitorAccountItem name="{accountRep.currentItem.userName}" height="100%" width="100%"
+                                         verticalAlign="top" competitorAccount="{accountRep.currentItem}"
+                                            doMove="dispatchEvent(event)"
+                                         buySellShare="handleBuySellShare(event)"
+                                         cardApplied="onCardApplied(event)" cardRolledBack="onCardRolledBack(event)"/>
+            </mx:Repeater>
+        </mx:ViewStack>
+    </mx:VBox>
+
+</mx:VBox>

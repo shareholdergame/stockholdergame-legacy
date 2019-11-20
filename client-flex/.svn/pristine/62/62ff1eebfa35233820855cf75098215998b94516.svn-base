@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:game="com.stockholdergame.client.ui.components.game.*"
+         implements="mx.controls.listClasses.IListItemRenderer, mx.controls.listClasses.IDropInListItemRenderer"
+         paddingTop="5" paddingLeft="5" paddingRight="5" paddingBottom="5">
+    <mx:Script><![CDATA[
+        import mx.controls.listClasses.BaseListData;
+
+        private var _listData:BaseListData;
+
+        public function get listData():BaseListData {
+            return _listData;
+        }
+
+        public function set listData(value:BaseListData):void {
+            this._listData = value;
+        }
+        ]]></mx:Script>
+
+    <game:CardItem dataProvider="{{card:data, shares:null}}"/>
+</mx:HBox>

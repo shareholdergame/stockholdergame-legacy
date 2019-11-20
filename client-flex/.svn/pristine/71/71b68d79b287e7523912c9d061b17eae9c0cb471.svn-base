@@ -1,0 +1,157 @@
+<?xml version="1.0"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml"
+         xmlns:c="com.stockholdergame.client.ui.components.*"
+         height="24" styleName="containerWithGaps">
+
+    <mx:Metadata>
+        [Event(name="signOut", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showSendMessageDialog", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="changePage", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showRulesPage", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+
+        import mx.collections.ArrayCollection;
+        import mx.containers.ViewStack;
+        import mx.controls.Alert;
+        import mx.controls.LinkButton;
+        import mx.controls.VRule;
+        import mx.core.Container;
+        import mx.events.FlexEvent;
+
+        [Bindable]
+        public var newMessagesCounter:int;
+
+        [Bindable]
+        public var userName:String;
+
+        [Bindable]
+        private var _pageStack:ViewStack;
+
+        private var prevSelectedMenuItem:LinkButton;
+
+        private var selectedMenuItem:LinkButton;
+
+        [Bindable]
+        public var menuConfiguration:Array;
+
+        private var menuItems:ArrayCollection = new ArrayCollection();
+
+        public function get pageStack():ViewStack {
+            return _pageStack;
+        }
+
+        public function set pageStack(value:ViewStack):void {
+            _pageStack = value;
+            _pageStack.addEventListener(Event.CHANGE, onPageStackChange);
+            _pageStack.addEventListener(FlexEvent.CREATION_COMPLETE, initMenu);
+        }
+
+        override protected function resourcesChanged():void {
+            super.resourcesChanged();
+            if (menuConfiguration != null && _pageStack != null) {
+                for (var i:int = 0; i < menuConfiguration.length; i++) {
+                    var menuConfigItem:Object = menuConfiguration[i];
+                    menuItems.getItemAt(i).label = getLabel(menuConfigItem);
+                }
+            }
+        }
+
+        private function initMenu(event:FlexEvent):void {
+            var i:int = 0;
+            for each (var item:Object in menuConfiguration) {
+                if (i > 0) {
+                    var vRule:VRule = new VRule();
+                    vRule.percentHeight = 80;
+                    pagesMenuBox.addChild(vRule);
+                }
+                var label:String = getLabel(item);
+                var action:String = item.action;
+
+                (function (_action:String):void {
+
+                    var linkButton:LinkButton = new LinkButton();
+                    linkButton.label = label;
+                    linkButton.addEventListener(MouseEvent.CLICK, function (event:MouseEvent):void {
+                        dispatchEvent(new BusinessEvent(BusinessActions.CHANGE_PAGE, _action));
+                    });
+                    pagesMenuBox.addChild(linkButton);
+                    menuItems.addItem(linkButton);
+                    i++;
+                })(action);
+            }
+            prevSelectedMenuItem = LinkButton(menuItems.getItemAt(0));
+            prevSelectedMenuItem.enabled = false;
+            selectedMenuItem = prevSelectedMenuItem;
+        }
+
+        private function getLabel(item:Object):String {
+            var pages:Array = _pageStack.getChildren();
+            for each (var container:Container in pages) {
+                if (container.id == item.componentId) {
+                    return container.label;
+                }
+            }
+            return item.label != null ? resourceManager.getString('common', item.label) : "?";
+        }
+
+        private function onPageStackChange(event:Event):void {
+            var selectedPage:Container = _pageStack.selectedChild;
+            var selectedPageId:String = selectedPage.id;
+            var menuItemIndex:int = getMenuItemIndex(selectedPageId);
+
+            if (selectedMenuItem != null) {
+                prevSelectedMenuItem = selectedMenuItem;
+            }
+            prevSelectedMenuItem.enabled = true;
+            if (menuItemIndex < 0 || menuItemIndex >= menuItems.length) {
+                return;
+            }
+            selectedMenuItem = LinkButton(menuItems.getItemAt(menuItemIndex));
+            selectedMenuItem.enabled = false;
+        }
+
+        private function getMenuItemIndex(selectedPageId:String):int {
+            for (var i:int = 0; i < menuConfiguration.length; i++) {
+                var menuConfigItem:Object = menuConfiguration[i];
+                if (menuConfigItem.componentId == selectedPageId) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        private function handleSignOut(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SIGN_OUT));
+        }
+
+        private function onMessagesClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_SEND_MESSAGE_DIALOG))
+        }
+
+        private function onGameRulesBtnClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_RULES_PAGE));
+        }
+        ]]></mx:Script>
+
+    <mx:HBox id="pagesMenuBox" height="100%" horizontalGap="0" verticalAlign="middle" visible="{_pageStack.selectedIndex > 0}"/>
+
+    <mx:Spacer width="30"/>
+    <c:StkLinkButton id="rulesBtn" label="{resourceManager.getString('common', 'game.rules.page.title')}"
+                     click="onGameRulesBtnClick(event)" visible="{_pageStack.selectedIndex > 0}"/>
+    <mx:Spacer width="100%"/>
+    <c:StkLinkButton id="messagesBtn" label="{resourceManager.getString('common', 'messages.button.label')}"
+                     click="onMessagesClick(event)"/>
+    <c:EventsCounter value="{newMessagesCounter}" visible="{newMessagesCounter > 0}" styleName="messagesCounterStyle"/>
+    <mx:Spacer width="10"/>
+    <mx:Label id="userNameLbl" htmlText="{resourceManager.getString('common', 'logged.in.label', [userName])}"
+              visible="{_pageStack.selectedIndex > 0}"/>
+    <c:StkLinkButton id="signOutBtn" label="{resourceManager.getString('common', 'sign.out.label')}"
+                     click="handleSignOut(event)"/>
+
+</mx:HBox>

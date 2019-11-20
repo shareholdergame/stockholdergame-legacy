@@ -1,0 +1,20 @@
+<ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="ehcache.xsd">
+
+    <diskStore path="java.io.tmpdir/StockholdergameServerCache" />
+
+    <defaultCache maxElementsInMemory="10000" eternal="true" overflowToDisk="true" memoryStoreEvictionPolicy="LRU"/>
+
+    <cache eternal="false" maxElementsInMemory="10" name="com.stockholdergame.server.model.game.variant.GameVariant"
+           overflowToDisk="false"/>
+
+    <cache eternal="false" maxElementsInMemory="1000" name="com.stockholdergame.server.model.account.GamerAccount"
+           overflowToDisk="true" memoryStoreEvictionPolicy="LRU"/>
+
+    <!--<cache eternal="false" maxElementsInMemory="1000" name="com.stockholdergame.server.model.game.Game"
+           overflowToDisk="true" memoryStoreEvictionPolicy="LRU"/>
+
+    <cache eternal="false" maxElementsInMemory="1000" name="com.stockholdergame.server.model.game.Invitation"
+           overflowToDisk="true" memoryStoreEvictionPolicy="LRU"/>-->
+
+</ehcache>

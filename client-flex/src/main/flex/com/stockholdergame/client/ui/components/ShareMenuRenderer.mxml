@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml"
+        implements="mx.controls.listClasses.IListItemRenderer, mx.controls.menuClasses.IMenuItemRenderer, mx.controls.listClasses.IDropInListItemRenderer"
+        horizontalScrollPolicy="off" horizontalGap="0" paddingLeft="0" paddingRight="0" paddingTop="0" paddingBottom="0">
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.SharePriceDto;
+        import com.stockholdergame.client.util.style.StkColorUtil;
+        import com.stockholdergame.client.util.style.StkColorUtil;
+
+        import mx.controls.Menu;
+        import mx.controls.listClasses.BaseListData;
+        import mx.controls.listClasses.ListData;
+
+        private var _menu:Menu;
+        private var _listData:ListData;
+
+        [Bindable]
+        private var color:String;
+
+        override public function set data(value:Object):void {
+            super.data = value;
+            var share:SharePriceDto = SharePriceDto(data);
+            color = share.color;
+        }
+
+        public function get listData():BaseListData {
+            return _listData;
+        }
+
+        public function set listData(value:BaseListData):void {
+            this._listData = ListData(value);
+        }
+
+        public function get measuredBranchIconWidth():Number {
+            return 0;
+        }
+
+        public function get measuredIconWidth():Number {
+            return 0;
+        }
+
+        public function get measuredTypeIconWidth():Number {
+            return 0;
+        }
+
+        public function set menu(value:Menu):void {
+            this._menu = value;
+        }
+
+        public function get menu():Menu {
+            return _menu;
+        }
+        ]]></mx:Script>
+    <mx:HBox backgroundColor="{StyleManager.getColorName(color)}" height="24" width="100%" horizontalAlign="center"
+            color="{StkColorUtil.invertColor(color)}">
+    </mx:HBox>
+</mx:HBox>

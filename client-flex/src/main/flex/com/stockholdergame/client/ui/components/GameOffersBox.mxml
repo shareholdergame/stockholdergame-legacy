@@ -1,0 +1,103 @@
+<?xml version="1.0"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:c="com.stockholdergame.client.ui.components.*">
+
+    <mx:Metadata>
+        [Event(name="showGameVariantSelectionPage", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showRulesPage", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.ServerStatisticsDto;
+        import com.stockholdergame.client.model.dto.game.GameDto;
+        import com.stockholdergame.client.model.dto.game.UserStatisticsList;
+        import com.stockholdergame.client.model.dto.game.lite.GamesList;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+
+        //private const NO_GAME_OFFERS_STATE:String = "noGameOffersState";
+        //private const SHOW_GAME_OFFERS_STATE:String = "showGameOffersState";
+
+        [Bindable]
+        public var serverStatistics:ServerStatisticsDto = new ServerStatisticsDto();
+
+        [Bindable]
+        public var userStatisticsListData:UserStatisticsList = new UserStatisticsList();
+
+        [Bindable]
+        private var _gameOffersList:GamesList;
+
+        public function get gameOffersList():GamesList {
+            return _gameOffersList;
+        }
+
+        public function set gameOffersList(value:GamesList):void {
+            _gameOffersList = value;
+            //currentState = _gameOffersList == null || _gameOffersList.totalCount == 0 ? NO_GAME_OFFERS_STATE : SHOW_GAME_OFFERS_STATE;
+        }
+
+        private function onNewGameButtonClick(event:MouseEvent, gameInitiationMethod:String):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_NEW_GAME_PAGE, gameInitiationMethod, true, true));
+        }
+
+        private function onGameRulesBtnClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_RULES_PAGE, null, true, true));
+        }
+
+        /*override protected function resourcesChanged():void {
+         super.resourcesChanged();
+         var offerLabel:Object = this.getChildByName("offerLabel");
+         if (offerLabel != null) {
+         Label(offerLabel).text = currentState == NO_GAME_OFFERS_STATE
+         ? resourceManager.getString('common', 'offer.box.no.offers')
+         : resourceManager.getString('common', 'offer.box.game.offers', [_gameOffersList.totalCount]);
+         }
+         }*/
+        private function onGamersRatingButtonClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_RATING_PAGE, null, true, true));
+        }
+        ]]></mx:Script>
+
+    <!--<mx:states>
+        <mx:State name="{NO_GAME_OFFERS_STATE}">
+            <mx:SetProperty target="{offerLabel}" name="text" value="{resourceManager.getString('common', 'offer.box.no.offers')}"/>
+        </mx:State>
+        <mx:State name="{SHOW_GAME_OFFERS_STATE}">
+            <mx:SetProperty target="{offerLabel}" name="text"
+                            value="{resourceManager.getString('common', 'offer.box.game.offers', [_gameOffersList.totalCount])}"/>
+            <mx:AddChild position="before" relativeTo="{startNewGameBtn}">
+                <mx:HBox width="100%" height="100%" verticalGap="5" verticalAlign="middle" horizontalAlign="center">
+                    <mx:Repeater dataProvider="{_gameOffersList.games}" id="offersRep">
+                        <mx:VBox verticalGap="0" verticalAlign="middle" horizontalAlign="center">
+                            <c:Avatar avatar="{offersRep.currentItem.initiator.avatar}"/>
+                            <mx:Label text="{offersRep.currentItem.initiator.userName}" truncateToFit="true" width="100" styleName="userNameLabelStyle"
+                                      textAlign="center"/>
+                        </mx:VBox>
+                    </mx:Repeater>
+                </mx:HBox>
+            </mx:AddChild>
+        </mx:State>
+    </mx:states>-->
+
+    <!--<mx:Label name="offerLabel" id="offerLabel" styleName="largeBoldFont"/>-->
+    <mx:VBox width="30%" height="100%">
+        <mx:Label text="{resourceManager.getString('common', 'online.users.count', [serverStatistics.onlineUsersCount])}" styleName="bigBoldFont"/>
+        <mx:Text text="{serverStatistics.onlineUsersAsText}" truncateToFit="true" styleName="userNameNormalFont"/>
+    </mx:VBox>
+    <mx:VBox width="40%">
+    <mx:Spacer height="10"/>
+    <c:StkButton id="startNewGameBtn"
+                 label="{resourceManager.getString('common', 'new.game.button.label')}"
+                 click="onNewGameButtonClick(event, GameDto.GAME_OFFER)"
+                 styleName="playButton"/>
+    <mx:Spacer height="10"/>
+    <c:StkLinkButton id="gamesRulesBtn" label="{resourceManager.getString('common', 'game.rules.button.label')}"
+                     styleName="bigBoldFont" click="onGameRulesBtnClick(event)"/>
+    </mx:VBox>
+    <mx:VBox width="30%" height="100%">
+        <c:StkLinkButton label="{resourceManager.getString('common', 'rating.page.link.label')}"
+                         click="onGamersRatingButtonClick(event)" styleName="largeBoldFont"/>
+        <mx:Label text="{resourceManager.getString('common', 'top10.users')}" styleName="bigBoldFont"/>
+        <mx:Text text="{userStatisticsListData.top10UsersAsText}" truncateToFit="true" styleName="userNameNormalFont" width="80%"/>
+    </mx:VBox>
+</mx:HBox>

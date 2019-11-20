@@ -1,0 +1,582 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Game">
+    <resultMap id="CompetitorLiteResultMap" type="com.stockholdergame.server.dto.game.lite.CompetitorLite">
+        <id property="gameId" column="game_id"/>
+        <result property="userName" column="user_name"/>
+        <result property="avatar" column="avatar" typeHandler="org.apache.ibatis.type.ByteArrayTypeHandler"/>
+        <result property="isBot" column="is_bot" typeHandler="org.apache.ibatis.type.BooleanTypeHandler"/>
+        <result property="isRemoved" column="is_removed" typeHandler="org.apache.ibatis.type.BooleanTypeHandler"/>
+        <result property="moveOrder" column="move_order"/>
+        <result property="isInitiator" column="is_initiator"
+                typeHandler="org.apache.ibatis.type.BooleanTypeHandler"/>
+        <result property="isOut" column="is_out" typeHandler="org.apache.ibatis.type.BooleanTypeHandler"/>
+        <result property="isWinner" column="is_winner" typeHandler="org.apache.ibatis.type.BooleanTypeHandler"/>
+        <result property="joined" column="joined_time" javaType="java.util.Date"/>
+        <result property="totalFunds" column="total_funds"/>
+        <result property="isInvitation" column="is_invitation" typeHandler="org.apache.ibatis.type.BooleanTypeHandler"/>
+        <result property="invitationCreated" column="inv_created_time" javaType="java.util.Date"/>
+        <result property="invitationExpired" column="inv_expired_time" javaType="java.util.Date"/>
+        <result property="invitationStatus" column="invitation_status"
+                typeHandler="com.stockholdergame.server.dao.typehandler.InvitationStatusTypeHandler"/>
+    </resultMap>
+
+    <resultMap id="ShareLiteResultMap" type="com.stockholdergame.server.dto.game.lite.ShareLite">
+        <id property="id" column="share_id"/>
+        <id property="price" column="price"/>
+    </resultMap>
+
+    <resultMap id="GameLiteBaseResultMap" type="com.stockholdergame.server.dto.game.lite.GameLite">
+        <id property="id" column="game_id"/>
+    </resultMap>
+
+    <resultMap id="GameLiteResultMap" type="com.stockholdergame.server.dto.game.lite.GameLite"
+               extends="Game.GameLiteBaseResultMap">
+        <result property="label" column="game_label"/>
+        <result property="gameVariantId" column="game_variant_id"/>
+        <result property="gameVariantName" column="variant_name"/>
+        <result property="movesQuantity" column="moves_quantity"/>
+        <result property="competitorsQuantity" column="competitors_quantity"/>
+        <result property="rounding" column="rounding"/>
+        <result property="gameStatus" column="game_status_id"
+                typeHandler="com.stockholdergame.server.dao.typehandler.GameStatusTypeHandler"/>
+        <result property="createdTime" column="created_time" javaType="java.util.Date"/>
+        <result property="startedTime" column="started_time" javaType="java.util.Date"/>
+        <result property="finishedTime" column="finished_time" javaType="java.util.Date"/>
+        <result property="initiationMethod" column="initiation_method"
+                typeHandler="com.stockholdergame.server.dao.typehandler.GameInitiationMethodTypeHandler"/>
+        <result property="gameLetter" column="game_letter"/>
+        <result property="rulesVersion" column="rules_version"/>
+        <result property="switchMoveOrder" column="switch_move_order" typeHandler="org.apache.ibatis.type.BooleanTypeHandler"/>
+    </resultMap>
+
+    <resultMap id="GameLiteSharesResultMap" type="com.stockholdergame.server.dto.game.lite.GameLite"
+               extends="Game.GameLiteBaseResultMap">
+        <result property="lastMoveNumber" column="last_move_number"/>
+        <result property="lastMoveOrder" column="last_move_order"/>
+        <result property="lastMoveTime" column="finished_time" javaType="java.util.Date"/>
+        <collection property="shares" resultMap="Game.ShareLiteResultMap"/>
+    </resultMap>
+
+    <resultMap id="GameVariantSummaryResultMap" type="com.stockholdergame.server.dto.game.GameVariantSummary">
+        <result property="gameVariantId" column="game_variant_id"/>
+        <result property="competitorsQuantity" column="competitors_quantity"/>
+        <result property="gameStatus" column="game_status_id"
+                typeHandler="com.stockholdergame.server.dao.typehandler.GameStatusTypeHandler"/>
+        <result property="gamesQuantity" column="games_quantity"/>
+        <result property="alreadyJoined" column="already_joined"
+                typeHandler="org.apache.ibatis.type.BooleanTypeHandler"/>
+        <result property="initiationMethod" column="initiation_method"
+                typeHandler="com.stockholdergame.server.dao.typehandler.GameInitiationMethodTypeHandler"/>
+    </resultMap>
+
+    <select id="countGamesByParameters" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM (
+        SELECT
+        g.game_id
+        FROM
+        ag_games g
+        <if test="userName != null">
+            JOIN
+            (SELECT
+            c.game_id
+            FROM a_gamer_accounts ga JOIN ag_competitors c
+            ON ga.gamer_id = c.gamer_id
+            WHERE ga.user_name LIKE #{userName}
+            <if test="gameStatus == 0">
+                UNION
+                SELECT
+                i.game_id
+                FROM a_gamer_accounts ga JOIN ag_invitations i
+                ON ga.gamer_id = i.invitee_id
+                WHERE ga.user_name LIKE #{userName}
+                UNION
+                SELECT
+                i.game_id
+                FROM a_gamer_accounts ga JOIN ag_invitations i
+                ON ga.gamer_id = i.inviter_id
+                WHERE ga.user_name LIKE #{userName}
+            </if>
+            ) AS cc
+            ON cc.game_id = g.game_id
+        </if>
+        <where>
+            <if test="gameVariantId != null">
+                g.game_variant_id = #{gameVariantId}
+            </if>
+            <if test="rulesVersion != null">
+                AND g.rules_version = #{rulesVersion}
+            </if>
+            AND g.game_status_id = #{gameStatus}
+            AND
+            <choose>
+                <when test="gameStatus == 0">
+                    g.initiation_method = #{initiationMethod}
+                    <choose>
+                        <when test="initiationMethod == 0">
+                            <if test="isInitiator or isNotInitiator">
+                                AND
+                            </if>
+                            <if test="isInitiator">
+                                <if test="isNotInitiator">
+                                    (
+                                </if>
+                                #{gamerId} IN (SELECT cmp1.gamer_id FROM ag_competitors cmp1 WHERE cmp1.game_id = g.game_id AND cmp1.is_initiator
+                                = 1)
+                            </if>
+                            <if test="isNotInitiator">
+                                <if test="isInitiator">
+                                    OR
+                                </if>
+                                #{gamerId} NOT IN (SELECT cmp1.gamer_id FROM ag_competitors cmp1 WHERE cmp1.game_id = g.game_id AND cmp1.is_initiator
+                                = 1)
+                                <if test="isInitiator">
+                                    )
+                                </if>
+                            </if>
+                        </when>
+                        <otherwise>
+                            <if test="isInitiator or isNotInitiator">
+                                AND
+                            </if>
+                            <if test="isInitiator">
+                                <if test="isNotInitiator">
+                                    (
+                                </if>
+                                #{gamerId} IN (SELECT cmp1.gamer_id FROM ag_competitors cmp1 WHERE cmp1.game_id = g.game_id AND cmp1.is_initiator
+                                = 1)
+                            </if>
+                            <if test="isNotInitiator">
+                                <if test="isInitiator">
+                                    OR
+                                </if>
+                                #{gamerId} IN (SELECT i1.invitee_id FROM ag_invitations i1 WHERE i1.game_id = g.game_id AND i1.status_id IN (0, 1))
+                                <if test="isInitiator">
+                                    )
+                                </if>
+                            </if>
+                        </otherwise>
+                    </choose>
+                </when>
+                <otherwise>
+                    #{gamerId} IN (SELECT cmp1.gamer_id FROM ag_competitors cmp1 WHERE cmp1.game_id = g.game_id)
+                </otherwise>
+            </choose>
+        </where>
+        <if test="gameStatus == 2">
+            UNION
+            SELECT
+            fg.game_id
+            FROM
+            fg_games fg
+            <if test="userName != null">
+                JOIN
+                (SELECT
+                c.game_id
+                FROM a_gamer_accounts ga JOIN fg_competitors c
+                ON ga.gamer_id = c.gamer_id
+                WHERE ga.user_name LIKE #{userName}) AS cc
+                ON cc.game_id = fg.game_id
+            </if>
+            <where>
+                <if test="gameVariantId != null">
+                    fg.game_variant_id = #{gameVariantId}
+                </if>
+                <if test="rulesVersion != null">
+                    AND fg.rules_version = #{rulesVersion}
+                </if>
+                AND #{gamerId} IN (SELECT cmp2.gamer_id FROM fg_competitors cmp2 WHERE cmp2.game_id = fg.game_id)
+            </where>
+        </if>
+        ) x
+    </select>
+
+    <select id="findGamesByParameters" parameterType="java.util.Map" resultMap="GameLiteResultMap">
+        SELECT
+        g.game_id,
+        g.game_label,
+        gs.game_variant_id,
+        gv.variant_name,
+        gv.moves_quantity,
+        gs.competitors_quantity,
+        g.rounding,
+        g.game_status_id,
+        g.created_time,
+        g.started_time,
+        g.finished_time,
+        g.initiation_method,
+        ev2.updated_time,
+        ev2.event_type,
+        ev2.event_initiator_id,
+        g.game_letter,
+        gs.rules_version,
+        gs.switch_move_order
+        FROM
+        ag_games g
+        JOIN ag_game_series gs ON gs.game_series_id = g.game_series_id
+        JOIN gv_game_variants gv ON gs.game_variant_id = gv.game_variant_id
+        <if test="userName != null">
+            JOIN
+            (SELECT
+            c.game_id
+            FROM a_gamer_accounts ga JOIN ag_competitors c
+            ON ga.gamer_id = c.gamer_id
+            WHERE ga.user_name LIKE #{userName}
+            <if test="gameStatus == 0">
+                UNION
+                SELECT
+                i.game_id
+                FROM a_gamer_accounts ga JOIN ag_invitations i
+                ON ga.gamer_id = i.invitee_id
+                WHERE ga.user_name LIKE #{userName}
+                UNION
+                SELECT
+                i.game_id
+                FROM a_gamer_accounts ga JOIN ag_invitations i
+                ON ga.gamer_id = i.inviter_id
+                WHERE ga.user_name LIKE #{userName}
+            </if>
+            ) AS cc
+            ON cc.game_id = g.game_id
+        </if>
+        JOIN (SELECT ev1.game_id, ev1.updated_time, ev1.event_type, event_initiator_id
+              FROM ag_events_view ev1
+              INNER JOIN
+                (SELECT game_id, MAX(event_type) AS event_type, MAX(updated_time) AS updated_time FROM ag_events_view GROUP BY 1) AS ev
+              ON ev.game_id = ev1.game_id AND ev.event_type = ev1.event_type AND ev.updated_time = ev1.updated_time) AS ev2 ON g.game_id = ev2.game_id
+        <where>
+            <if test="gameVariantId != null">
+                gs.game_variant_id = #{gameVariantId}
+            </if>
+            <if test="rulesVersion != null">
+                AND gs.rules_version = #{rulesVersion}
+            </if>
+            AND g.game_status_id = #{gameStatus}
+            AND
+            <choose>
+                <when test="gameStatus == 0">
+                    g.initiation_method = #{initiationMethod}
+                    <choose>
+                        <when test="initiationMethod == 0">
+                            <if test="isInitiator or isNotInitiator">
+                                AND
+                            </if>
+                            <if test="isInitiator">
+                                <if test="isNotInitiator">
+                                    (
+                                </if>
+                                #{gamerId} IN (SELECT cmp1.gamer_id FROM ag_competitors cmp1 WHERE cmp1.game_id = g.game_id AND cmp1.is_initiator
+                                = 1)
+                            </if>
+                            <if test="isNotInitiator">
+                                <if test="isInitiator">
+                                    OR
+                                </if>
+                                #{gamerId} NOT IN (SELECT cmp1.gamer_id FROM ag_competitors cmp1 WHERE cmp1.game_id = g.game_id AND cmp1.is_initiator
+                                = 1)
+                                <if test="isInitiator">
+                                    )
+                                </if>
+                            </if>
+                        </when>
+                        <otherwise>
+                            <if test="isInitiator or isNotInitiator">
+                                AND
+                            </if>
+                            <if test="isInitiator">
+                                <if test="isNotInitiator">
+                                    (
+                                </if>
+                                #{gamerId} IN (SELECT cmp1.gamer_id FROM ag_competitors cmp1 WHERE cmp1.game_id = g.game_id AND cmp1.is_initiator
+                                = 1)
+                            </if>
+                            <if test="isNotInitiator">
+                                <if test="isInitiator">
+                                    OR
+                                </if>
+                                #{gamerId} IN (SELECT i1.invitee_id FROM ag_invitations i1 WHERE i1.game_id = g.game_id AND i1.status_id IN (0, 1))
+                                <if test="isInitiator">
+                                    )
+                                </if>
+                            </if>
+                        </otherwise>
+                    </choose>
+                </when>
+                <otherwise>
+                    #{gamerId} IN (SELECT cmp1.gamer_id FROM ag_competitors cmp1 WHERE cmp1.game_id = g.game_id)
+                </otherwise>
+            </choose>
+        </where>
+        <if test="gameStatus == 2">
+        UNION
+        SELECT
+        fg.game_id,
+        fg.game_label,
+        fgs.game_variant_id,
+        gv.variant_name,
+        gv.moves_quantity,
+        fgs.competitors_quantity,
+        fg.rounding,
+        2 AS game_status_id,
+        fg.created_time,
+        fg.started_time,
+        fg.finished_time,
+        null AS initiation_method,
+        ev2.updated_time,
+        ev2.event_type,
+        ev2.event_initiator_id,
+        fg.game_letter,
+        fgs.rules_version,
+        fgs.switch_move_order
+        FROM
+        fg_games fg
+        JOIN fg_game_series fgs ON fgs.game_series_id = fg.game_series_id
+        JOIN gv_game_variants gv ON fgs.game_variant_id = gv.game_variant_id
+            <if test="userName != null">
+                JOIN
+                (SELECT
+                c.game_id
+                FROM a_gamer_accounts ga JOIN fg_competitors c
+                ON ga.gamer_id = c.gamer_id
+                WHERE ga.user_name LIKE #{userName}) AS cc
+                ON cc.game_id = fg.game_id
+            </if>
+        JOIN (SELECT ev1.game_id, ev1.updated_time, ev1.event_type, event_initiator_id
+            FROM ag_events_view ev1
+            INNER JOIN
+            (SELECT game_id, MAX(event_type) AS event_type, MAX(updated_time) AS updated_time FROM ag_events_view GROUP BY 1) AS ev
+            ON ev.game_id = ev1.game_id AND ev.event_type = ev1.event_type AND ev.updated_time = ev1.updated_time) AS ev2 ON fg.game_id = ev2.game_id
+        <where>
+            <if test="gameVariantId != null">
+                fgs.game_variant_id = #{gameVariantId}
+            </if>
+            <if test="rulesVersion != null">
+                AND fgs.rules_version = #{rulesVersion}
+            </if>
+            AND #{gamerId} IN (SELECT cmp2.gamer_id FROM fg_competitors cmp2 WHERE cmp2.game_id = fg.game_id)
+        </where>
+        </if>
+        ORDER BY
+        <choose>
+            <when test="gameStatus == 2">
+                11
+            </when>
+            <otherwise>
+                13
+            </otherwise>
+        </choose>
+        DESC
+    </select>
+
+    <select id="findGameShares" parameterType="java.util.Map" resultMap="GameLiteSharesResultMap">
+        SELECT
+        g.game_id,
+        last_move.move_number AS last_move_number,
+        last_move.move_order AS last_move_order,
+        last_move.finished_time,
+        sp.share_id,
+        sp.price
+        FROM
+        ag_games g
+        JOIN gv_game_variants gv ON g.game_variant_id = gv.game_variant_id
+        LEFT OUTER JOIN (SELECT
+                             cm1.competitor_move_id,
+                             m1.game_id,
+                             cm1.move_order,
+                             cm1.finished_time,
+                             m1.move_number
+                             FROM
+                             ag_competitor_moves cm1,
+                             (SELECT m.move_id, move_number, game_id FROM ag_moves m
+                                WHERE m.game_id IN <foreach collection="gameIds" open="(" close=")" separator="," item="item">#{item}</foreach>
+                                AND move_number IN (SELECT max(move_number) FROM ag_moves WHERE game_id = m.game_id)) m1
+                          WHERE m1.move_id = cm1.move_id
+                          AND cm1.move_order = (SELECT max(cm2.move_order) FROM ag_competitor_moves cm2 WHERE cm2.move_id = m1.move_id)) AS last_move
+        JOIN ag_move_steps ms ON ms.competitor_move_id = last_move.competitor_move_id JOIN ag_share_prices sp ON
+        sp.step_id = ms.step_id
+        ON last_move.game_id = g.game_id
+        WHERE
+        g.game_id IN <foreach collection="gameIds" open="(" close=")" separator="," item="item">#{item}</foreach>
+    </select>
+
+    <select id="findGameCompetitors" parameterType="java.util.Map" resultMap="CompetitorLiteResultMap">
+        SELECT
+        g.game_id,
+        ga.user_name AS user_name,
+        <!--<choose>
+            <when test="smallAvatar == true">
+                p.small_avatar as avatar,
+            </when>
+            <otherwise>-->
+                p.avatar,
+            <!--</otherwise>
+        </choose>-->
+        ga.is_bot,
+        CASE WHEN ga.status_id > 1
+             THEN 1
+             ELSE 0
+             END AS is_removed,
+        cmp.move_order,
+        cmp.is_initiator,
+        cmp.is_out,
+        cr1.is_winner,
+        cmp.joined_time,
+        cr1.total_funds,
+        cr2.is_winner AS is_series_winner,
+        cr2.total_funds AS series_total_funds,
+        CASE WHEN g.initiation_method = 1 AND cmp.is_initiator = 0
+             THEN 1
+             ELSE 0
+             END AS is_invitation,
+        null AS inv_created_time,
+        null AS inv_expired_time,
+        1 AS invitation_status
+        FROM
+        ag_competitors cmp JOIN a_gamer_accounts ga ON cmp.gamer_id = ga.gamer_id LEFT OUTER JOIN a_profiles p ON cmp.gamer_id = p.gamer_id
+          JOIN ag_games g ON cmp.game_id = g.game_id
+        LEFT OUTER JOIN
+        (SELECT
+        cr.is_winner,
+        cr.total_funds,
+        cr.gamer_id,
+        cr.game_id
+        FROM g_competitor_results cr) AS cr1 ON cr1.gamer_id = cmp.gamer_id AND cr1.game_id = g.game_id
+        LEFT OUTER JOIN
+        (SELECT
+        cr.is_winner,
+        cr.total_funds,
+        cr.gamer_id,
+        cr.game_series_id
+        FROM g_competitor_results cr WHERE cr.game_id is null) AS cr2 ON cr2.gamer_id = cmp.gamer_id AND cr2.game_series_id = g.game_series_id
+        WHERE
+        g.game_id IN <foreach collection="gameIds" open="(" close=")" separator="," item="item">#{item}</foreach>
+        <if test="gameStatus == null or gameStatus == 0">
+        UNION
+        SELECT
+        inv.game_id,
+        inv.invitee_name AS user_name,
+        inv.avatar,
+        inv.is_bot,
+        CASE WHEN inv.account_status_id > 1
+             THEN 1
+             ELSE 0
+             END AS is_removed,
+        null AS move_order,
+        0 AS is_initiator,
+        0 AS is_out,
+        0 AS is_winner,
+        null AS joined_time,
+        null AS total_funds,
+        0 AS is_series_winner,
+        null AS Series_total_funds,
+        1 AS is_invitation,
+        inv.created_time AS inv_created_time,
+        inv.expired_time AS inv_expired_time,
+        inv.status_id
+        FROM
+        ag_games g1
+        JOIN (SELECT
+              i.game_id,
+              i.created_time,
+              i.expired_time,
+              ga1.user_name AS inviter_name,
+              ga2.user_name AS invitee_name,
+              <!--<choose>
+                  <when test="smallAvatar == true">
+                      p.small_avatar as avatar,
+                  </when>
+                  <otherwise>-->
+                      p.avatar,
+                  <!--</otherwise>
+              </choose>-->
+              ga2.is_bot,
+              ga2.status_id AS account_status_id,
+              i.status_id
+              FROM
+              ag_invitations i
+              JOIN a_gamer_accounts ga1 ON i.inviter_id = ga1.gamer_id
+              JOIN a_gamer_accounts ga2 ON i.invitee_id = ga2.gamer_id
+              LEFT OUTER JOIN a_profiles p ON i.invitee_id = p.gamer_id
+              WHERE i.status_id NOT IN (1, 3, 4)) AS inv
+        ON inv.game_id = g1.game_id
+        WHERE
+        g1.game_id IN <foreach collection="gameIds" open="(" close=")" separator="," item="item">#{item}</foreach>
+        </if>
+        <if test="gameStatus == null or gameStatus == 2">
+        UNION
+        SELECT
+        fg.game_id,
+        ga.user_name AS user_name,
+        <!--<choose>
+            <when test="smallAvatar == true">
+                p.small_avatar as avatar,
+            </when>
+            <otherwise>-->
+                p.avatar,
+            <!--</otherwise>
+        </choose>-->
+        ga.is_bot,
+        CASE WHEN ga.status_id > 1
+             THEN 1
+             ELSE 0
+             END AS is_removed,
+        fcmp.move_order,
+        0 AS is_initiator,
+        fcmp.is_out,
+        cr1.is_winner,
+        null AS joined_time,
+        cr1.total_funds,
+        cr2.is_winner AS is_series_winner,
+        cr2.total_funds AS series_total_funds,
+        0 AS is_invitation,
+        null AS inv_created_time,
+        null AS inv_expired_time,
+        null AS invitation_status
+        FROM
+        fg_competitors fcmp JOIN a_gamer_accounts ga ON fcmp.gamer_id = ga.gamer_id LEFT OUTER JOIN a_profiles p ON fcmp.gamer_id = p.gamer_id
+        JOIN fg_games fg ON fcmp.game_id = fg.game_id
+            LEFT OUTER JOIN
+            (SELECT
+            cr.is_winner,
+            cr.total_funds,
+            cr.gamer_id,
+            cr.game_id
+            FROM g_competitor_results cr) AS cr1 ON cr1.gamer_id = fcmp.gamer_id AND cr1.game_id = fg.game_id
+            LEFT OUTER JOIN
+            (SELECT
+            cr.is_winner,
+            cr.total_funds,
+            cr.gamer_id,
+            cr.game_series_id
+            FROM g_competitor_results cr WHERE cr.game_id is null) AS cr2 ON cr2.gamer_id = fcmp.gamer_id AND cr2.game_series_id = fg.game_series_id
+        WHERE
+        fg.game_id IN <foreach collection="gameIds" open="(" close=")" separator="," item="item">#{item}</foreach>
+        </if>
+    </select>
+
+    <select id="countGamesByVariant" parameterType="java.util.Map" resultMap="GameVariantSummaryResultMap">
+        SELECT
+        g.game_variant_id,
+        g.competitors_quantity,
+        g.game_status_id,
+        CASE WHEN (SELECT COUNT(c.gamer_id) FROM ag_competitors c
+                   WHERE c.game_id = g.game_id <!-- AND c.gamer_id = #{gamerId}-->) > 0 THEN 1
+                     ELSE 0
+        END AS already_joined,
+        g.initiation_method,
+        COUNT(g.game_id) AS games_quantity
+        FROM
+        ag_games g
+        WHERE
+        <!--g.competitors_quantity - (SELECT COUNT(c.gamer_id) FROM ag_competitors c WHERE c.game_id = g.game_id) >
+         (SELECT COUNT(i.invitation_id) FROM ag_invitations i
+          WHERE i.game_id = g.game_id AND i.invitee_id != #{gamerId}
+          AND i.status_id = 0)
+        AND -->(g.game_status_id = 0 OR g.game_status_id = 1)
+        <if test="initiationMethod != null">
+        AND g.initiation_method = #{initiationMethod}
+        </if>
+        GROUP BY 1, 2, 3, 4, 5
+    </select>
+
+</mapper>

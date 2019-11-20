@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:c="com.stockholdergame.client.ui.components.*"
+         currentState="{SHOW_DESCRIPTION_STATE}">
+
+    <mx:Metadata>
+        [Event(name="showProfilePage", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.account.MyAccountDto;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+
+        import mx.collections.ArrayCollection;
+
+        private const SHOW_DESCRIPTION_STATE:String = "showDescriptionState";
+        private const SHOW_REQUESTS_STATE:String = "showRequestsState";
+
+        [Bindable]
+        public var accountInfo:MyAccountDto;
+
+        [Bindable]
+        private var _friendRequests:ArrayCollection;
+
+        public function get friendRequests():ArrayCollection {
+            return _friendRequests;
+        }
+
+        public function set friendRequests(value:ArrayCollection):void {
+            _friendRequests = value;
+            currentState = _friendRequests == null || _friendRequests.length == 0 ? SHOW_DESCRIPTION_STATE : SHOW_REQUESTS_STATE;
+        }
+
+        private function onProfileButtonClick(event:Event):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_PROFILE_PAGE, null, true, true));
+        }
+        ]]></mx:Script>
+
+    <c:StkLinkButton label="{resourceManager.getString('common', 'profile.page.label')}"
+                     click="onProfileButtonClick(event)" styleName="largeBoldFont"/>
+
+    <mx:states>
+        <mx:State name="{SHOW_DESCRIPTION_STATE}">
+            <mx:AddChild>
+                <mx:HBox width="100%" height="100%" horizontalAlign="center" verticalAlign="top"
+                         paddingBottom="5" paddingTop="5" paddingRight="5" paddingLeft="5" horizontalGap="10">
+                    <c:Avatar avatar="{accountInfo.profile.avatar}"/>
+                    <mx:TextArea text="{resourceManager.getString('common', 'profile.description')}"
+                                 width="100%" height="100%" editable="false" styleName="descriptionTextArea"/>
+                </mx:HBox>
+            </mx:AddChild>
+        </mx:State>
+        <mx:State name="{SHOW_REQUESTS_STATE}">
+            <mx:AddChild>
+                <mx:VBox width="100%" height="100%" styleName="topAlignedContainer">
+                    <mx:Label text="{resourceManager.getString('common', 'friend.requests.label')}"/>
+                    <mx:HBox width="100%" height="100%">
+                        <mx:Repeater dataProvider="{_friendRequests}" id="requestsRep">
+                            <c:UserView user="{requestsRep.currentItem}" userNameLabelStyleName="userNameBigFont" width="100"/>
+                        </mx:Repeater>
+                    </mx:HBox>
+                </mx:VBox>
+            </mx:AddChild>
+        </mx:State>
+    </mx:states>
+
+</mx:VBox>

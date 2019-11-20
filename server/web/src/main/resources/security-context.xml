@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns:beans="http://www.springframework.org/schema/beans"
+             xmlns="http://www.springframework.org/schema/security"
+             xmlns:context="http://www.springframework.org/schema/context"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="
+           http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+           http://www.springframework.org/schema/context
+           http://www.springframework.org/schema/context/spring-context-3.2.xsd
+           http://www.springframework.org/schema/security
+           http://www.springframework.org/schema/security/spring-security-3.2.xsd">
+
+    <context:annotation-config/>
+    <context:component-scan base-package="com.stockholdergame.server.web.security"/>
+
+    <beans:bean id="entryPoint" class="org.springframework.flex.security3.FlexAuthenticationEntryPoint"/>
+
+    <http entry-point-ref="entryPoint">
+        <!--<remember-me key="STCKHLDRGAMESERVER"/>-->
+        <anonymous granted-authority="ROLE_ANONYMOUS"/>
+        <session-management session-fixation-protection="newSession">
+            <concurrency-control max-sessions="1" error-if-maximum-exceeded="true"/>
+        </session-management>
+    </http>
+
+    <authentication-manager alias="authenticationManager">
+        <authentication-provider ref="loginService"/>
+    </authentication-manager>
+
+    <global-method-security>
+        <protect-pointcut expression="execution(* com.stockholdergame.server.facade..*Facade.*(..)) and
+                !execution(* com.stockholdergame.server.facade.AccountFacade.setUnauthLanguage(..)) and
+                !execution(* com.stockholdergame.server.facade.AccountFacade.checkUserNameExistence(..)) and
+                !execution(* com.stockholdergame.server.facade.AccountFacade.checkEmailUsage(..)) and
+                !execution(* com.stockholdergame.server.facade.AccountFacade.registerNewUser(..)) and
+                !execution(* com.stockholdergame.server.facade.AccountFacade.getCaptcha(..)) and
+                !execution(* com.stockholdergame.server.facade.AccountFacade.resetPassword(..)) and
+                !execution(* com.stockholdergame.server.facade.SocialFacade.getServerStatistics(..))"
+                          access="ROLE_USER"/>
+        <protect-pointcut expression="execution(* com.stockholdergame.server.facade.AccountFacade.setUnauthLanguage(..)) or
+                execution(* com.stockholdergame.server.facade.AccountFacade.checkUserNameExistence(..)) or
+                execution(* com.stockholdergame.server.facade.AccountFacade.checkEmailUsage(..)) or
+                execution(* com.stockholdergame.server.facade.AccountFacade.registerNewUser(..)) or
+                execution(* com.stockholdergame.server.facade.AccountFacade.getCaptcha(..)) or
+                execution(* com.stockholdergame.server.facade.AccountFacade.resetPassword(..)) or
+                execution(* com.stockholdergame.server.facade.SocialFacade.getServerStatistics(..))"
+                          access="ROLE_USER,ROLE_ANONYMOUS"/>
+    </global-method-security>
+
+    <!--<beans:bean id="rememberMeFilter" class=
+            "org.springframework.security.web.authentication.rememberme.RememberMeAuthenticationFilter">
+        <beans:property name="rememberMeServices" ref="rememberMeServices"/>
+        <beans:property name="authenticationManager" ref="authenticationManager" />
+    </beans:bean>
+
+    <beans:bean id="rememberMeServices" class=
+            "org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices">
+        <beans:property name="userDetailsService" ref="myUserDetailsService"/>
+        <beans:property name="key" value="STCKHLDRGAMESERVER"/>
+    </beans:bean>
+
+    <beans:bean id="rememberMeAuthenticationProvider" class=
+            "org.springframework.security.authentication.RememberMeAuthenticationProvider">
+        <beans:property name="key" value="STCKHLDRGAMESERVER"/>
+    </beans:bean>-->
+
+    <beans:bean id="loginCommand"
+                class="org.springframework.flex.security3.SpringSecurityLoginCommand">
+        <beans:constructor-arg ref="authenticationManager"/>
+        <!--<beans:property name="rememberMeServices" ref="rememberMeServices"/>-->
+        <beans:property name="logoutHandlers">
+            <beans:list>
+                <beans:bean class="com.stockholdergame.server.web.security.CustomLogoutHandler"/>
+            </beans:list>
+        </beans:property>
+    </beans:bean>
+
+</beans:beans>

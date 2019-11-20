@@ -1,0 +1,172 @@
+<?xml version="1.0"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml"  initialize="onInitialize()">
+
+    <mx:Metadata>
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.CompensationDto;
+        import com.stockholdergame.client.model.dto.game.CompetitorMoveDto;
+        import com.stockholdergame.client.model.dto.game.MoveStepDto;
+        import com.stockholdergame.client.model.dto.game.SharePriceDto;
+        import com.stockholdergame.client.model.dto.game.ShareQuantityDto;
+        import com.stockholdergame.client.ui.components.*;
+        import com.stockholdergame.client.util.style.StkColorUtil;
+
+        import mx.collections.ArrayCollection;
+        import mx.containers.HBox;
+        import mx.controls.Label;
+        import mx.events.PropertyChangeEvent;
+
+        [Bindable]
+        public var competitorMove:CompetitorMoveDto;
+
+        public var verticalRowSize:int = 20;
+
+        public var horizontalCellSize:int = 120;
+
+        private function createSteps():void {
+            if (competitorMove != null) {
+                this.removeAllChildren();
+                var steps:ArrayCollection = competitorMove.steps;
+                var i:int;
+                var j:int = 0;
+                var horizontalPadding:int = -5;
+                var label:Label;
+                var shareIds:ArrayCollection = new ArrayCollection();
+                for each (var moveStep:MoveStepDto in steps) {
+                    if (moveStep.shareQuantities != null && moveStep.shareQuantities.length > 0) {
+                        var shareQuantities:ArrayCollection = moveStep.shareQuantities;
+                        j = 0;
+                        for each (var shareQuantity:ShareQuantityDto in shareQuantities) {
+                            label = new Label();
+                            if (moveStep.stepType == MoveStepDto.REPURCHASE_STEP) {
+                                var strikeLabel:StrikeLabel = new StrikeLabel();
+                                strikeLabel.text = shareQuantity.prevStepQuantity != shareQuantity.quantity || shareQuantity.buySellQuantity > 0
+                                        ? "" + shareQuantity.prevStepQuantity : "";
+                                strikeLabel.x = j * horizontalCellSize + horizontalPadding;
+                                strikeLabel.y = i * verticalRowSize;
+                                strikeLabel.width = horizontalCellSize / 2;
+                                strikeLabel.styleName = "normalAttentionFont";
+                                strikeLabel.setStyle("textAlign", "right");
+                                addChild(strikeLabel);
+
+                                label.text = shareQuantity.prevStepQuantity != shareQuantity.quantity || shareQuantity.buySellQuantity > 0
+                                        ? "(+" + shareQuantity.buySellQuantity + ")" : "";
+                                label.toolTip = resourceManager.getString('common', 'annulated.shares.label');
+                            } else {
+                                label.text = "" + shareQuantity.quantity +
+                                        (competitorMove.moveNumber > 0 && shareQuantity.buySellQuantity != 0
+                                                ? " (" + (shareQuantity.buySellQuantity > 0 ? "+" + shareQuantity.buySellQuantity : shareQuantity.buySellQuantity) + ")" : "");
+                            }
+                            label.x = j * horizontalCellSize + horizontalPadding;
+                            label.y = i * verticalRowSize;
+                            label.width = horizontalCellSize;
+                            label.setStyle("textAlign", "right");
+                            addChild(label);
+                            j++;
+                        }
+                        label = new Label();
+                        label.text = "" + moveStep.cashValue;
+                        label.x = j * horizontalCellSize - 15 + horizontalPadding;
+                        label.y = i * verticalRowSize;
+                        label.width = horizontalCellSize;
+                        label.setStyle("textAlign", "right");
+                        addChild(label);
+                        i++;
+                    }
+                    if (moveStep.sharePrices != null && moveStep.sharePrices.length > 0 && competitorMove.moveNumber > 0) {
+                        var sharePrices:ArrayCollection = moveStep.sharePrices;
+                        j = 0;
+                        for each (var sharePrice:SharePriceDto in sharePrices) {
+                            shareIds.addItem(sharePrice.id);
+                            label = new Label();
+                            label.text = "" + sharePrice.price +
+                                    (sharePrice.operation != null
+                                            ? " (" + sharePrice.operation + " " + sharePrice.operandValue + ")" : "");
+                            if (sharePrice.operation != null) {
+                                var box:HBox = new HBox();
+                                box.height = verticalRowSize;
+                                box.width = horizontalCellSize;
+                                box.setStyle("horizontalAlign", "center");
+                                if (sharePrice.mainColor) {
+                                    box.setStyle("backgroundColor", StyleManager.getColorName(sharePrice.color));
+                                    label.setStyle("color", "white");
+                                    label.setStyle("fontWeight", "bold");
+                                } else {
+                                    var coloredPoint:HBox = new HBox();
+                                    coloredPoint.height = 12;
+                                    coloredPoint.width = 12;
+                                    coloredPoint.setStyle("borderStyle", "solid");
+                                    coloredPoint.setStyle("cornerRadius", 6);
+                                    coloredPoint.setStyle("borderColor", StyleManager.getColorName(sharePrice.color));
+                                    coloredPoint.setStyle("backgroundColor", StyleManager.getColorName(sharePrice.color));
+                                    box.addChild(coloredPoint);
+                                }
+                                box.addChild(label);
+                                box.x = j * horizontalCellSize;
+                                box.y = i * verticalRowSize;
+                                addChild(box);
+                            } else {
+                                label.x = j * horizontalCellSize;
+                                label.y = i * verticalRowSize;
+                                label.width = horizontalCellSize;
+                                label.setStyle("textAlign", "center");
+                                addChild(label);
+                            }
+                            j++;
+                        }
+                        label = new Label();
+                        label.text = "" + moveStep.cashValue;
+                        label.x = j * horizontalCellSize - 15 + horizontalPadding;
+                        label.y = i * verticalRowSize;
+                        label.width = horizontalCellSize;
+                        label.setStyle("textAlign", "right");
+                        addChild(label);
+                        i++;
+                    }
+                    if (moveStep.compensations != null && moveStep.compensations.length > 0) {
+                        var compensations:ArrayCollection = moveStep.compensations;
+                        j = 0;
+                        for each (var shareId:int in shareIds) {
+                            for each (var compensation:CompensationDto in compensations) {
+                                if (compensation.id == shareId) {
+                                    if (compensation.sum != 0) {
+                                        label = new Label();
+                                        label.text = "" + compensation.sum;
+                                        label.x = j * horizontalCellSize + horizontalPadding;
+                                        label.y = i * verticalRowSize;
+                                        label.width = horizontalCellSize;
+                                        label.setStyle("textAlign", "right");
+                                        addChild(label);
+                                    }
+                                }
+                            }
+                            j++;
+                        }
+                        label = new Label();
+                        label.text = "" + moveStep.cashValue;
+                        label.x = shareIds.length * horizontalCellSize - 15 + horizontalPadding;
+                        label.y = i * verticalRowSize;
+                        label.width = horizontalCellSize;
+                        label.setStyle("textAlign", "right");
+                        addChild(label);
+                        i++;
+                    }
+                }
+            }
+        }
+
+        private function onInitialize():void {
+            this.addEventListener(PropertyChangeEvent.PROPERTY_CHANGE, onPropertyChange);
+        }
+
+        private function onPropertyChange(event:PropertyChangeEvent):void {
+            if (event.property == "competitorMove" && event.oldValue != event.newValue) {
+                createSteps();
+            }
+        }
+        ]]></mx:Script>
+
+</mx:Canvas>

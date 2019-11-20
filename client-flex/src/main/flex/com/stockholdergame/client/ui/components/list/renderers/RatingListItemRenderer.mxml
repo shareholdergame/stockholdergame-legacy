@@ -1,0 +1,181 @@
+<?xml version="1.0"?>
+<r:BaseListItemRenderer xmlns:mx="http://www.adobe.com/2006/mxml"
+                        xmlns:r="com.stockholdergame.client.ui.components.list.renderers.*"
+                        xmlns:Mx="http://www.adobe.com/2006/mxml" xmlns:c="com.stockholdergame.client.ui.components.*">
+
+    <mx:Metadata>
+        [Event(name="showSendMessageDialog", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.CountryResource;
+        import com.stockholdergame.client.model.dto.game.UserStatistics;
+        import com.stockholdergame.client.model.session.SessionManager;
+        import com.stockholdergame.client.ui.components.list.RatingList;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+
+        import mx.collections.ArrayCollection;
+        import mx.controls.listClasses.BaseListData;
+
+        [Bindable]
+        private var legacyRules:Boolean = false;
+
+        override public function set listData(value:BaseListData):void {
+            super.listData = value;
+            legacyRules = RatingList(value.owner).showLegacyRulesStatistics;
+        }
+
+        private function formatDays(days:Number):String {
+            if (days == 0) {
+                return resourceManager.getString('common', 'stat.days.now');
+            } else if (days < 0) {
+                return resourceManager.getString('common', 'stat.days.never');
+            } else if (days > 7 && days <= 14) {
+                return resourceManager.getString('common', 'stat.days.week.ago');
+            } else if (days > 14 && days <= 30) {
+                return resourceManager.getString('common', 'stat.days.two.weeks.ago');
+            } else if (days > 30 && days <= 90) {
+                return resourceManager.getString('common', 'stat.days.month.ago');
+            } else if (days > 90 && days <= 365) {
+                return resourceManager.getString('common', 'stat.days.three.months.ago');
+            } else if (days > 365) {
+                return resourceManager.getString('common', 'stat.days.year.ago');
+            } else {
+                return '' + days + ' ' + resourceManager.getString('common', 'stat.days');
+            }
+        }
+
+        private static function defineColor(days:Number):uint {
+            var color:String = "#7E7A53";
+            if (days >= 0 && days <= 14) {
+                color = "green";
+            } else if (days > 14 && days <= 30) {
+                color = "#7E7A53";
+            } else if (days > 30 && days <= 90) {
+                color = "#FFA142";
+            } else if (days > 90 || days < 0) {
+                color = "red";
+            }
+            return StyleManager.getColorName(color);
+        }
+
+        private static function defineFontSizeForTotal(total:Number):uint {
+            var absTotal:Number = Math.abs(total);
+            var fontSize:int = 12;
+            if (absTotal <= 10000) {
+                fontSize = 11;
+            } else if (absTotal > 10000 && absTotal <= 500000) {
+                fontSize = 12;
+            } else if (absTotal > 500000 && absTotal <= 1000000) {
+                fontSize = 14;
+            } else if (absTotal > 1000000) {
+                fontSize = 16;
+            }
+            return fontSize;
+        }
+
+        private static function defineFontWeightForTotal(total:Number):String {
+            var absTotal:Number = Math.abs(total);
+            var fontWeight:String = "normal";
+            if (absTotal > 100000) {
+                fontWeight = "bold";
+            }
+            return fontWeight;
+        }
+
+        private function onChatBtnClick(event:MouseEvent):void {
+            var chatParticipants:ArrayCollection = new ArrayCollection();
+            chatParticipants.addItem(UserStatistics(data).user);
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_SEND_MESSAGE_DIALOG, chatParticipants, true, true));
+        }
+
+        private static function defineStyle(totalWinned:Number):String {
+            return totalWinned <= 0 ? 'normalAttentionFont' : 'greenFont'
+        }
+        ]]></mx:Script>
+
+    <mx:NumberFormatter id="percentFormatter" precision="2"/>
+    <mx:NumberFormatter id="thousandsFormatter" useThousandsSeparator="true" thousandsSeparatorFrom=" " thousandsSeparatorTo=" "/>
+
+    <mx:Grid width="100%">
+        <mx:GridRow width="100%">
+            <mx:GridItem width="200" styleName="leftAlignedContainer">
+                <c:Avatar avatar="{UserStatistics(data).user.profile != null ? UserStatistics(data).user.profile.avatar : null}"/>
+                <mx:Spacer width="5"/>
+                <mx:VBox width="100%" styleName="leftAlignedContainer">
+                    <mx:HBox width="100%" styleName="leftAlignedContainer">
+                        <c:OnlineMark online="{UserStatistics(data).user.online}"/>
+                        <mx:Label maxWidth="120" truncateToFit="true" text="{data.user.userName}"
+                                  styleName="userNameBigFont" toolTip="{data.user.userName}"/>
+                    </mx:HBox>
+                    <mx:HBox width="100%" styleName="leftAlignedContainer" visible="{!data.user.bot}">
+                        <mx:Image source="{CountryResource.instance.getFlag(data.user.profile.country)}"
+                                  includeInLayout="{data.user.profile != null}"
+                                  visible="{data.user.profile != null}"/>
+                        <mx:Spacer width="3"/>
+                        <mx:Label maxWidth="110" truncateToFit="true" id="countryCityLbl" text="{data.user.profile.countryCity}"
+                                  toolTip="{data.user.profile.countryCity}"/>
+                    </mx:HBox>
+                </mx:VBox>
+            </mx:GridItem>
+            <mx:GridItem width="40">
+                <c:StkButton id="sendMsgBtn" styleName="chatButton"
+                             toolTip="{resourceManager.getString('common', 'send.message.button')}"
+                             click="onChatBtnClick(event)"
+                             includeInLayout="{SessionManager.instance.getAccountInfo().userName != data.user.userName}"
+                             visible="{SessionManager.instance.getAccountInfo().userName != data.user.userName}"/>
+            </mx:GridItem>
+            <mx:GridItem width="80">
+                <mx:Label text="{UserStatistics(data).allGamesCount + ' (' + UserStatistics(data).firstOrderCount + '/' + UserStatistics(data).secondOrderCount + ')'}"/>
+            </mx:GridItem>
+            <mx:GridItem width="80">
+                <mx:Label text="{UserStatistics(data).allWinsCount + ' (' + UserStatistics(data).firstOrderWinsCount + '/' + UserStatistics(data).secondOrderWinsCount + ')'}"/>
+            </mx:GridItem>
+            <mx:GridItem width="50">
+                <mx:Label text="{UserStatistics(data).gameSeriesCount}"/>
+            </mx:GridItem>
+            <mx:GridItem width="50">
+                <mx:Label text="{UserStatistics(data).gameSeriesWinsCount}"/>
+            </mx:GridItem>
+            <mx:GridItem width="50">
+                <mx:Label text="{UserStatistics(data).drawsCount}"/>
+            </mx:GridItem>
+            <mx:GridItem width="50">
+                <mx:Label text="{''+ UserStatistics(data).bankruptsCount}"/>
+            </mx:GridItem>
+            <mx:GridItem width="70">
+                <mx:Label text="{'' + percentFormatter.format(UserStatistics(data).winsRatio) + ' %'}"
+                          visible="{UserStatistics(data).allGamesCount >= 10}" includeInLayout="{UserStatistics(data).allGamesCount >= 10}"/>
+                <mx:Label text="-" visible="{UserStatistics(data).allGamesCount &lt; 10}" includeInLayout="{UserStatistics(data).allGamesCount &lt; 10}"
+                          toolTip="{resourceManager.getString('common', 'stat.played.less.ten.tooltip')}"/>
+            </mx:GridItem>
+            <mx:GridItem width="90">
+                <mx:Label text="{'' + thousandsFormatter.format(UserStatistics(data).maxTotal)}"
+                          fontWeight="{defineFontWeightForTotal(UserStatistics(data).maxTotal)}"
+                          fontSize="{defineFontSizeForTotal(UserStatistics(data).maxTotal)}"/>
+            </mx:GridItem>
+            <mx:GridItem width="90">
+                <mx:Label text="{'' + thousandsFormatter.format(UserStatistics(data).maxDiff)}"
+                          fontWeight="{defineFontWeightForTotal(UserStatistics(data).maxDiff)}"
+                          fontSize="{defineFontSizeForTotal(UserStatistics(data).maxDiff)}"/>
+            </mx:GridItem>
+            <mx:GridItem width="90">
+                <mx:Label text="{'' + thousandsFormatter.format(UserStatistics(data).totalWinned)}"
+                          fontWeight="{defineFontWeightForTotal(UserStatistics(data).totalWinned)}"
+                          fontSize="{defineFontSizeForTotal(UserStatistics(data).totalWinned)}"
+                          styleName="{defineStyle(UserStatistics(data).totalWinned)}"/>
+            </mx:GridItem>
+            <mx:GridItem width="80">
+                <mx:Text text="{formatDays(UserStatistics(data).daysAfterLastPlay)}" truncateToFit="true" width="74"
+                         color="{defineColor(UserStatistics(data).daysAfterLastPlay)}" styleName="smallFont"/>
+            </mx:GridItem>
+            <mx:GridItem width="80">
+                <mx:Text text="{formatDays(UserStatistics(data).daysAfterLastVisit)}" truncateToFit="true" width="74"
+                         color="{defineColor(UserStatistics(data).daysAfterLastVisit)}" styleName="smallFont"/>
+            </mx:GridItem>
+        </mx:GridRow>
+    </mx:Grid>
+
+</r:BaseListItemRenderer>

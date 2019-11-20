@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:c="com.stockholdergame.client.ui.components.*"
+         implements="mx.controls.listClasses.IListItemRenderer, mx.controls.listClasses.IDropInListItemRenderer"
+         horizontalAlign="center" horizontalGap="0" verticalGap="0" paddingLeft="2" paddingRight="2" paddingBottom="0"
+         paddingTop="5" verticalAlign="top" width="120">
+
+    <mx:Metadata>
+        [Event(name="joinToGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="cancelGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.GameDto;
+        import com.stockholdergame.client.model.dto.game.lite.GameLiteDto;
+        import com.stockholdergame.client.model.session.SessionManager;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+
+        import mx.controls.listClasses.BaseListData;
+
+        private var _listData:BaseListData;
+
+        public function get listData():BaseListData {
+            return _listData;
+        }
+
+        public function set listData(value:BaseListData):void {
+            this._listData = value;
+        }
+
+        private function handleJoinToGameButtonClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.JOIN_TO_GAME, data.id, true, true));
+        }
+
+        private function handleCancelGameButtonClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.CANCEL_GAME, data.id, true, true));
+        }
+        ]]></mx:Script>
+
+    <mx:Label text="{resourceManager.getString('common', 'moves.number.label', [GameLiteDto(data).movesQuantity])}"/>
+    <c:Avatar avatar="{GameLiteDto(data).initiator.avatar}"/>
+    <mx:Label text="{GameLiteDto(data).initiator.userName}" truncateToFit="true" width="116"
+              styleName="userNameBigFont"
+              textAlign="center"/>
+    <mx:HBox width="100%" horizontalAlign="center" paddingTop="0" paddingBottom="0">
+        <c:StkButton id="joinToGameBtn" styleName="joinGameButton"
+                     toolTip="{resourceManager.getString('common', 'join.to.game.label')}"
+                     visible="{data.gameStatus == GameDto.OPEN &amp;&amp; !data.currentUserInitiator &amp;&amp; !SessionManager.instance.isRemoved()}"
+                     includeInLayout="{data.gameStatus == GameDto.OPEN &amp;&amp; !data.currentUserInitiator &amp;&amp; !SessionManager.instance.isRemoved()}"
+                     click="handleJoinToGameButtonClick(event)"/>
+        <c:StkButton id="cancelGameBtn" styleName="cancelButton"
+                     toolTip="{resourceManager.getString('common', 'cancel.game.label')}"
+                     visible="{data.gameStatus == GameDto.OPEN &amp;&amp; data.currentUserInitiator}"
+                     includeInLayout="{data.gameStatus == GameDto.OPEN &amp;&amp; data.currentUserInitiator}"
+                     click="handleCancelGameButtonClick(event)"/>
+    </mx:HBox>
+</mx:VBox>

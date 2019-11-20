@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC
+    "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+    "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+
+<hibernate-mapping>
+    <query name="AccountOperation.findUncompletedOperationsWithExpiredTerm">
+        <![CDATA[
+        select ao from AccountOperation ao where
+        ao.operationStatus = com.stockholdergame.server.model.account.OperationStatus.PENDING_VERIFICATION
+        and ao.expirationDate < ?
+        ]]>
+    </query>
+    <query name="AccountOperation.findUncompletedOperations">
+        select ao from AccountOperation ao where
+        ao.operationStatus = com.stockholdergame.server.model.account.OperationStatus.PENDING_VERIFICATION
+        and ao.gamerId = ?
+    </query>
+    <query name="AccountOperation.findUncompletedOperationsByType">
+        select ao from AccountOperation ao where
+        ao.operationStatus = com.stockholdergame.server.model.account.OperationStatus.PENDING_VERIFICATION
+        and ao.gamerId = ? and ao.operationType = ?
+    </query>
+</hibernate-mapping>

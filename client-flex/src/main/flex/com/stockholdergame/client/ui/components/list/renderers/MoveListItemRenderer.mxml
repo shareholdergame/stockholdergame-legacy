@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:items="com.stockholdergame.client.ui.components.list.items.*"
+         implements="mx.controls.listClasses.IListItemRenderer, mx.controls.listClasses.IDropInListItemRenderer"
+         horizontalScrollPolicy="off" width="100%"
+         styleName="{_competitorMove.moveNumber % 2 == 0 ? 'normalBox' : 'lightBox'}">
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.CompetitorMoveDto;
+        import com.stockholdergame.client.model.dto.game.MoveStepDto;
+
+        import mx.controls.listClasses.BaseListData;
+
+        private var _listData:BaseListData;
+
+        [Bindable]
+        private var _competitorMove:CompetitorMoveDto;
+
+        public function get listData():BaseListData {
+            return _listData;
+        }
+
+        public function set listData(value:BaseListData):void {
+            this._listData = value;
+        }
+
+        override public function set data(value:Object):void {
+            super.data = value;
+            _competitorMove = CompetitorMoveDto(value);
+        }
+        ]]></mx:Script>
+
+    <mx:DateFormatter id="dateFormatter" formatString="M/D/YY"/>
+    <mx:DateFormatter id="timeFormatter" formatString="J:NN:SS"/>
+
+    <mx:VBox width="44" height="100%">
+        <mx:Label text="{_competitorMove.moveNumber > 0 ? '' + _competitorMove.moveNumber : ''}" fontSize="18"/>
+        <mx:Label text="{dateFormatter.format(_competitorMove.finishedTime)}" fontSize="8"
+                  includeInLayout="{_competitorMove.moveNumber > 0}" visible="{_competitorMove.moveNumber > 0}"/>
+        <mx:Label text="{timeFormatter.format(_competitorMove.finishedTime)}" fontSize="8"
+                  includeInLayout="{_competitorMove.moveNumber > 0}" visible="{_competitorMove.moveNumber > 0}"/>
+    </mx:VBox>
+    <items:MoveStepsItem width="100%" height="100%" competitorMove="{_competitorMove}"/>
+</mx:HBox>

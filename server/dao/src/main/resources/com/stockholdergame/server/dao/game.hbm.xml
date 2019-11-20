@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC
+    "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+    "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+
+<hibernate-mapping>
+    <query name="Game.findGamesByIds">
+        select g from Game g where g.id in (?1)
+    </query>
+    <query name="Game.findGamesByGamerId">
+        select distinct g from Game g, Competitor c where c.game = g and c.gamerId = ?
+    </query>
+    <query name="Game.findGameByIdAndUserId">
+        select distinct g from Game g, Competitor c where g.id = ? and c.game = g and c.gamerId = ?
+    </query>
+    <query name="Game.findGameByIdAndUserIdAndStatus">
+        select distinct g from Game g, Competitor c where g.id = ? and c.game = g and c.gamerId = ?
+        and g.gameStatus = ?
+    </query>
+    <query name="Game.isGameInitiatedByUser">
+        select distinct g.id from Game g, Competitor c where g.id = ? and c.game = g and c.gamerId = ?
+        and c.isInitiator = true
+    </query>
+    <query name="Game.countMyGamesByStatus">
+        select g.gameStatus, count(g) from Game g, Competitor c where c.game = g and c.gamerId = ? group by 1
+    </query>
+    <query name="Game.countUserInitiatedGamesByMethod">
+        select count(g) from Game g, Competitor c where c.game = g and c.gamerId = ? and c.isInitiator = true
+        and g.initiationMethod = ?
+        and g.gameStatus = com.stockholdergame.server.model.game.GameStatus.OPEN
+    </query>
+    <query name="Game.findPlayingUsers">
+        select new com.stockholdergame.server.model.game.CompetitorProjection(ga.userName, p.avatar,
+        case when ga.status = com.stockholdergame.server.model.account.AccountStatus.REMOVED or ga.status = com.stockholdergame.server.model.account.AccountStatus.REMOVED_COMPLETELY then true else false end)
+        from Game g, Competitor c, GamerAccount ga left join ga.profile p
+        where c.game = g and c.gamerId = ga.id and ga.isBot = false and g.gameVariantId = ?1 and g.initiationMethod = ?2 and g.gameStatus = com.stockholdergame.server.model.game.GameStatus.RUNNING
+        group by ga.userName
+    </query>
+    <query name="Game.findExpiredGameOffers">
+        <![CDATA[
+        select g from Game g where g.gameStatus = com.stockholdergame.server.model.game.GameStatus.OPEN
+        and g.initiationMethod = com.stockholdergame.server.model.game.GameInitiationMethod.GAME_OFFER
+        and g.expiredTime < ?
+        ]]>
+    </query>
+    <query name="Game.findGameIdsByStatus">
+        select g.id from Game g where g.gameStatus in (?1)
+    </query>
+    <query name="Game.findGameIdsByUserIdAndStatus">
+        select g.id from Game g, Competitor c where c.game = g and c.gamerId = ?1 and g.gameStatus in (?2)
+    </query>
+    <query name="Game.findVariantsWithoutOffers">
+        select gv.id from GameVariant gv where gv.id not in
+        (select g.gameVariantId as offersCount from Game g where g.gameStatus = com.stockholdergame.server.model.game.GameStatus.OPEN
+        and g.initiationMethod = com.stockholdergame.server.model.game.GameInitiationMethod.GAME_OFFER) order by 1
+    </query>
+    <query name="Game.countGamesInSeries">
+        select count(g) from Game g where g.gameSeries.id = ?
+    </query>
+    <query name="Game.findRelatedGameIds">
+        select new com.stockholdergame.server.model.game.RelatedGameProjection(g.id, g.gameLetter) from Game g, GameSeries gs
+        where g.gameSeries = gs and g.id != ?1 and gs.id = ?2
+    </query>
+    <query name="Game.findCompletedGameSeries">
+        select gs.id from GameSeries gs where gs.isCompleted = true
+    </query>
+    <query name="Game.findGameSeriesById">
+        select gs from GameSeries gs where gs.id = ?1
+    </query>
+    <query name="Game.findOrphanGameSeries">
+        select gs from GameSeries gs where (select count(g) from Game g where g.gameSeries.id = gs.id) = 0
+    </query>
+    <sql-query name="Game.findLongDrawnGames">
+        <return-scalar column="game_id" type="long"/>
+        <![CDATA[
+        select g.game_id
+        from ag_games g,
+             ag_moves am,
+             ag_competitor_moves acm,
+             (select cm.move_id, max(cm.move_order) as max_move_order
+              from ag_competitor_moves cm,
+                  (select m2.move_id
+                   from ag_moves m2,
+                       (select m.game_id, max(m.move_number) as max_move_number
+                        from ag_moves m
+                        group by 1) as m1
+                   where m1.game_id = m2.game_id and m2.move_number = m1.max_move_number) as m3
+              where m3.move_id = cm.move_id
+              group by 1) as last_cm
+        where
+        g.game_id = am.game_id and am.move_id = acm.move_id
+        and acm.move_id = last_cm.move_id and acm.move_order = last_cm.max_move_order
+        and g.game_status_id = 1
+        and acm.finished_time < ?
+         ]]>
+    </sql-query>
+</hibernate-mapping>

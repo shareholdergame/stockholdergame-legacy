@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC
+    "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+    "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+
+<hibernate-mapping>
+    <query name="FinishedGame.findByIdAndUserId">
+        select distinct g from FinishedGame g, FinishedGameCompetitor c where g.id = ? and c.game = g and c.id.gamerId = ?
+    </query>
+    <query name="FinishedGame.findGamesOlderThan">
+        <![CDATA[
+        select fg.id from FinishedGame fg where fg.finishedTime < ?1
+        ]]>
+    </query>
+    <query name="FinishedGame.countMyGames">
+        select count(fg) from FinishedGame fg, FinishedGameCompetitor c where c.game = fg and c.id.gamerId = ?
+    </query>
+    <query name="FinishedGame.findRelatedGameIds">
+        select new com.stockholdergame.server.model.game.RelatedGameProjection(g.id, g.gameLetter) from FinishedGame g, FinishedGameSeries gs
+        where g.gameSeries = gs and g.id != ?1 and gs.id = ?2
+    </query>
+    <query name="FinishedGame.findGameSeriesByPrimaryKey">
+        select fgs from FinishedGameSeries fgs where fgs.id = ?1
+    </query>
+</hibernate-mapping>

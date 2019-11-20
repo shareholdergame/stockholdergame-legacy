@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <artifactId>stockholdergame-server</artifactId>
+        <groupId>com.stockholdergame.server</groupId>
+        <version>1.5</version>
+    </parent>
+
+    <artifactId>gamecore</artifactId>
+    <packaging>jar</packaging>
+    <name>StockholderGame Application :: Game core module</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>${testng.version}</version>
+            <classifier>${testng.classifier}</classifier>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project>

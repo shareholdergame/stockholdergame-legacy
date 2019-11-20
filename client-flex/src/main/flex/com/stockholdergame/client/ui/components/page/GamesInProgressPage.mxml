@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+         xmlns:list="com.stockholdergame.client.ui.components.list.*" xmlns:c="com.stockholdergame.client.ui.components.*"
+         implements="com.stockholdergame.client.ui.components.page.IRefreshablePage"
+         styleName="page" show="refreshData()">
+
+    <mx:Metadata>
+        [Event(name="refreshPageData", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="playGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.GameFilterDto;
+        import com.stockholdergame.client.model.dto.game.lite.GamesList;
+        import com.stockholdergame.client.ui.components.classes.GameFilterData;
+        import com.stockholdergame.client.ui.components.classes.GameFilterData;
+        import com.stockholdergame.client.ui.components.classes.GameFilterData;
+        import com.stockholdergame.client.ui.components.list.PaginationBar;
+        import com.stockholdergame.client.ui.components.list.events.PaginationEvent;
+        import com.stockholdergame.client.ui.components.list.listClasses.PaginationData;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+        import com.stockholdergame.client.ui.events.GameFilterEvent;
+
+        [Bindable]
+        public var gamesInProgress:GamesList;
+
+        public function refreshData():void {
+            var gameFilter:GameFilterDto = createGameFilter(gamesInProgressList != null
+                    ? gamesInProgressList.paginationData : PaginationBar.DEFAULT_PAGINATION_DATA);
+            if (gameFilterPanel != null) {
+                GameFilterData.mergeFilter(gameFilterPanel.filterData, gameFilter);
+            }
+            dispatchEvent(new BusinessEvent(BusinessActions.REFRESH_PAGE_DATA, gameFilter));
+        }
+
+        public function redraw():void {
+            if (gamesInProgressList != null) {
+                gamesInProgressList.validateNow();
+            }
+        }
+
+        private function onPageChanged(event:PaginationEvent):void {
+            var gameFilter:GameFilterDto = createGameFilter(event.paginationData);
+            dispatchEvent(new BusinessEvent(BusinessActions.REFRESH_PAGE_DATA, gameFilter));
+        }
+
+        private function onGameFilterBtnClick(event:MouseEvent):void {
+            refreshData();
+        }
+
+        private static function createGameFilter(paginationData:PaginationData):GameFilterDto {
+            var gameFilter:GameFilterDto = new GameFilterDto();
+            gameFilter.offset = paginationData.offset;
+            gameFilter.maxResults = paginationData.limit;
+            return gameFilter;
+        }
+
+        private function onGameFilterApplied(event:GameFilterEvent):void {
+            var gameFilter:GameFilterDto = createGameFilter(gamesInProgressList != null
+                    ? gamesInProgressList.paginationData : PaginationBar.DEFAULT_PAGINATION_DATA);
+            GameFilterData.mergeFilter(event.filterData, gameFilter);
+            dispatchEvent(new BusinessEvent(BusinessActions.REFRESH_PAGE_DATA, gameFilter));
+        }
+
+        public function clearData():void {
+            gamesInProgress = null;
+        }
+        ]]></mx:Script>
+
+    <mx:HBox width="100%" styleName="pageHeaderBox" height="36">
+        <mx:Label text="{resourceManager.getString('common', 'running.games.title')}" styleName="lightLargeBoldFont"/>
+        <mx:Spacer width="100%"/>
+        <c:GameFilterPanel id="gameFilterPanel" filterApplied="onGameFilterApplied(event)" labelStyleName="lightSmallFont"/>
+    </mx:HBox>
+    <list:GameList id="gamesInProgressList" width="100%" height="100%" styleName="pageContentBox"
+                   totalItems="{gamesInProgress.totalCount}" items="{gamesInProgress.games}"
+                   pageChanged="onPageChanged(event)"/>
+</mx:VBox>

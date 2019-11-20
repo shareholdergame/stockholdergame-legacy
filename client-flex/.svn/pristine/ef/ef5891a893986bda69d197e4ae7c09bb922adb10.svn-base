@@ -1,0 +1,335 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:c="com.stockholdergame.client.ui.components.*"
+         currentState="{EMPTY_STATE}" width="900" height="600" styleName="lightBox"
+         initialize="onInitialize()">
+
+    <mx:Metadata>
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.CompetitorDto;
+        import com.stockholdergame.client.model.dto.game.RelatedGame;
+        import com.stockholdergame.client.model.dto.game.result.CompetitorDiffDto;
+        import com.stockholdergame.client.model.dto.game.result.CompetitorResultDto;
+        import com.stockholdergame.client.util.sort.SortUtil;
+
+        import mx.collections.ArrayCollection;
+
+        import mx.events.FlexMouseEvent;
+
+        public static const EMPTY_STATE:String = "emptyState";
+        public static const GAME_FINAL_RESULT_STATE:String = "gameFinalResultState";
+        public static const GAME_SERIES_RESULT_STATE:String = "gameSeriesResultState";
+        public static const GAME_INTERMEDIATE_RESULT_STATE:String = "gameIntermediateResultState";
+
+        import com.stockholdergame.client.model.dto.game.GameDto;
+
+        import mx.managers.PopUpManager;
+
+        [Bindable]
+        private var _game:GameDto;
+
+        [Bindable]
+        private var loseCompetitors:ArrayCollection;
+
+        [Bindable]
+        private var winCompetitors:ArrayCollection;
+
+        [Bindable]
+        private var outCompetitors:ArrayCollection;
+
+        [Bindable]
+        private var me:CompetitorDto;
+
+        [Bindable]
+        private var textForForum:String;
+
+        [Bindable]
+        private var gameResults:ArrayCollection;
+
+        public function get game():GameDto {
+            return _game;
+        }
+
+        public function set game(value:GameDto):void {
+            _game = value;
+            sortCompetitors();
+            buildGameResultsList(_game.competitorResults, _game.competitorDiffs, _game.relatedGames);
+            buildTextForForum();
+        }
+
+        private function buildTextForForum():void {
+            textForForum = "[table][tr][th colspan=" + (_game.competitors.length + 1) + "]";
+
+            var competitors:ArrayCollection = _game.competitors;
+            for each (var competitorDto:CompetitorDto in competitors) {
+                textForForum += competitorDto.userName;
+                textForForum += ' - ';
+            }
+            textForForum += resourceManager.getString('common', 'moves.number.label', [_game.movesQuantity]) + "[/th][/tr]";
+
+            for each (var object:Object in gameResults) {
+                textForForum += "[tr][td]" + resourceManager.getString('common', 'game.letter.label', [object.gameLetter ]) + "[/td]";
+                var competitorResults:ArrayCollection = SortUtil.sortByNumericField(object.results, "moveOrder");
+                for each (var competitorResultDto2:CompetitorResultDto in competitorResults) {
+                    textForForum += "[td]";
+                    textForForum += "[b]" + competitorResultDto2.userName + "[/b] - " + competitorResultDto2.totalFunds;
+                    textForForum += "[/td]";
+                }
+                textForForum += "[/tr]";
+            }
+
+            var gameSeriesCompetitorResults:ArrayCollection = _game.gameSeriesCompetitorResults;
+            var gameSeriesCompetitorDiffs:ArrayCollection = _game.gameSeriesCompetitorDiffs;
+            textForForum += "[tr]";
+            textForForum += "[td]" + resourceManager.getString('common', 'game.series.result.link.label') + "[/td]";
+            for each (var competitorResultDto:CompetitorResultDto in gameSeriesCompetitorResults) {
+                textForForum += "[td]";
+                textForForum += "[b]" + competitorResultDto.userName + "\n";
+                textForForum += competitorResultDto.totalPoints + "[/b]";
+                for each (var competitorDiffDto:CompetitorDiffDto in gameSeriesCompetitorDiffs) {
+                    if (competitorDiffDto.firstUserName == competitorResultDto.userName && competitorDiffDto.fundsAbsoluteDiff > 0) {
+                        textForForum += " (+" + competitorDiffDto.fundsAbsoluteDiff + ")";
+                    }
+                }
+                textForForum += "[/td]";
+            }
+            textForForum += "[/tr]";
+
+            textForForum += "[/table]";
+        }
+
+        private function buildGameResultsList(competitorResults:ArrayCollection, competitorDiffs:ArrayCollection, relatedGames:ArrayCollection):void {
+            var grs:ArrayCollection = new ArrayCollection();
+            grs.addItem({gameLetter: _game.gameLetter, results: competitorResults, diffs: competitorDiffs});
+            for each (var relatedGame:RelatedGame in relatedGames) {
+                grs.addItem({gameLetter: relatedGame.gameLetter, results: relatedGame.competitorResults, diffs: relatedGame.competitorDiffs});
+            }
+            gameResults = SortUtil.sortByStringField(grs, "gameLetter");
+        }
+
+        private function sortCompetitors():void {
+            var competitors:ArrayCollection = _game.competitors;
+            var loseCompetitors:ArrayCollection = new ArrayCollection();
+            var winCompetitors:ArrayCollection = new ArrayCollection();
+            var outCompetitors:ArrayCollection = new ArrayCollection();
+            for each (var competitorDto:CompetitorDto in competitors) {
+                if (competitorDto.me) {
+                    me = competitorDto;
+                }
+            }
+            for each (var competitorDto1:CompetitorDto in competitors) {
+                if (competitorDto1.me) {
+                    continue;
+                }
+                if (competitorDto1.out) {
+                    outCompetitors.addItem(competitorDto1);
+                } else {
+                    if (competitorDto1.totalFunds > me.totalFunds) {
+                        loseCompetitors.addItem(competitorDto1);
+                    } else {
+                        winCompetitors.addItem(competitorDto1);
+                    }
+                }
+            }
+            this.loseCompetitors = SortUtil.sortByNumericField(loseCompetitors, "totalFunds");
+            this.winCompetitors = SortUtil.sortByNumericField(winCompetitors, "totalFunds");
+            this.outCompetitors = SortUtil.sortByNumericField(outCompetitors, "totalFunds");
+        }
+
+        private function onClose(event:MouseEvent):void {
+            if (this.isPopUp) {
+                PopUpManager.removePopUp(this);
+            }
+        }
+
+        private function onInitialize():void {
+            this.addEventListener(FlexMouseEvent.MOUSE_DOWN_OUTSIDE, onClose);
+        }
+        ]]></mx:Script>
+
+    <mx:states>
+        <mx:State name="{EMPTY_STATE}">
+        </mx:State>
+        <mx:State name="{GAME_INTERMEDIATE_RESULT_STATE}">
+            <mx:AddChild relativeTo="{contentBox}" position="firstChild">
+                <mx:VBox width="100%">
+                    <mx:Spacer height="30"/>
+                    <mx:Label text="{resourceManager.getString('common', 'game.over.message')}" styleName="largeBoldAttentionFont"
+                              visible="{me.out}" includeInLayout="{me.out}"/>
+                    <mx:Label text="{resourceManager.getString('common', 'bankrupt.message', [me.totalFunds])}" styleName="largeBoldAttentionFont"
+                              visible="{me.out}" includeInLayout="{me.out}"/>
+                </mx:VBox>
+            </mx:AddChild>
+        </mx:State>
+        <mx:State name="{GAME_FINAL_RESULT_STATE}">
+            <mx:AddChild relativeTo="{contentBox}" position="firstChild">
+                <mx:VBox width="100%" styleName="containerWithGaps">
+                    <mx:HBox width="100%" height="36" styleName="containerWithGaps">
+                        <mx:Label text="{resourceManager.getString('common', 'game.result.label')}" styleName="largeBoldFont"/>
+                    </mx:HBox>
+                    <mx:Label text="{resourceManager.getString('common', 'winner.message')}" styleName="largeBoldGreenFont"
+                              visible="{me.winner}" includeInLayout="{me.winner}"/>
+                    <mx:Label text="{resourceManager.getString('common', 'loser.message')}" styleName="largeBoldAttentionFont"
+                              visible="{!me.winner &amp;&amp; !me.out}" includeInLayout="{!me.winner &amp;&amp; !me.out}"/>
+                    <mx:Label text="{resourceManager.getString('common', 'bankrupt.message', [me.totalFunds])}" styleName="largeBoldAttentionFont"
+                              visible="{me.out}" includeInLayout="{me.out}"/>
+                    <mx:Label text="{resourceManager.getString('common', 'your.points', [me.totalPoints])}" styleName="xLargeBoldFont"/>
+                    <mx:HBox height="24" styleName="containerWithGaps">
+                        <mx:Label text="{resourceManager.getString('common', 'your.result', [me.totalFunds])}" styleName="largeBoldFont"/>
+                        <mx:Label text="{(me.winSum > 0 ? '+' : '') + me.winSum}" styleName="{me.winSum > 0 ? 'greenBigBoldFont' : 'redBigBoldFont'}"/>
+                    </mx:HBox>
+                    <mx:Spacer height="10"/>
+                    <mx:HBox width="100%" visible="{!me.winner}" includeInLayout="{!me.winner}" styleName="containerWithGaps">
+                        <mx:Label text="{resourceManager.getString('common', 'you.lose.users.label')}" styleName="bigBoldFont"/>
+                        <mx:Repeater id="competitorsRep" dataProvider="{loseCompetitors}">
+                            <mx:Spacer width="10"/>
+                            <mx:HBox height="100%" styleName="containerWithGaps">
+                                <c:Avatar avatar="{CompetitorDto(competitorsRep.currentItem).avatar}"/>
+                                <mx:Label text="{CompetitorDto(competitorsRep.currentItem).totalPoints}"
+                                          visible="{_game.competitorsQuantity > 2}" includeInLayout="{_game.competitorsQuantity > 2}"
+                                          styleName="xLargeBoldFont"/>
+                                <mx:VBox width="87" styleName="{CompetitorDto(competitorsRep.currentItem).winner ? 'winnerBox' : 'lightBox'}">
+                                    <mx:Label text="{CompetitorDto(competitorsRep.currentItem).userName}"
+                                              styleName="{CompetitorDto(competitorsRep.currentItem).out ? 'competitorOutFont' : (CompetitorDto(competitorsRep.currentItem).bot ? 'botNameBigFont' : 'userNameBigFont')}"
+                                              maxWidth="85" textAlign="center" truncateToFit="true"/>
+                                    <mx:Label text="{CompetitorDto(competitorsRep.currentItem).totalFunds}"
+                                              styleName="{CompetitorDto(competitorsRep.currentItem).winner ? 'largeBoldFont' : 'largeFont'}"/>
+                                </mx:VBox>
+                            </mx:HBox>
+                        </mx:Repeater>
+                    </mx:HBox>
+                    <mx:Spacer height="10"/>
+                    <mx:HBox width="100%" visible="{winCompetitors.length > 0}" includeInLayout="{winCompetitors.length > 0}"
+                             styleName="containerWithGaps">
+                        <mx:Label text="{resourceManager.getString('common', 'you.win.users.label')}" styleName="bigBoldFont"/>
+                        <mx:Repeater id="competitorsRep1" dataProvider="{winCompetitors}">
+                            <mx:Spacer width="10"/>
+                            <mx:HBox height="100%" styleName="containerWithGaps">
+                                <c:Avatar avatar="{CompetitorDto(competitorsRep1.currentItem).avatar}"/>
+                                <mx:Label text="{CompetitorDto(competitorsRep1.currentItem).totalPoints}"
+                                          visible="{_game.competitorsQuantity > 2}" includeInLayout="{_game.competitorsQuantity > 2}"
+                                          styleName="xLargeBoldFont"/>
+                                <mx:VBox width="87" styleName="{CompetitorDto(competitorsRep1.currentItem).winner ? 'winnerBox' : 'lightBox'}">
+                                    <mx:Label text="{CompetitorDto(competitorsRep1.currentItem).userName}"
+                                              styleName="{CompetitorDto(competitorsRep1.currentItem).out ? 'competitorOutFont' : (CompetitorDto(competitorsRep1.currentItem).bot ? 'botNameBigFont' : 'userNameBigFont')}"
+                                              maxWidth="85" textAlign="center" truncateToFit="true"/>
+                                    <mx:Label text="{CompetitorDto(competitorsRep1.currentItem).totalFunds}"
+                                              styleName="{CompetitorDto(competitorsRep1.currentItem).winner ? 'largeBoldFont' : 'largeFont'}"/>
+                                </mx:VBox>
+                            </mx:HBox>
+                        </mx:Repeater>
+                    </mx:HBox>
+                    <mx:Spacer height="10"/>
+                    <mx:HBox width="100%" visible="{outCompetitors.length > 0}" includeInLayout="{outCompetitors.length > 0}"
+                             styleName="containerWithGaps">
+                        <mx:Label text="{resourceManager.getString('common', 'out.users.label')}" styleName="bigBoldFont"/>
+                        <mx:Repeater id="competitorsRep2" dataProvider="{outCompetitors}">
+                            <mx:Spacer width="10"/>
+                            <mx:HBox height="100%" styleName="containerWithGaps">
+                                <c:Avatar avatar="{CompetitorDto(competitorsRep2.currentItem).avatar}"/>
+                                <mx:VBox width="87" styleName="{CompetitorDto(competitorsRep2.currentItem).winner ? 'winnerBox' : 'lightBox'}">
+                                    <mx:Label text="{CompetitorDto(competitorsRep2.currentItem).userName}"
+                                              styleName="{CompetitorDto(competitorsRep2.currentItem).out ? 'competitorOutFont' : (CompetitorDto(competitorsRep2.currentItem).bot ? 'botNameBigFont' : 'userNameBigFont')}"
+                                              maxWidth="85" textAlign="center" truncateToFit="true"/>
+                                    <mx:Label text="{CompetitorDto(competitorsRep2.currentItem).totalFunds}"
+                                              styleName="{CompetitorDto(competitorsRep2.currentItem).winner ? 'largeBoldFont' : 'largeFont'}"/>
+                                </mx:VBox>
+                            </mx:HBox>
+                        </mx:Repeater>
+                    </mx:HBox>
+                    <mx:Spacer height="10"/>
+                    <mx:VBox width="100%" visible="{_game.switchMoveOrder}" includeInLayout="{_game.switchMoveOrder}">
+                        <mx:HRule width="90%"/>
+                        <mx:Spacer height="10"/>
+                        <mx:Label text="{resourceManager.getString('common', 'game.series.result.label')}" styleName="largeBoldFont"/>
+                        <mx:Spacer height="10"/>
+                        <mx:HBox width="100%" styleName="containerWithGaps">
+                            <mx:Repeater id="gameSeriesResultRep" dataProvider="{_game.competitors}">
+                                <mx:Spacer width="10"/>
+                                <mx:VBox styleName="containerWithGaps">
+                                    <mx:HBox height="100%" styleName="containerWithGaps">
+                                        <c:Avatar avatar="{CompetitorDto(gameSeriesResultRep.currentItem).avatar}"/>
+                                        <mx:Label text="{CompetitorDto(gameSeriesResultRep.currentItem).gameSeriesTotalPoints}" styleName="xLargeBoldFont"/>
+                                        <mx:VBox width="87"
+                                                 styleName="{CompetitorDto(gameSeriesResultRep.currentItem).gameSeriesWinner ? 'winnerBox' : 'lightBox'}">
+                                            <mx:Label text="{CompetitorDto(gameSeriesResultRep.currentItem).userName}"
+                                                      styleName="{CompetitorDto(gameSeriesResultRep.currentItem).bot ? 'botNameBigFont' : 'userNameBigFont'}"
+                                                      maxWidth="85" textAlign="center" truncateToFit="true"/>
+                                            <mx:Label text="{CompetitorDto(gameSeriesResultRep.currentItem).gameSeriesTotalFunds}"
+                                                      styleName="{CompetitorDto(gameSeriesResultRep.currentItem).gameSeriesWinner ? 'largeBoldFont' : 'largeFont'}"/>
+                                            <mx:Label visible="{_game.competitorsQuantity == 2}" includeInLayout="{_game.competitorsQuantity == 2}"
+                                                      text="{(CompetitorDto(gameSeriesResultRep.currentItem).gameSeriesWinSum > 0 ? '+' : '') + CompetitorDto(gameSeriesResultRep.currentItem).gameSeriesWinSum}"
+                                                      styleName="{CompetitorDto(gameSeriesResultRep.currentItem).gameSeriesWinSum > 0 ? 'greenFont' : 'normalAttentionFont'}"/>
+                                        </mx:VBox>
+                                    </mx:HBox>
+                                </mx:VBox>
+                            </mx:Repeater>
+                        </mx:HBox>
+                        <mx:VBox width="100%">
+                            <mx:Label styleName="bigBoldFont" text="{resourceManager.getString('common', 'text.for.forum')}"/>
+                            <mx:TextArea editable="false" selectable="true" id="gameResultForumText1" text="{textForForum}" width="60%" minHeight="50" maxHeight="300"/>
+                            <mx:Spacer height="3"/>
+                            <c:StkButton label="{resourceManager.getString('common', 'copy.text.to.clipboard')}"
+                                         click="{System.setClipboard(gameResultForumText.text)}"/>
+                        </mx:VBox>
+                    </mx:VBox>
+                </mx:VBox>
+            </mx:AddChild>
+        </mx:State>
+        <mx:State name="{GAME_SERIES_RESULT_STATE}">
+            <mx:AddChild relativeTo="{contentBox}" position="firstChild">
+                <mx:VBox width="100%">
+                    <mx:Spacer height="10"/>
+                    <mx:Label text="{resourceManager.getString('common', 'game.series.result.label')}" styleName="largeBoldFont"/>
+                    <mx:Spacer height="10"/>
+                    <mx:HBox width="100%" styleName="containerWithGaps">
+                        <mx:Repeater id="gameSeriesResultRep1" dataProvider="{_game.competitors}">
+                            <mx:VBox styleName="containerWithGaps">
+                                <mx:HBox height="100%" styleName="containerWithGaps">
+                                    <mx:Spacer width="10"/>
+                                    <c:Avatar avatar="{CompetitorDto(gameSeriesResultRep1.currentItem).avatar}"/>
+                                    <mx:Label text="{CompetitorDto(gameSeriesResultRep1.currentItem).gameSeriesTotalPoints}" styleName="xLargeBoldFont"/>
+                                    <mx:VBox width="87"
+                                             styleName="{CompetitorDto(gameSeriesResultRep1.currentItem).gameSeriesWinner ? 'winnerBox' : 'lightBox'}">
+                                        <mx:Label text="{CompetitorDto(gameSeriesResultRep1.currentItem).userName}"
+                                                  styleName="{CompetitorDto(gameSeriesResultRep1.currentItem).bot ? 'botNameBigFont' : 'userNameBigFont'}"
+                                                  maxWidth="85" textAlign="center" truncateToFit="true"/>
+                                        <mx:Label text="{CompetitorDto(gameSeriesResultRep1.currentItem).gameSeriesTotalFunds}"
+                                                  styleName="{CompetitorDto(gameSeriesResultRep1.currentItem).gameSeriesWinner ? 'largeBoldFont' : 'largeFont'}"/>
+                                        <mx:Label visible="{_game.competitorsQuantity == 2}" includeInLayout="{_game.competitorsQuantity == 2}"
+                                                text="{(CompetitorDto(gameSeriesResultRep1.currentItem).gameSeriesWinSum > 0 ? '+' : '') + CompetitorDto(gameSeriesResultRep1.currentItem).gameSeriesWinSum}"
+                                                styleName="{CompetitorDto(gameSeriesResultRep1.currentItem).gameSeriesWinSum > 0 ? 'greenFont' : 'normalAttentionFont'}"/>
+                                    </mx:VBox>
+                                </mx:HBox>
+                            </mx:VBox>
+                        </mx:Repeater>
+                    </mx:HBox>
+                    <mx:VBox width="100%">
+                        <mx:Label styleName="bigBoldFont" text="{resourceManager.getString('common', 'text.for.forum')}"/>
+                        <mx:TextArea editable="false" selectable="true" id="gameResultForumText" text="{textForForum}" width="60%" minHeight="50" maxHeight="300"/>
+                        <mx:Spacer height="3"/>
+                        <c:StkButton label="{resourceManager.getString('common', 'copy.text.to.clipboard')}"
+                                     click="{System.setClipboard(gameResultForumText.text)}"/>
+                    </mx:VBox>
+                </mx:VBox>
+            </mx:AddChild>
+        </mx:State>
+    </mx:states>
+
+    <mx:VBox id="contentBox" width="100%" height="100%" styleName="topAlignedContainer">
+    </mx:VBox>
+    <!--<mx:VBox height="72" visible="{!_game.switchMoveOrder}" includeInLayout="{!_game.switchMoveOrder}">
+        <mx:Label text="{resourceManager.getString('common', 'want.switch.move.order')}" styleName="largeBoldFont"/>
+        <mx:HBox width="50%">
+            <c:StkLinkButton label="{resourceManager.getString('common', 'yes.button.label')}" width="200" styleName="largeBoldGreenFont"/>
+            <mx:Spacer width="30"/>
+            <c:StkLinkButton label="{resourceManager.getString('common', 'no.button.label')}" width="200" styleName="largeBoldAttentionFont"/>
+        </mx:HBox>
+    </mx:VBox>-->
+    <mx:HBox height="36">
+        <c:StkButton id="closeGameBtn" styleName="closeButton" toolTip="{resourceManager.getString('common', 'close.button')}"
+                     click="onClose(event)"/>
+    </mx:HBox>
+</mx:VBox>

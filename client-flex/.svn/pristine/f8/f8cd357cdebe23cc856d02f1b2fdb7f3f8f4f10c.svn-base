@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+         xmlns:c="com.stockholdergame.client.ui.components.*"
+         xmlns:page="com.stockholdergame.client.ui.components.page.*"
+         styleName="pageContainer" verticalGap="0">
+
+    <mx:Metadata>
+        [Event(name="signOut", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showSendMessageDialog", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="changePage", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showRulesPage", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Parallel>
+        <mx:Move id="moveIn" xFrom="1050" yFrom="0" xTo="0" yTo="0" duration="500"/>
+        <mx:Move id="moveOut" xFrom="0" yFrom="0" xTo="-1050" yTo="0" duration="500"/>
+    </mx:Parallel>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+
+        import mx.controls.Alert;
+        import mx.events.IndexChangedEvent;
+
+        [Bindable]
+        private var newMessagesCounter:int;
+
+        [Bindable]
+        public var userName:String;
+
+        private function handleSignOut(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SIGN_OUT));
+        }
+
+        private function onMessagesClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_SEND_MESSAGE_DIALOG))
+        }
+
+        public function increaseNewMessagesCounter():void {
+            newMessagesCounter++;
+        }
+
+        public function resetNewMessagesCounter():void {
+            newMessagesCounter = 0;
+        }
+
+        [Bindable]
+        private var menuConfiguration:Array = [
+            {action: BusinessActions.SHOW_HOME_PAGE, componentId: "homePage"},
+            {action: BusinessActions.SHOW_NEW_GAME_PAGE, componentId: "newGamePage"},
+            {action: BusinessActions.SHOW_GAMES_IN_PROGRESS_PAGE, componentId: "gamesInProgressPage"},
+            {action: BusinessActions.SHOW_INVITATIONS_PAGE, componentId: "invitationsPage"},
+            {action: BusinessActions.SHOW_RATING_PAGE, componentId: "ratingPage"},
+            {action: BusinessActions.SHOW_STATISTICS_PAGE, componentId: "myStatisticsPage"},
+            {action: BusinessActions.SHOW_PROFILE_PAGE, componentId: "profilePage"}
+        ]
+        ]]></mx:Script>
+
+    <c:MainMenu id="mainMenu" width="100%" userName="{userName}" newMessagesCounter="{newMessagesCounter}"
+                pageStack="{pagesContainer}" menuConfiguration="{menuConfiguration}"
+                signOut="dispatchEvent(event)" showSendMessageDialog="dispatchEvent(event)" changePage="dispatchEvent(event)"
+                showRulesPage="dispatchEvent(event)"/>
+    <mx:ViewStack height="100%" width="100%" id="pagesContainer">
+        <page:HomePage label="{resourceManager.getString('common', 'home.page.label')}"
+                       id="homePage" width="100%" height="100%" showEffect="{moveIn}" hideEffect="{moveOut}"/>
+        <page:NewGamePage label="{resourceManager.getString('common', 'new.game.page.label')}"
+                          id="newGamePage" width="100%" height="100%" showEffect="{moveIn}"
+                          hideEffect="{moveOut}"/>
+        <page:GamesInProgressPage label="{resourceManager.getString('common', 'my.games.page.label')}"
+                          id="gamesInProgressPage" width="100%" height="100%" showEffect="{moveIn}" hideEffect="{moveOut}"/>
+        <page:InvitationsPage label="{resourceManager.getString('common', 'invitations.page.label')}"
+                              id="invitationsPage" width="100%" height="100%" showEffect="{moveIn}" hideEffect="{moveOut}"/>
+        <page:StatisticsPage label="{resourceManager.getString('common', 'statistics.page.label')}"
+                             id="myStatisticsPage" width="100%" height="100%" showEffect="{moveIn}"
+                             hideEffect="{moveOut}"/>
+        <page:ProfilePage label="{resourceManager.getString('common', 'profile.page.label')}"
+                          id="profilePage" width="100%" height="100%" showEffect="{moveIn}" hideEffect="{moveOut}"/>
+        <page:SearchUserPage label="{resourceManager.getString('common', 'search.user.title')}"
+                             id="searchUserPage" width="100%" height="100%" showEffect="{moveIn}" hideEffect="{moveOut}"/>
+        <page:RatingPage label="{resourceManager.getString('common', 'rating.page.title')}"
+                         id="ratingPage" width="100%" height="100%" showEffect="{moveIn}" hideEffect="{moveOut}"/>
+    </mx:ViewStack>
+</mx:VBox>

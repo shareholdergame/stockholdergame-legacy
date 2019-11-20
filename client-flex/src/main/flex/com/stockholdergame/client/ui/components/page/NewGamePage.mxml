@@ -1,0 +1,157 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:c="com.stockholdergame.client.ui.components.*"
+         implements="com.stockholdergame.client.ui.components.page.IRefreshablePage"
+         creationComplete="onCreationComplete()" styleName="page" show="refreshData()">
+
+    <mx:Metadata>
+        [Event(name="getOpenGames", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="initiateGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="joinToGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="cancelGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="changeInvitationStatus", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showCardSetDialog", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="gameVariantSelected", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="getGameVariantSummary", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.GameDto;
+        import com.stockholdergame.client.model.dto.game.GameFilterDto;
+        import com.stockholdergame.client.model.dto.game.lite.GameLiteDto;
+        import com.stockholdergame.client.model.dto.game.variant.GameVariantDto;
+        import com.stockholdergame.client.ui.components.list.listClasses.GameVariantListItemData;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+
+        import mx.collections.ArrayCollection;
+
+        [Bindable]
+        public var gameVariantsList:ArrayCollection;
+
+        [Bindable]
+        public var gameVariantCommonData:GameVariantDto;
+
+        private var refreshTimer:Timer;
+
+        public function set openGames(value:ArrayCollection):void {
+            for each (var gameVariantListItemData:GameVariantListItemData in gameVariantsList) {
+                if (gameVariantListItemData.openGames == null) {
+                    gameVariantListItemData.openGames = new ArrayCollection();
+                } else {
+                    gameVariantListItemData.openGames.removeAll();
+                }
+                for each (var gameLiteDto:GameLiteDto in value) {
+                    if (gameVariantListItemData.gameVariant.id == gameLiteDto.gameVariantId) {
+                        gameVariantListItemData.openGames.addItem(gameLiteDto);
+                    }
+                }
+            }
+        }
+
+        public function refreshData():void {
+            dispatchEvent(new BusinessEvent(BusinessActions.GET_GAME_VARIANT_SUMMARY));
+
+            var gameFilterDto:GameFilterDto = new GameFilterDto();
+            gameFilterDto.offset = 0;
+            gameFilterDto.maxResults = 3;
+            gameFilterDto.gameStatus = GameDto.OPEN;
+            gameFilterDto.offer = true;
+            gameFilterDto.initiator = true;
+            gameFilterDto.notInitiator = true;
+            dispatchEvent(new BusinessEvent(BusinessActions.GET_OPEN_GAMES, gameFilterDto));
+        }
+
+        private function onCreationComplete():void {
+            variantsList.addEventListener(BusinessActions.INITIATE_GAME, redispatchEvent);
+            variantsList.addEventListener(BusinessActions.JOIN_TO_GAME, redispatchEvent);
+            variantsList.addEventListener(BusinessActions.CANCEL_GAME, redispatchEvent);
+            variantsList.addEventListener(BusinessActions.CHANGE_INVITATION_STATUS, redispatchEvent);
+        }
+
+        private function redispatchEvent(event:Event):void {
+            event.stopImmediatePropagation();
+            dispatchEvent(event);
+        }
+
+        private function handleShowCardSetBtnClick():void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_CARD_SET_DIALOG, gameVariantCommonData.id));
+        }
+
+        public function startRefreshTimer():void {
+            if (refreshTimer == null) {
+                refreshTimer = new Timer(10000, 0);
+                refreshTimer.addEventListener(TimerEvent.TIMER, function (event:TimerEvent):void {
+                    refreshData();
+                });
+            }
+            if (!refreshTimer.running) {
+                refreshTimer.start();
+            }
+        }
+
+        public function stopRefreshTimer():void {
+            if (refreshTimer != null) {
+                refreshTimer.stop();
+            }
+        }
+
+        public function clearData():void {
+        }
+        ]]></mx:Script>
+
+    <mx:HBox width="100%" styleName="pageHeaderBox" height="36">
+        <mx:Label text="{resourceManager.getString('common', 'new.game.button.label')}" styleName="lightLargeBoldFont"/>
+    </mx:HBox>
+    <mx:VBox width="100%" height="100%" styleName="pageContentBox">
+        <mx:Grid width="100%" styleName="containerWithGaps">
+            <mx:GridRow width="100%">
+                <mx:GridItem width="16%" styleName="rightAlignedContainer">
+                    <mx:Label text="{resourceManager.getString('common', 'shares.label')}"/>
+                </mx:GridItem>
+                <mx:Repeater id="sharesRep" dataProvider="{gameVariantCommonData.shares}">
+                    <mx:GridItem backgroundColor="{StyleManager.getColorName(sharesRep.currentItem.color)}"
+                                 percentWidth="{64 / gameVariantCommonData.shares.length}" styleName="lightBox">
+                        <mx:Label
+                                htmlText="{resourceManager.getString('common', 'share.number.price.label', [sharesRep.currentItem.initQuantity, sharesRep.currentItem.initPrice])}"
+                                color="white"/>
+                    </mx:GridItem>
+                </mx:Repeater>
+                <mx:GridItem width="10%" styleName="rightAlignedContainer">
+                    <mx:Label text="{resourceManager.getString('common', 'initial.cash.label')}"/>
+                </mx:GridItem>
+                <mx:GridItem width="10%">
+                    <mx:Label id="initialCashLabel" text="{gameVariantCommonData.gamerInitialCash}" styleName="boldFont"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem styleName="rightAlignedContainer">
+                    <mx:Label text="{resourceManager.getString('common', 'price.scale.label')}"/>
+                </mx:GridItem>
+                <mx:GridItem>
+                    <mx:Label
+                            htmlText="{resourceManager.getString('common', 'min.scale.value.label', [gameVariantCommonData.priceScale.scaleSpacing])}"/>
+                </mx:GridItem>
+                <mx:GridItem>
+                    <mx:Label
+                            htmlText="{resourceManager.getString('common', 'max.scale.value.label', [gameVariantCommonData.priceScale.maxValue])}"/>
+                </mx:GridItem>
+                <mx:GridItem>
+                    <mx:Label
+                            htmlText="{resourceManager.getString('common', 'price.scale.step.label', [gameVariantCommonData.priceScale.scaleSpacing])}"/>
+                </mx:GridItem>
+                <mx:GridItem>
+                    <mx:Label
+                            htmlText="{resourceManager.getString('common', 'rounding.label', [resourceManager.getString('common', gameVariantCommonData.rounding)])}"/>
+                </mx:GridItem>
+                <mx:GridItem colSpan="2">
+                    <c:StkLinkButton label="{resourceManager.getString('common', 'show.card.set.button')}"
+                                     click="handleShowCardSetBtnClick()"/>
+                </mx:GridItem>
+            </mx:GridRow>
+        </mx:Grid>
+        <mx:TileList id="variantsList" width="100%" height="602" dataProvider="{gameVariantsList}" columnCount="3"
+                     selectable="false"
+                     itemRenderer="com.stockholdergame.client.ui.components.list.renderers.GameVariantListItemRenderer"/>
+    </mx:VBox>
+</mx:VBox>

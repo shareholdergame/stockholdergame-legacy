@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC
+    "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+    "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+
+<hibernate-mapping>
+    <query name="FriendRequest.findByUniqueParameters">
+        select fr from FriendRequest fr where fr.requestorId = ? and fr.requesteeId = ? and fr.status = ?
+    </query>
+    <query name="FriendRequest.countFriendRequests">
+        select count(fr) from FriendRequest fr where fr.requesteeId = ? and fr.status = ?
+    </query>
+    <query name="FriendRequest.findByRequestorId">
+        select fr from FriendRequest fr where fr.requestorId = ?
+        and fr.status = com.stockholdergame.server.model.account.FriendRequestStatus.CREATED
+    </query>
+</hibernate-mapping>

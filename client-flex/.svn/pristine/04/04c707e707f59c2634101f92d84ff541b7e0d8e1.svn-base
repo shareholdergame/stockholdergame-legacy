@@ -1,0 +1,586 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+         xmlns:c="com.stockholdergame.client.ui.components.*"
+         xmlns:game="com.stockholdergame.client.ui.components.game.*" styleName="listItem">
+
+    <mx:Metadata>
+        [Event(name="cardApplied", type="com.stockholdergame.client.ui.events.CardEvent")]
+        [Event(name="cardRolledBack", type="com.stockholdergame.client.ui.events.CardEvent")]
+        [Event(name="doMove", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="buySellShare", type="com.stockholdergame.client.ui.events.BuySellShareEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.BuySellOperation;
+        import com.stockholdergame.client.model.dto.game.BuySellStep;
+        import com.stockholdergame.client.model.dto.game.CompetitorDto;
+        import com.stockholdergame.client.model.dto.game.DoMoveDto;
+        import com.stockholdergame.client.model.dto.game.GameDto;
+        import com.stockholdergame.client.model.dto.game.PriceOperationStep;
+        import com.stockholdergame.client.model.dto.game.PriceOperationView;
+        import com.stockholdergame.client.model.dto.game.SharePriceDto;
+        import com.stockholdergame.client.model.dto.game.ShareQuantityDto;
+        import com.stockholdergame.client.model.dto.game.variant.CardOperationDto;
+        import com.stockholdergame.client.model.dto.game.variant.GameVariantHolder;
+        import com.stockholdergame.client.model.dto.game.view.ShareFunds;
+        import com.stockholdergame.client.model.session.SessionManager;
+        import com.stockholdergame.client.ui.components.dialog.GameReportDialog;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+        import com.stockholdergame.client.ui.events.BuySellShareEvent;
+        import com.stockholdergame.client.ui.events.CardEvent;
+
+        import mx.collections.ArrayCollection;
+        import mx.containers.BoxDirection;
+        import mx.core.DragSource;
+        import mx.core.UIComponent;
+        import mx.events.DragEvent;
+        import mx.managers.DragManager;
+        import mx.managers.PopUpManager;
+
+        [Bindable]
+        private var _competitorAccount:CompetitorDto;
+
+        [Bindable]
+        private var isCurrentMover:Boolean = false;
+
+        [Bindable]
+        private var currentMoveNumber:int;
+
+        [Bindable]
+        private var isLastMove:Boolean;
+
+        [Bindable]
+        private var isMe:Boolean;
+
+        [Bindable]
+        private var firstBuySellStep:BuySellStep;
+
+        [Bindable]
+        private var lastBuySellStep:BuySellStep;
+
+        [Bindable]
+        private var currentStep:int = 1;
+
+        private var appliedCard:CardItem;
+
+        [Bindable]
+        private var isFinished:Boolean;
+
+        [Bindable]
+        private var priceOperationStep:PriceOperationStep;
+
+        private var gameReportPopup:GameReportDialog;
+
+        private function getMaxSharePrice():int {
+            return GameVariantHolder.getMaxSharePrice(_competitorAccount.game.gameVariantId);
+        }
+
+        private function getSharePriceStep():int {
+            return GameVariantHolder.getSharePriceStep(_competitorAccount.game.gameVariantId);
+        }
+
+        [Bindable]
+        public function get competitorAccount():CompetitorDto {
+            return _competitorAccount;
+        }
+
+        public function set competitorAccount(value:CompetitorDto):void {
+            _competitorAccount = value;
+            currentMoveNumber = _competitorAccount.game.currentMoveNumber;
+            isCurrentMover = _competitorAccount.game.currentCompetitorNumber == _competitorAccount.moveOrder;
+            isMe = _competitorAccount.me;
+            isLastMove = _competitorAccount.game.movesQuantity == currentMoveNumber;
+            isFinished = _competitorAccount.game.gameStatus == GameDto.FINISHED;
+            firstBuySellStep = createFirstStep(_competitorAccount.currentShareQuantities, _competitorAccount.currentCash);
+        }
+
+        private function createFirstStep(currentShareQuantities:ArrayCollection, currentCash:int):BuySellStep {
+            var buySellStep:BuySellStep = new BuySellStep();
+            for each (var shareQuantity:ShareQuantityDto in currentShareQuantities) {
+                var buySellOperation:BuySellOperation = new BuySellOperation();
+                buySellOperation.shareId = shareQuantity.id;
+                var price:int = getSharePrice(shareQuantity.id);
+                buySellOperation.price = price;
+                buySellOperation.quantity = shareQuantity.quantity;
+                buySellOperation.canBuyQuantity = currentCash > 0 ? int(currentCash / price) : 0;
+                buySellStep.operations.addItem(buySellOperation);
+            }
+            buySellStep.cash = currentCash;
+            return buySellStep;
+        }
+
+        private function getSharePrice(id:int):int {
+            for each (var sharePriceDto:SharePriceDto in _competitorAccount.game.currentSharePrices) {
+                if (sharePriceDto.id == id) {
+                    return sharePriceDto.price;
+                }
+            }
+            return 0;
+        }
+
+        private function handleDragEnter(event:DragEvent):void {
+            if (event.dragSource.hasFormat("card") && checkCardOperations(CardItem(event.dragSource.dataForFormat("card"))) && currentStep == 1
+                    && (firstBuySellStep.cash >= 0 || isLastMove)) {
+                DragManager.acceptDragDrop(UIComponent(event.currentTarget));
+            }
+        }
+
+        private static function checkCardOperations(card:CardItem):Boolean {
+            return card.readyToApply;
+        }
+
+        private function handleDragDrop(event:DragEvent):void {
+            appliedCard = CardItem(event.dragSource.dataForFormat("card"));
+            priceOperationStep = fillPriceOperations(appliedCard.cardOperations);
+            priceOperationStep.appliedCardId = appliedCard.dataProvider.card.id;
+            lastBuySellStep = createLastBuySellStep();
+            currentStep = 2;
+
+            updatePriceScale();
+            recalculateTotalFunds();
+            recalculateTotalFundsForOtherCompetitors();
+
+            appliedCard.isApplied = true;
+            appliedCard.moveNumber = currentMoveNumber;
+            dispatchEvent(new CardEvent(CardEvent.CARD_APPLIED, priceOperationStep.appliedCardId));
+        }
+
+        private function updatePriceScale():void {
+            if (priceOperationStep == null) {
+                for each (var sharePriceDto:SharePriceDto in _competitorAccount.game.currentSharePrices) {
+                    sharePriceDto.price = sharePriceDto.oldPrice;
+                }
+            } else {
+                var priceOperations:ArrayCollection = priceOperationStep.operations;
+                for each (var priceOperationView:PriceOperationView in priceOperations) {
+                    for each (var sharePriceDto1:SharePriceDto in _competitorAccount.game.currentSharePrices) {
+                        if (sharePriceDto1.id == priceOperationView.shareId) {
+                            sharePriceDto1.oldPrice = sharePriceDto1.price;
+                            sharePriceDto1.price = priceOperationView.newPrice;
+                        }
+                    }
+                }
+            }
+        }
+
+        private function createLastBuySellStep():BuySellStep {
+            var step:BuySellStep = new BuySellStep();
+            step.cash = priceOperationStep.cash;
+            var buySellOperations:ArrayCollection = firstBuySellStep.operations;
+            for each (var buySellOperation:BuySellOperation in buySellOperations) {
+                var sharePrice:int;
+                var priceOperations:ArrayCollection = priceOperationStep.operations;
+                for each (var priceOperationView:PriceOperationView in priceOperations) {
+                    if (priceOperationView.shareId == buySellOperation.shareId) {
+                        sharePrice = priceOperationView.newPrice;
+                        break;
+                    }
+                }
+                var newBuySellOperation:BuySellOperation = new BuySellOperation();
+                newBuySellOperation.shareId = buySellOperation.shareId;
+                newBuySellOperation.quantity = buySellOperation.quantity + buySellOperation.buySellQuantity;
+                newBuySellOperation.lockedQuantity = buySellOperation.buySellQuantity > 0 ? buySellOperation.buySellQuantity : 0;
+                newBuySellOperation.buySellQuantity = 0;
+                newBuySellOperation.price = sharePrice;
+                newBuySellOperation.canBuyQuantity = step.cash > 0 ? int(step.cash / sharePrice) : 0;
+                step.operations.addItem(newBuySellOperation);
+            }
+            return step;
+        }
+
+        private function fillPriceOperations(cardOperations:ArrayCollection):PriceOperationStep {
+            var priceOperationStep:PriceOperationStep = new PriceOperationStep();
+            priceOperationStep.operations = new ArrayCollection();
+            priceOperationStep.cash = firstBuySellStep.cash;
+            var firstStepOperations:ArrayCollection = firstBuySellStep.operations;
+            for each (var buySellOperation:BuySellOperation in firstStepOperations) {
+                var compensationSum:int = 0;
+                var priceOperation:PriceOperationView = new PriceOperationView();
+                priceOperation.shareId = buySellOperation.shareId;
+                priceOperation.newPrice = buySellOperation.price;
+                for each (var cardOperation:CardOperationDto in cardOperations) {
+                    if (cardOperation.shareId == buySellOperation.shareId) {
+                        priceOperation.priceOperationId = cardOperation.priceOperationId;
+                        priceOperation.operation = cardOperation.operation;
+                        priceOperation.operandValue = cardOperation.operandValue;
+                        var newPrice:int = calculatePrice(cardOperation.operation, cardOperation.operandValue, buySellOperation.price);
+                        compensationSum = calculateCompensation(buySellOperation.price, newPrice,
+                                buySellOperation.quantity + buySellOperation.buySellQuantity);
+                        if (newPrice < getSharePriceStep()) {
+                            var redemptionSum:int = calculateRedemptionSum(buySellOperation.price, getSharePriceStep(),
+                                    cardOperation.operandValue);
+                            withdrawal(buySellOperation.shareId, redemptionSum);
+                        } else if (newPrice > getMaxSharePrice()) {
+                            calculateCompensations(buySellOperation.shareId, newPrice);
+                        }
+                        priceOperation.newPrice = roundPrice(newPrice);
+                    }
+                }
+                priceOperationStep.cash += compensationSum;
+                priceOperationStep.operations.addItem(priceOperation);
+            }
+            return priceOperationStep;
+        }
+
+        private function calculateCompensations(shareId:Number, newPrice:int):void {
+            var competitorAccounts:ArrayCollection = _competitorAccount.game.competitors;
+            for each (var competitorDto:CompetitorDto in competitorAccounts) {
+                if (competitorDto.me) {
+                    continue;
+                }
+                var currentShareQuantities:ArrayCollection = competitorDto.currentShareQuantities;
+                for each (var shareQuantityDto:ShareQuantityDto in currentShareQuantities) {
+                    if (shareQuantityDto.id == shareId) {
+                        competitorDto.currentCompensationSum += (newPrice - getMaxSharePrice()) * shareQuantityDto.quantity;
+                    }
+                }
+            }
+        }
+
+        private function withdrawal(shareId:Number, redemptionSum:int):void {
+            var competitorAccounts:ArrayCollection = _competitorAccount.game.competitors;
+            for each (var competitorDto:CompetitorDto in competitorAccounts) {
+                if (competitorDto.me) {
+                    continue;
+                }
+                var currentShareQuantities:ArrayCollection = competitorDto.currentShareQuantities;
+                for each (var shareQuantityDto:ShareQuantityDto in currentShareQuantities) {
+                    if (shareQuantityDto.id == shareId && shareQuantityDto.quantity > 0) {
+                        shareQuantityDto.oldQuantity = shareQuantityDto.quantity;
+                        shareQuantityDto.quantity = 0;
+                        shareQuantityDto.isWithdrawal = true;
+                        var repurchasedQuantity:int = Math.floor(competitorDto.currentCash / redemptionSum);
+                        if (repurchasedQuantity > shareQuantityDto.oldQuantity) {
+                            repurchasedQuantity = shareQuantityDto.oldQuantity;
+                        }
+                        shareQuantityDto.canRepurchase = repurchasedQuantity;
+                    }
+                }
+            }
+        }
+
+        private static function calculateRedemptionSum(price:int, minPrice:int, operandValue:int):int {
+            return operandValue == 2 && price == minPrice ? minPrice / 2 : Math.abs(operandValue) - (price - minPrice);
+        }
+
+        private function calculateCompensation(oldPrice:int, newPrice:int, quantity:Number):int {
+            var compensationSum:int = 0;
+            if (newPrice < getSharePriceStep()) {
+                if (oldPrice > getSharePriceStep()) {
+                    compensationSum = (oldPrice - getSharePriceStep()) * quantity;
+                }
+            } else if (newPrice > getMaxSharePrice()) {
+                compensationSum = (newPrice - getMaxSharePrice()) * quantity;
+            } else if (newPrice < oldPrice) {
+                compensationSum = (oldPrice - newPrice) * quantity;
+            }
+            return compensationSum;
+        }
+
+        private function roundPrice(newPrice:int):int {
+            return newPrice > getMaxSharePrice() ? getMaxSharePrice()
+                    : newPrice < getSharePriceStep() ? getSharePriceStep() : newPrice;
+        }
+
+        private function calculatePrice(operation:String, operandValue:int, price:int):int {
+            var result:int = price;
+            if (operation == 'x') {
+                result = price * operandValue;
+            } else if (operation == '+') {
+                result = price + operandValue;
+            } else if (operation == ':') {
+                result = price / operandValue;
+                var remainder:int = result % getSharePriceStep();
+                result = (result == getSharePriceStep() / 2
+                        ? result : (remainder > 0 ? result + (getSharePriceStep() - remainder) : result - remainder));
+            } else if (operation == '-') {
+                result = price - operandValue;
+            }
+            return result;
+        }
+
+        private function handleRollbackStepButton(event:MouseEvent):void {
+            if (currentStep == 2 && lastStepBuySellForm != null) {
+                lastStepBuySellForm.reset();
+            }
+
+            currentStep = 1;
+            priceOperationStep = null;
+            lastBuySellStep = null;
+            appliedCard.isApplied = false;
+            appliedCard.moveNumber = 0;
+            appliedCard = null;
+
+            updatePriceScale();
+            dropFinesAndCompensations();
+            recalculateTotalFunds();
+            recalculateTotalFundsForOtherCompetitors();
+
+            dispatchEvent(new CardEvent(CardEvent.CARD_ROLLED_BACK, 0));
+        }
+
+        private function dropFinesAndCompensations():void {
+            var competitorAccounts:ArrayCollection = _competitorAccount.game.competitors;
+            for each (var competitorDto:CompetitorDto in competitorAccounts) {
+                if (competitorDto.me) {
+                    continue;
+                }
+                competitorDto.currentCompensationSum = 0;
+                var currentShareQuantities:ArrayCollection = competitorDto.currentShareQuantities;
+                for each (var shareQuantityDto:ShareQuantityDto in currentShareQuantities) {
+                    if (shareQuantityDto.isWithdrawal) {
+                        shareQuantityDto.quantity = shareQuantityDto.oldQuantity;
+                        shareQuantityDto.oldQuantity = 0;
+                        shareQuantityDto.isWithdrawal = false;
+                        shareQuantityDto.canRepurchase = 0;
+                    }
+                }
+            }
+        }
+
+        private function recalculateTotalFundsForOtherCompetitors():void {
+            var competitorAccounts:ArrayCollection = _competitorAccount.game.competitors;
+            for each (var competitorDto:CompetitorDto in competitorAccounts) {
+                if (competitorDto.me) {
+                    continue;
+                }
+                var competitorShareFunds:ArrayCollection = competitorDto.shareFunds;
+                competitorDto.totalFunds = competitorDto.currentCash + competitorDto.currentCompensationSum;
+                for each (var shareFunds1:ShareFunds in competitorShareFunds) {
+                    for each (var sharePriceDto:SharePriceDto in _competitorAccount.game.currentSharePrices) {
+                        if (sharePriceDto.id == shareFunds1.id) {
+                            for each (var shareQuantityDto:ShareQuantityDto in competitorDto.currentShareQuantities) {
+                                if (sharePriceDto.id == shareQuantityDto.id) {
+                                    shareFunds1.sum = shareQuantityDto.quantity * sharePriceDto.price;
+                                    competitorDto.totalFunds += shareFunds1.sum;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private function handleBuySellShare(event:BuySellShareEvent):void {
+            updateCurrentShareQuantities();
+            recalculateTotalFunds();
+            dispatchEvent(event);
+        }
+
+        private function updateCurrentShareQuantities():void {
+            var buySellOperations:ArrayCollection = currentStep == 1 ? firstBuySellStep.operations : lastBuySellStep.operations;
+            for each (var buySellOperation:BuySellOperation in buySellOperations) {
+                for each (var shareQuantityDto:ShareQuantityDto in _competitorAccount.currentShareQuantities) {
+                    if (shareQuantityDto.id == buySellOperation.shareId) {
+                        shareQuantityDto.quantity = buySellOperation.quantity + buySellOperation.buySellQuantity;
+                    }
+                }
+            }
+        }
+
+        private function recalculateTotalFunds():void {
+            var buySellOperations:ArrayCollection;
+            var cash:int;
+            if (currentStep == 1) {
+                buySellOperations = firstBuySellStep.operations;
+                cash = firstBuySellStep.cash;
+            } else {
+                buySellOperations = lastBuySellStep.operations;
+                cash = lastBuySellStep.cash;
+            }
+
+            for each (var buySellOperation:BuySellOperation in buySellOperations) {
+                var sum:int = (buySellOperation.quantity + buySellOperation.buySellQuantity) * buySellOperation.price;
+                for each (var shareFunds1:ShareFunds in _competitorAccount.shareFunds) {
+                    if (shareFunds1.id == buySellOperation.shareId) {
+                        shareFunds1.sum = sum;
+                    }
+                }
+            }
+            _competitorAccount.totalFunds = cash;
+            for each (var value:ShareFunds in _competitorAccount.shareFunds) {
+                _competitorAccount.totalFunds += value.sum;
+            }
+        }
+
+        private function handleDoMove(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.DO_MOVE, createDoModeDto()));
+        }
+
+        private function createDoModeDto():DoMoveDto {
+            var doMoveDto:DoMoveDto = new DoMoveDto();
+            doMoveDto.gameId = _competitorAccount.game.id;
+            doMoveDto.appliedCardId = priceOperationStep.appliedCardId;
+            doMoveDto.firstBuySellActions = new ArrayCollection();
+            doMoveDto.priceOperations = new ArrayCollection();
+            doMoveDto.lastBuySellActions = new ArrayCollection();
+            if (!isLastMove) {
+                for each (var buySellOperation1:BuySellOperation in firstBuySellStep.operations) {
+                    doMoveDto.firstBuySellActions.addItem(buySellOperation1.buySellDto);
+                }
+            }
+            for each (var priceOperationView:PriceOperationView in priceOperationStep.operations) {
+                if (!isNaN(priceOperationView.priceOperationId)) {
+                    doMoveDto.priceOperations.addItem(priceOperationView.priceOperationDto);
+                }
+            }
+            if (!isLastMove) {
+                for each (var buySellOperation2:BuySellOperation in lastBuySellStep.operations) {
+                    doMoveDto.lastBuySellActions.addItem(buySellOperation2.buySellDto);
+                }
+            }
+            return doMoveDto;
+        }
+
+        private static function handleMouseMove(event:MouseEvent):void {
+            var dragInitiator:CardItem = CardItem(event.currentTarget);
+            if (!dragInitiator.isApplied) {
+                var ds:DragSource = new DragSource();
+                ds.addData(dragInitiator, "card");
+                DragManager.doDrag(dragInitiator, ds, event);
+            }
+        }
+
+        private function onGameReportButtonClick():void {
+            if (gameReportPopup == null) {
+                gameReportPopup = GameReportDialog(PopUpManager.createPopUp(this, GameReportDialog, false));
+                gameReportPopup.game = competitorAccount.game;
+            } else {
+                PopUpManager.addPopUp(gameReportPopup, this);
+            }
+            gameReportPopup.x = 0;
+            gameReportPopup.y = 0;
+            PopUpManager.bringToFront(gameReportPopup);
+        }
+        ]]></mx:Script>
+
+    <mx:HBox width="100%" height="56" styleName="leftAlignedContainer" paddingLeft="7">
+        <c:UserView user="{_competitorAccount}" viewDirection="{BoxDirection.HORIZONTAL}"
+                    userNameLabelStyleName="{_competitorAccount.bot ? 'botNameLargeFont' : 'userNameLargeFont'}"/>
+        <mx:VBox width="100%">
+            <c:StkLinkButton label="{resourceManager.getString('common', 'game.report.label')}"
+                             click="onGameReportButtonClick()"/>
+            <mx:Label text="{resourceManager.getString('common', 'account.title')}" styleName="bigBoldFont"
+                      textAlign="center"/>
+        </mx:VBox>
+    </mx:HBox>
+
+    <mx:HBox width="100%" height="100%" styleName="pageContentBox">
+
+        <mx:VBox width="680" height="100%" styleName="dark2Box" horizontalScrollPolicy="off">
+
+            <mx:HBox width="100%" height="24" horizontalGap="0" styleName="leftAlignedContainer">
+                <mx:VBox width="50" height="100%">
+                    <mx:Label text="{resourceManager.getString('common', 'move.label')}" styleName="lightBoldFont"/>
+                </mx:VBox>
+                <mx:Repeater id="shareRep" dataProvider="{_competitorAccount.game.currentSharePrices}">
+                    <mx:VBox backgroundColor="{StyleManager.getColorName(shareRep.currentItem.color)}" width="120"
+                             height="100%"/>
+                </mx:Repeater>
+                <mx:VBox width="110" height="100%">
+                    <mx:Label text="{resourceManager.getString('common', 'cash.label')}" styleName="lightBoldFont"/>
+                </mx:VBox>
+            </mx:HBox>
+
+            <mx:VBox height="100%" width="100%" styleName="listItemContentBox" verticalAlign="top">
+                <mx:List id="movesList" dataProvider="{_competitorAccount.competitorMoves}"
+                         itemRenderer="com.stockholdergame.client.ui.components.list.renderers.MoveListItemRenderer"
+                         width="100%"
+                         variableRowHeight="true"
+                         height="{isCurrentMover &amp;&amp; !isFinished ? isMe ? 160 : (_competitorAccount.competitorMoves.length &lt;= 4 ? (_competitorAccount.competitorMoves.length * 64) + 1 : 285) : 345}"
+                         selectable="false"
+                         paddingLeft="0" paddingTop="0" paddingBottom="0" paddingRight="0"
+                         updateComplete="{movesList.scrollToIndex(_competitorAccount.competitorMoves.length - 1)}">
+                </mx:List>
+                <mx:HBox includeInLayout="{isCurrentMover &amp;&amp; !isFinished}"
+                         visible="{isCurrentMover &amp;&amp; !isFinished}" width="100%" styleName="dashboardItemBox">
+                    <mx:VBox width="45" height="100%">
+                        <mx:Label text="{currentMoveNumber}" fontSize="18"/>
+                    </mx:VBox>
+                    <mx:VBox width="100%" height="100%">
+                        <game:BuySellForm width="100%" height="50" id="firstStepBuySellForm"
+                                       buySellStep="{firstBuySellStep}"
+                                       buySellShare="handleBuySellShare(event)"
+                                       includeInLayout="{isMe &amp;&amp; !isLastMove}"
+                                       visible="{isMe &amp;&amp; !isLastMove}" enabled="{currentStep == 1}"/>
+                        <mx:HBox width="100%" height="50" includeInLayout="{isMe}" visible="{isMe}"
+                                 dragEnter="handleDragEnter(event)" dragDrop="handleDragDrop(event)">
+                            <mx:Label
+                                    htmlText="{firstBuySellStep.cash &lt; 0 &amp;&amp; !isLastMove ? resourceManager.getString('common', 'card.pay.fine.warning') : resourceManager.getString('common', 'drag.card.label')}"
+                                    fontSize="14" visible="{currentStep == 1}" includeInLayout="{currentStep == 1}"
+                                    width="100%" height="100%"
+                                    textAlign="center"
+                                    styleName="{firstBuySellStep.cash &lt; 0 &amp;&amp; !isLastMove ? 'normalAttentionFont' : 'normalFont'}"/>
+                            <mx:Repeater id="priceOperationRep" dataProvider="{priceOperationStep.operations}"
+                                         visible="{currentStep > 1}" includeInLayout="{currentStep > 1}">
+                                <mx:VBox width="120" height="100%">
+                                    <mx:Label
+                                            text="{priceOperationRep.currentItem.operation != null ? priceOperationRep.currentItem.operation + ' ' + priceOperationRep.currentItem.operandValue : ' '}"/>
+                                    <mx:Label text="{priceOperationRep.currentItem.newPrice}"/>
+                                </mx:VBox>
+                            </mx:Repeater>
+                            <mx:VBox width="110" height="100%" visible="{currentStep >= 2}"
+                                     includeInLayout="{currentStep > 1}">
+                                <mx:Label text="{priceOperationStep.cash}"/>
+                                <c:StkLinkButton id="rollbackStepBtn" click="handleRollbackStepButton(event)"
+                                                 label="{resourceManager.getString('common', 'rollback.button.label')}"/>
+                            </mx:VBox>
+                        </mx:HBox>
+                        <mx:HBox width="100%" height="50"
+                                 includeInLayout="{isMe &amp;&amp; !isLastMove &amp;&amp; currentStep == 1}"
+                                 visible="{isMe &amp;&amp; !isLastMove &amp;&amp; currentStep == 1}">
+                        </mx:HBox>
+                        <game:BuySellForm width="100%" height="50" id="lastStepBuySellForm"
+                                       buySellStep="{lastBuySellStep}"
+                                       buySellShare="handleBuySellShare(event)"
+                                       includeInLayout="{isMe &amp;&amp; !isLastMove &amp;&amp; currentStep > 1}"
+                                       visible="{isMe &amp;&amp; !isLastMove &amp;&amp; currentStep > 1}"/>
+                        <!--<mx:Spacer height="10"/>-->
+                        <mx:HBox width="100%" height="32" includeInLayout="{isMe}" visible="{isMe}" styleName="rightAlignedContainer" paddingRight="15">
+                            <c:StkLinkButton id="doMoveBtn"
+                                             label="{resourceManager.getString('common', 'do.move.button.label')}"
+                                             click="handleDoMove(event)"
+                                             visible="{currentStep > 1 &amp;&amp; !SessionManager.instance.isRemoved()}"
+                                             styleName="largeBoldFont"/>
+                        </mx:HBox>
+                        <mx:HBox width="100%" height="50" includeInLayout="{!isMe}" visible="{!isMe}">
+                            <mx:Label text="{resourceManager.getString('common', 'waiting.label')}" fontSize="18"/>
+                        </mx:HBox>
+                    </mx:VBox>
+                </mx:HBox>
+            </mx:VBox>
+
+            <mx:HBox width="100%" height="24">
+                <mx:VBox width="45" height="100%">
+                    <mx:Label text="{resourceManager.getString('common', 'total.label')}" styleName="lightBoldFont"/>
+                </mx:VBox>
+                <mx:Repeater id="totalRep" dataProvider="{_competitorAccount.shareFunds}">
+                    <mx:VBox width="120" height="100%">
+                        <mx:Label text="{totalRep.currentItem.sum}" styleName="lightBoldFont"/>
+                    </mx:VBox>
+                </mx:Repeater>
+                <mx:VBox width="110" height="100%">
+                    <mx:Label text="{_competitorAccount.totalFunds}" styleName="lightBoldFont"/>
+                </mx:VBox>
+            </mx:HBox>
+        </mx:VBox>
+
+        <mx:Tile direction="horizontal" verticalGap="5" horizontalGap="2" width="40%" height="100%">
+            <mx:Repeater id="cardsRep" dataProvider="{_competitorAccount.competitorCards}">
+                <mx:HBox horizontalScrollPolicy="off" verticalScrollPolicy="off" horizontalGap="1"
+                         horizontalAlign="right">
+                    <mx:Label text="{cardsRep.currentItem.moveNumber}" visible="{cardsRep.currentItem.applied}"
+                              textAlign="right" fontSize="14"
+                              fontWeight="bold"/>
+                    <game:CardItem dropShadowEnabled="true" dropShadowColor="#7E7A53" shadowDistance="3"
+                                shadowDirection="right"
+                                dataProvider="{{card:cardsRep.currentItem, shares:_competitorAccount.game.currentSharePrices}}"
+                                mouseMove="handleMouseMove(event)" enabled="{!cardsRep.currentItem.applied}"/>
+                </mx:HBox>
+            </mx:Repeater>
+        </mx:Tile>
+
+    </mx:HBox>
+</mx:VBox>

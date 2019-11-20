@@ -1,0 +1,225 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+         xmlns:chart="com.stockholdergame.client.ui.components.chart.*"
+         xmlns:c="com.stockholdergame.client.ui.components.*"
+         xmlns:game="com.stockholdergame.client.ui.components.game.*"
+         implements="com.stockholdergame.client.ui.components.page.IGamePage"
+         styleName="page" width="100%" height="100%">
+
+    <mx:Metadata>
+        [Event(name="closeGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="loadGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showGameChatWindow", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showGameEventPopup", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.CompetitorDto;
+        import com.stockholdergame.client.model.dto.game.GameDto;
+        import com.stockholdergame.client.model.dto.game.RelatedGame;
+        import com.stockholdergame.client.ui.components.game.ExportReportPopupBox;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+        import com.stockholdergame.client.util.cookies.CookiesUtil;
+        import com.stockholdergame.client.util.style.StkColorUtil;
+
+        import mx.collections.ArrayCollection;
+        import mx.managers.PopUpManager;
+
+        private static const REPORT_VIEW:String = "report-view";
+
+        [Bindable]
+        private var _game:GameDto;
+
+        public function get game():GameDto {
+            return _game;
+        }
+
+        public function set game(value:GameDto):void {
+            _game = value;
+        }
+
+        [Bindable]
+        private var zyrianovStyle:Boolean = false;
+
+        [Bindable]
+        private var hidePrices:Boolean = false;
+
+        private var exportReportPopupBox:ExportReportPopupBox;
+
+        private static const ZYRIANOV_STYLE_COOKIE_VAL:String = "zrn";
+
+        private static const STANDARD_STYLE_COOKIE_VAL:String = "std";
+
+        private function onStyleClick():void {
+            CookiesUtil.setCookie(REPORT_VIEW, zyrianovStyle ? ZYRIANOV_STYLE_COOKIE_VAL : STANDARD_STYLE_COOKIE_VAL, 3650);
+        }
+
+        private function onInitialize():void {
+            var reportViewCookie:Object = CookiesUtil.getCookie(REPORT_VIEW);
+            zyrianovStyle = reportViewCookie != null ? reportViewCookie.toString() == ZYRIANOV_STYLE_COOKIE_VAL : false;
+        }
+
+        private function onGameChatBtn(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_GAME_CHAT_WINDOW, game));
+        }
+
+        private function onCloseGameBtn(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.CLOSE_GAME));
+        }
+
+        private function onRelatedGameBtnClick(relatedGame:RelatedGame):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.LOAD_GAME, relatedGame.gameId));
+        }
+
+        private function isPlayWithRealUser():Boolean {
+            var competitors:ArrayCollection = _game.competitors;
+            for each (var competitorDto:CompetitorDto in competitors) {
+                if (competitorDto.bot) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private function onGameSeriesResultBtnClick():void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_GAME_EVENT_POPUP, this));
+        }
+
+        private function selectChart():void {
+            viewStack.selectedIndex = 1;
+            if (fundsByMoveChart != null) {
+                fundsByMoveChart.invalidateDisplayList()
+            }
+        }
+
+        private function onPricesClick():void {
+            if (fundsByMoveChart != null) {
+                fundsByMoveChart.invalidateDisplayList();
+            }
+        }
+
+        private function exportReport():void {
+            if (exportReportPopupBox == null) {
+                exportReportPopupBox = new ExportReportPopupBox();
+            }
+            exportReportPopupBox.game = _game;
+            exportReportPopupBox.zyrianovStyle = zyrianovStyle;
+            exportReportPopupBox.generateReport();
+
+            PopUpManager.addPopUp(exportReportPopupBox, this, true);
+            PopUpManager.centerPopUp(exportReportPopupBox);
+            PopUpManager.bringToFront(exportReportPopupBox);
+        }
+
+        ]]></mx:Script>
+
+    <mx:Binding source="styleToggleBtn.flag" destination="zyrianovStyle"/>
+
+    <mx:Binding source="pricesToggleBtn.flag" destination="hidePrices"/>
+
+    <mx:DateFormatter id="dateFormatter" formatString="{resourceManager.getString('common', 'datetime.format')}"/>
+
+    <mx:HBox width="100%" height="36" styleName="pageHeaderBox">
+        <mx:Label id="gameVariantNameLabel"
+                  text="{resourceManager.getString('common', _game.gameVariantName)}" styleName="lightLargeBoldFont"/>
+        <mx:Label text="{resourceManager.getString('common', 'moves.number.label', [_game.movesQuantity])}"
+                  styleName="lightLargeBoldFont"/>
+        <!--<mx:Image source="@Embed('/images/rounding-up-white.png')" visible="{_game.rounding == GameDto.ROUND_UP}"
+                  includeInLayout="{_game.rounding == GameDto.ROUND_UP}"
+                  toolTip="{resourceManager.getString('common', 'rounding.label', [resourceManager.getString('common', _game.rounding)])}"/>
+        <mx:Image source="@Embed('/images/rounding-down-white.png')" visible="{_game.rounding == GameDto.ROUND_DOWN}"
+                  includeInLayout="{_game.rounding == GameDto.ROUND_DOWN}"
+                  toolTip="{resourceManager.getString('common', 'rounding.label', [resourceManager.getString('common', _game.rounding)])}"/>-->
+        <mx:Image source="@Embed('/images/switch-white.png')" visible="{_game.switchMoveOrder}" includeInLayout="{_game.switchMoveOrder}"
+                  toolTip="{resourceManager.getString('common', 'switch.move.order.label')}"/>
+        <mx:HBox>
+            <mx:Label text="{resourceManager.getString('common', 'game.letter.label', [_game.gameLetter])}"
+                      styleName="lightLargeBoldFont" visible="{_game.switchMoveOrder}"/>
+            <mx:Repeater id="relatedGamesRep" dataProvider="{_game.relatedGames}">
+                <c:StkLinkButton label="{relatedGamesRep.currentItem.gameLetter}" click="onRelatedGameBtnClick(event.currentTarget.getRepeaterItem())"
+                                 styleName="largeBoldFont"/>
+            </mx:Repeater>
+        </mx:HBox>
+        <mx:HBox styleName="lightBox">
+            <c:StkLinkButton label="{resourceManager.getString('common', 'game.series.result.link.label')}" click="onGameSeriesResultBtnClick()"
+                             visible="{_game.switchMoveOrder}" includeInLayout="{_game.switchMoveOrder}" styleName="largeBoldFont"/>
+        </mx:HBox>
+        <mx:Spacer width="100%"/>
+        <mx:VBox>
+            <mx:Label
+                    text="{resourceManager.getString('common', 'started.at.label', [dateFormatter.format(_game.startedTime)])}"
+                    styleName="lightSmallFont"/>
+            <mx:Label
+                    text="{resourceManager.getString('common', 'finished.at.label', [dateFormatter.format(_game.finishedTime)])}"
+                    styleName="lightSmallFont"/>
+        </mx:VBox>
+        <c:StkButton id="gameChatBtn" styleName="chatButton" toolTip="{resourceManager.getString('common', 'game.chat.button')}"
+                     visible="{isPlayWithRealUser()}" includeInLayout="{isPlayWithRealUser()}"
+                     click="onGameChatBtn(event)"/>
+        <c:StkButton id="closeGameBtn" styleName="closeButton"
+                     toolTip="{resourceManager.getString('common', 'close.button')}"
+                     click="onCloseGameBtn(event)"/>
+    </mx:HBox>
+    <mx:VBox width="100%" height="100%" styleName="pageContentBox">
+        <mx:HBox width="100%" horizontalGap="10" height="64">
+            <mx:Repeater id="competitorsRep" dataProvider="{_game.competitors}">
+                <mx:HBox height="100%" styleName="containerWithGaps">
+                    <mx:Label text="{CompetitorDto(competitorsRep.currentItem).moveOrder}" styleName="boldFont" width="10"
+                              color="{StyleManager.getColorName(StkColorUtil.moveOrderColorMapping.getItemAt(competitorsRep.currentItem.moveOrder - 1))}"/>
+                    <c:Avatar avatar="{CompetitorDto(competitorsRep.currentItem).avatar}"/>
+                    <mx:VBox width="87" styleName="{CompetitorDto(competitorsRep.currentItem).winner ? 'winnerBox' : 'lightBox'}">
+                        <mx:Label text="{CompetitorDto(competitorsRep.currentItem).userName}"
+                                  styleName="{CompetitorDto(competitorsRep.currentItem).out ? 'competitorOutFont' : (CompetitorDto(competitorsRep.currentItem).bot ? 'botNameBigFont' : 'userNameBigFont')}"
+                                  maxWidth="85" textAlign="center" truncateToFit="true"/>
+                        <mx:HBox width="100%" horizontalGap="0" paddingLeft="3">
+                            <mx:Label text="{CompetitorDto(competitorsRep.currentItem).totalPoints}" styleName="xLargeBoldFont"/>
+                            <mx:VBox width="100%" verticalGap="0" paddingTop="0" paddingBottom="0">
+                                <mx:Label text="{CompetitorDto(competitorsRep.currentItem).totalFunds}"
+                                          styleName="{CompetitorDto(competitorsRep.currentItem).winner ? 'boldFont' : 'normalFont'}"/>
+                                <mx:Label
+                                        text="{(CompetitorDto(competitorsRep.currentItem).winSum > 0 ? '+' : '') + CompetitorDto(competitorsRep.currentItem).winSum}"
+                                        styleName="{CompetitorDto(competitorsRep.currentItem).winSum > 0 ? 'smallGreenFont' : 'smallRedFont'}"/>
+                            </mx:VBox>
+                        </mx:HBox>
+
+                    </mx:VBox>
+                </mx:HBox>
+            </mx:Repeater>
+        </mx:HBox>
+
+        <mx:HBox styleName="containerWithGaps" width="100%">
+            <mx:HBox styleName="{viewStack.selectedIndex == 0 ? 'light2Box' : 'darkBox'}" width="200" height="28">
+                <c:StkLinkButton label="{resourceManager.getString('common', 'game.report.label')}" click="{viewStack.selectedIndex = 0}"/>
+            </mx:HBox>
+            <mx:HBox styleName="{viewStack.selectedIndex == 1 ? 'light2Box' : 'darkBox'}" width="200" height="28"
+                     visible="{_game.rulesVersion == '1.3'}">
+                <c:StkLinkButton label="{resourceManager.getString('common', 'user.funds.chart')}"
+                                 click="selectChart()"/>
+            </mx:HBox>
+            <mx:Spacer width="100%"/>
+            <c:StkButton label="{resourceManager.getString('common', 'game.report.export.label')}" click="exportReport()"/>
+            <mx:Label id="styleLabel" text="{resourceManager.getString('common', 'game.report.view.label')}"
+                      styleName="boldFont" visible="{viewStack.selectedIndex == 0}" includeInLayout="{viewStack.selectedIndex == 0}"/>
+            <c:LinkToggleButton id="styleToggleBtn"
+                                falseLabel="{resourceManager.getString('common', 'standard.style.label')}"
+                                trueLabel="{resourceManager.getString('common', 'zyrianov.style.label')}"
+                                click="onStyleClick()" flag="{zyrianovStyle}"
+                                visible="{viewStack.selectedIndex == 0}" includeInLayout="{viewStack.selectedIndex == 0}"/>
+            <c:LinkToggleButton id="pricesToggleBtn"
+                                falseLabel="{resourceManager.getString('common', 'hide.prices.label')}"
+                                trueLabel="{resourceManager.getString('common', 'show.prices.label')}"
+                                click="onPricesClick()" flag="{hidePrices}"
+                                visible="{viewStack.selectedIndex == 1}"
+                                includeInLayout="{viewStack.selectedIndex == 1}"/>
+        </mx:HBox>
+        <mx:ViewStack id="viewStack" width="100%" height="100%">
+            <game:GameReport game="{_game}" width="100%" height="100%" label="{resourceManager.getString('common', 'game.report.label')}"
+                             zyrianovStyle="{zyrianovStyle}"/>
+            <mx:HBox width="100%" height="100%" label="{resourceManager.getString('common', 'user.funds.chart')}">
+                <chart:GameChart id="fundsByMoveChart" width="100%" height="100%" game="{_game}" hidePrices="{hidePrices}"/>
+            </mx:HBox>
+        </mx:ViewStack>
+    </mx:VBox>
+</mx:VBox>

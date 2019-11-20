@@ -1,0 +1,390 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+         xmlns:c="com.stockholdergame.client.ui.components.*"
+         implements="com.stockholdergame.client.ui.components.page.IRefreshablePage"
+         styleName="page" show="refreshData()">
+
+    <mx:Metadata>
+        [Event(name="refreshAccountData", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="getFriends", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showChangePasswordDialog", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="removeAccount", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="restoreAccount", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="changeFriendRequestStatus", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="cancelFriendRequest", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="changeLanguage", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="updateAvatar", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showSearchUserDialog", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showConfirmationPage", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showSendMessageDialog", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="checkUserNameExistence", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="changeUserName", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="checkEmailUsage", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="changeEmail", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="saveProfile", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.CountryResource;
+        import com.stockholdergame.client.model.Locales;
+        import com.stockholdergame.client.model.dto.ProfileDto;
+        import com.stockholdergame.client.model.dto.account.ChangeEmailDto;
+        import com.stockholdergame.client.model.dto.account.ChangeUserNameDto;
+        import com.stockholdergame.client.model.dto.account.MyAccountDto;
+        import com.stockholdergame.client.ui.IconResources;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+
+        import mx.controls.Alert;
+        import mx.events.CloseEvent;
+        import mx.events.DropdownEvent;
+
+        [Bindable]
+        private var _accountInfo:MyAccountDto;
+
+        [Bindable]
+        private var _profileData:ProfileDto = new ProfileDto();
+
+        private const EDIT_PROFILE_STATE:String = "editProfileState";
+
+        public function refreshData():void {
+            dispatchEvent(new BusinessEvent(BusinessActions.REFRESH_ACCOUNT_DATA));
+            friendsPanel.refreshData();
+        }
+
+        private function onChangePwdBtnClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_CHANGE_PASSWORD_DIALOG));
+        }
+
+        private function onRemoveAccountBtnClick(event:MouseEvent):void {
+            showConfirmationMessageBox('confirm.remove.account', BusinessActions.REMOVE_ACCOUNT);
+        }
+
+        private function onChangeUserNameBtnClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_CHANGE_USER_NAME_DIALOG));
+        }
+
+        private function onChangeEmailBtnClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_CHANGE_EMAIL_DIALOG));
+        }
+
+        private function onEditProfileBtnClick(event:MouseEvent):void {
+            this.currentState = EDIT_PROFILE_STATE;
+            createProfileData();
+        }
+
+        private function onConfirmBtnClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_CONFIRMATION_PAGE));
+        }
+
+        private function onRestoreAccountBtnClick(event:MouseEvent):void {
+            showConfirmationMessageBox('confirm.restore.account', BusinessActions.RESTORE_ACCOUNT);
+        }
+
+        private function showConfirmationMessageBox(message:String, action:String):void {
+            var handleClose:Function = function (event:CloseEvent):void {
+                if (event.detail == Alert.YES) {
+                    dispatchEvent(new BusinessEvent(action));
+                }
+            };
+
+            Alert.yesLabel = resourceManager.getString('common', 'yes.button.label');
+            Alert.noLabel = resourceManager.getString('common', 'no.button.label');
+            var alert:Alert = Alert.show(resourceManager.getString('common', message),
+                    resourceManager.getString('common', 'confirm.alert'), Alert.YES | Alert.NO, this, handleClose, null,
+                    Alert.NO);
+        }
+
+        private function onClose(event:DropdownEvent):void {
+            var selectedLang:String = ComboBox(event.target).selectedItem.data;
+            dispatchEvent(new BusinessEvent(BusinessActions.CHANGE_LANGUAGE, selectedLang));
+        }
+
+        private function onUpdateAvatarBtnClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.UPDATE_AVATAR, true));
+        }
+
+        private function onUserNameChanged(event:BusinessEvent):void {
+            var newUserName:String = String(event.data);
+            if (newUserName.length > 2) {
+                dispatchEvent(new BusinessEvent(BusinessActions.CHECK_USER_NAME_EXISTENCE, newUserName));
+            }
+        }
+
+        private function onUserNameSaved(event:BusinessEvent):void {
+            var newUserName:String = String(event.data);
+            if (accountInfo.userName == newUserName) {
+                changeUserName.commitValue();
+            } else {
+                var changeUserNameDto:ChangeUserNameDto = new ChangeUserNameDto();
+                changeUserNameDto.newUserName = newUserName;
+                dispatchEvent(new BusinessEvent(BusinessActions.CHANGE_USER_NAME, changeUserNameDto));
+            }
+        }
+
+        private function onEmailChanged(event:BusinessEvent):void {
+            var newEmail:String = String(event.data);
+            if (newEmail.length > 0 && newEmail.indexOf("@") > -1) {
+                dispatchEvent(new BusinessEvent(BusinessActions.CHECK_EMAIL_USAGE, newEmail));
+            }
+        }
+
+        private function onEmailSaved(event:BusinessEvent):void {
+            var newEmail:String = String(event.data);
+            if (accountInfo.email == newEmail) {
+                changeEmail.commitValue();
+            } else {
+                var changeEmailDto:ChangeEmailDto = new ChangeEmailDto();
+                changeEmailDto.newEmail = newEmail;
+                dispatchEvent(new BusinessEvent(BusinessActions.CHANGE_EMAIL, changeEmailDto));
+            }
+        }
+
+        private function onSaveProfileBtnClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SAVE_PROFILE, _profileData));
+        }
+
+        private function onCancelProfileEditingBtnClick(event:MouseEvent):void {
+            this.currentState = "";
+            createProfileData();
+        }
+
+        private function createProfileData():void {
+            _profileData = new ProfileDto();
+            if (_accountInfo.profile != null) {
+                _profileData.birthday = _accountInfo.profile.birthday;
+                _profileData.sex = _accountInfo.profile.sex;
+                _profileData.country = _accountInfo.profile.country;
+                _profileData.city = _accountInfo.profile.city;
+                _profileData.about = _accountInfo.profile.about;
+            }
+        }
+
+        public function get accountInfo():MyAccountDto {
+            return _accountInfo;
+        }
+
+        public function set accountInfo(value:MyAccountDto):void {
+            _accountInfo = value;
+        }
+
+        private function resetAvatar():void {
+            dispatchEvent(new BusinessEvent(BusinessActions.UPDATE_AVATAR, false));
+        }
+
+        public function clearData():void {
+            _accountInfo = null;
+            _profileData = null;
+        }
+        ]]></mx:Script>
+
+    <mx:Binding destination="_profileData.country" source="countryCombo.selectedItem.toString()"/>
+    <mx:Binding destination="_profileData.region" source="regionText.text"/>
+    <mx:Binding destination="_profileData.city" source="cityText.text"/>
+    <mx:Binding destination="_profileData.about" source="aboutTextArea.text"/>
+    <mx:Binding destination="_profileData.sex" source="sexGroup.selectedValue.toString()"/>
+
+    <mx:states>
+        <mx:State name="{EDIT_PROFILE_STATE}">
+            <mx:RemoveChild target="{sexLbl}"/>
+            <mx:RemoveChild target="{sexImg}"/>
+            <mx:RemoveChild target="{countryLbl}"/>
+            <mx:RemoveChild target="{regionLbl}"/>
+            <mx:RemoveChild target="{cityLbl}"/>
+            <mx:RemoveChild target="{aboutLbl}"/>
+            <mx:RemoveChild target="{editBtn}"/>
+
+            <mx:AddChild relativeTo="{sexFormItem}">
+                <mx:Image source="{IconResources.USER_MALE_IMG}"/>
+            </mx:AddChild>
+            <mx:AddChild relativeTo="{sexFormItem}">
+                <mx:RadioButton id="maleRadio" groupName="sexGroup"
+                                label="{resourceManager.getString('common', 'sex.male.label')}"
+                                value="{ProfileDto.MALE}"/>
+            </mx:AddChild>
+            <mx:AddChild relativeTo="{sexFormItem}">
+                <mx:Image source="{IconResources.USER_FEMALE_IMG}"/>
+            </mx:AddChild>
+            <mx:AddChild relativeTo="{sexFormItem}">
+                <mx:RadioButton id="femaleRadio" groupName="sexGroup"
+                                label="{resourceManager.getString('common', 'sex.female.label')}"
+                                value="{ProfileDto.FEMALE}"/>
+            </mx:AddChild>
+            <mx:AddChild relativeTo="{sexFormItem}">
+                <mx:RadioButton id="notSpecifiedRadio" groupName="sexGroup"
+                                label="{resourceManager.getString('common', 'sex.notspec.label')}"
+                                value="{null}"/>
+            </mx:AddChild>
+
+            <mx:AddChild relativeTo="{countryFormItem}">
+                <mx:ComboBox id="countryCombo" dataProvider="{CountryResource.instance.countries}" width="100%"
+                             selectedItem="{_profileData.country}"/>
+            </mx:AddChild>
+
+            <mx:AddChild relativeTo="{regionFormItem}">
+                <mx:TextInput id="regionText" width="100%" text="{_profileData.region}"/>
+            </mx:AddChild>
+
+            <mx:AddChild relativeTo="{cityFormItem}">
+                <mx:TextInput id="cityText" width="100%" text="{_profileData.city}"/>
+            </mx:AddChild>
+
+            <mx:AddChild relativeTo="{aboutFormItem}">
+                <mx:TextArea id="aboutTextArea" wordWrap="true" height="48" maxChars="140" width="100%"
+                             text="{_profileData.about}"/>
+            </mx:AddChild>
+
+            <mx:AddChild relativeTo="{profileControlBar}">
+                <c:StkButton id="cancelBtn" styleName="cancelButton" toolTip="{resourceManager.getString('common', 'cancel.button')}"
+                             click="onCancelProfileEditingBtnClick(event)"/>
+            </mx:AddChild>
+            <mx:AddChild relativeTo="{profileControlBar}">
+                <c:StkButton id="saveProfileBtn" styleName="okButton" toolTip="{resourceManager.getString('common', 'ok.button')}"
+                             click="onSaveProfileBtnClick(event)"/>
+            </mx:AddChild>
+        </mx:State>
+    </mx:states>
+
+    <mx:DateFormatter id="dateFormatter" formatString="{resourceManager.getString('common', 'datetime.format')}"/>
+
+    <mx:RadioButtonGroup id="sexGroup" selectedValue="{_profileData.sex}"/>
+
+    <mx:HBox width="100%" height="36" styleName="pageHeaderBox">
+        <mx:Label text="{resourceManager.getString('common', 'profile.page.label')}"
+                  styleName="lightLargeBoldFont"/>
+    </mx:HBox>
+    <mx:VBox width="100%" height="100%" styleName="pageContentBox">
+        <mx:Spacer height="5"/>
+        <mx:HBox height="40%" width="100%" horizontalGap="30" styleName="topAlignedContainer">
+            <mx:VBox height="100%" width="50%">
+                <mx:Grid width="100%" horizontalGap="30">
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="170" styleName="rightAlignedContainer">
+                            <mx:VBox width="100%" styleName="rightAlignedContainer">
+                                <mx:Text text="{resourceManager.getString('common', 'update.avatar')}" width="165" textAlign="right"
+                                         styleName="normalAttentionFont"
+                                         visible="{_accountInfo.profile.avatar == null}" includeInLayout="{_accountInfo.profile.avatar == null}"/>
+                                <mx:HBox width="100%" styleName="rightAlignedContainer">
+                                    <c:StkButton id="resetFilterBtn" styleName="removeAvatarButton"
+                                                 toolTip="{resourceManager.getString('common', 'reset.avatar.button')}"
+                                                 click="resetAvatar()" visible="{_accountInfo.profile.avatar != null}"/>
+                                    <mx:Spacer width="5"/>
+                                    <c:Avatar avatar="{_accountInfo.profile.avatar}"
+                                              toolTip="{resourceManager.getString('common', 'update.avatar')}"
+                                              click="onUpdateAvatarBtnClick(event)" useHandCursor="true" buttonMode="true"/>
+                                </mx:HBox>
+                            </mx:VBox>
+                        </mx:GridItem>
+                        <mx:GridItem width="100%" horizontalAlign="left" verticalAlign="middle">
+                            <c:InlineEdit id="changeUserName" value="{_accountInfo.userName}"
+                                          labelStyleName="userNameBigFont" width="95%" maxChars="32"
+                                          editButtonToolTip="{resourceManager.getString('common', 'change.user.name.button')}"
+                                          okButtonToolTip="{resourceManager.getString('common', 'save.button')}"
+                                          cancelButtonToolTip="{resourceManager.getString('common', 'cancel.button')}"
+                                          inlineEditValueChanged="onUserNameChanged(event)"
+                                          inlineEditValueCommitted="onUserNameSaved(event)"
+                                          switchEditStateOnOk="false" readOnly="true"/>
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem styleName="rightAlignedContainer">
+                            <mx:Label text="{resourceManager.getString('common', 'user.email.label')}"/>
+                        </mx:GridItem>
+                        <mx:GridItem width="100%" horizontalAlign="left" verticalAlign="middle">
+                            <c:InlineEdit id="changeEmail" value="{_accountInfo.email}" width="100%"
+                                          editButtonToolTip="{resourceManager.getString('common', 'change.email.button')}"
+                                          okButtonToolTip="{resourceManager.getString('common', 'save.button')}"
+                                          cancelButtonToolTip="{resourceManager.getString('common', 'cancel.button')}"
+                                          inlineEditValueChanged="onEmailChanged(event)"
+                                          inlineEditValueCommitted="onEmailSaved(event)"
+                                          switchEditStateOnOk="false"/>
+                        </mx:GridItem>
+                    </mx:GridRow>
+                </mx:Grid>
+                <mx:Form width="100%" labelWidth="150" indicatorGap="30">
+                    <mx:FormItem direction="horizontal"
+                                 visible="{_accountInfo.isEmailChangeOperationExists}"
+                                 includeInLayout="{_accountInfo.isEmailChangeOperationExists}"
+                                 width="100%">
+                        <mx:Label id="newEmailLbl" text="{_accountInfo.newEmail}"/>
+                        <mx:Spacer width="100%"/>
+                        <c:StkButton id="confirmNewEmailBtn"
+                                     label="{resourceManager.getString('common', 'confirm.new.email.button')}"
+                                     click="onConfirmBtnClick(event)"/>
+                    </mx:FormItem>
+                    <mx:FormItem label="{resourceManager.getString('common', 'reg.date.label')}">
+                        <mx:Label id="regDateLbl" text="{dateFormatter.format(_accountInfo.registrationDate)}"/>
+                    </mx:FormItem>
+                    <mx:FormItem label="{resourceManager.getString('common', 'language.label')}"
+                                 direction="horizontal" width="100%">
+                        <mx:ComboBox id="languagesCombo" width="60%" dataProvider="{Locales.instance.locales}"
+                                     close="onClose(event)"
+                                     selectedItem="{Locales.instance.getLocaleItem(_accountInfo.locale)}"/>
+                    </mx:FormItem>
+                    <mx:FormItem label="{resourceManager.getString('common', 'account.status.label')}">
+                        <mx:Label id="statusLbl" text="{_accountInfo.status}"/>
+                    </mx:FormItem>
+                    <mx:FormItem direction="horizontal"
+                                 visible="{_accountInfo.isStatusChangeOperationExists}"
+                                 includeInLayout="{_accountInfo.isStatusChangeOperationExists}"
+                                 width="100%">
+                        <mx:Label id="newStatusLbl" text="{_accountInfo.newStatus}"/>
+                        <mx:Spacer width="100%"/>
+                        <c:StkLinkButton id="confirmStatusBtn"
+                                         label="{resourceManager.getString('common', 'confirm.status.button')}"
+                                         click="onConfirmBtnClick(event)"/>
+                    </mx:FormItem>
+                </mx:Form>
+                <mx:Spacer height="100%"/>
+                <mx:ControlBar styleName="containerWithGaps" width="100%">
+                    <c:StkButton id="changePwdBtn" label="{resourceManager.getString('common', 'change.password.button')}"
+                                 click="onChangePwdBtnClick(event)"/>
+                    <c:StkButton id="removeAccountBtn" label="{resourceManager.getString('common', 'remove.account.button')}"
+                                 click="onRemoveAccountBtnClick(event)"
+                                 visible="{_accountInfo.status == MyAccountDto.ACCOUNT_STATUS_ACTIVE &amp;&amp; !_accountInfo.isStatusChangeOperationExists}"
+                                 includeInLayout="{_accountInfo.status == MyAccountDto.ACCOUNT_STATUS_ACTIVE &amp;&amp; !_accountInfo.isStatusChangeOperationExists}"/>
+                    <c:StkButton id="restoreAccountBtn" label="{resourceManager.getString('common', 'restore.account.button')}"
+                                 click="onRestoreAccountBtnClick(event)"
+                                 visible="{_accountInfo.status == MyAccountDto.ACCOUNT_STATUS_REMOVED &amp;&amp; !_accountInfo.isStatusChangeOperationExists}"
+                                 includeInLayout="{_accountInfo.status == MyAccountDto.ACCOUNT_STATUS_REMOVED &amp;&amp; !_accountInfo.isStatusChangeOperationExists}"/>
+                </mx:ControlBar>
+            </mx:VBox>
+            <mx:VBox height="100%" width="50%">
+                <mx:Form id="profileForm" width="100%" labelWidth="150" indicatorGap="30">
+                    <mx:FormItem label="{resourceManager.getString('common', 'user.sex.label')}" id="sexFormItem"
+                                 direction="horizontal"
+                                 width="100%" height="26" horizontalGap="1">
+                        <mx:Image id="sexImg"
+                                  source="{_accountInfo.profile.sex == ProfileDto.MALE ? IconResources.USER_MALE_IMG : _accountInfo.profile.sex == ProfileDto.FEMALE ? IconResources.USER_FEMALE_IMG : IconResources.TRANSPARENT_IMG}"/>
+                        <mx:Label id="sexLbl"
+                                  text="{resourceManager.getString('common', _accountInfo.profile.sexKey)}"/>
+                    </mx:FormItem>
+                    <mx:FormItem label="{resourceManager.getString('common', 'user.country.label')}"
+                                 id="countryFormItem"
+                                 width="100%" height="26">
+                        <mx:Label id="countryLbl" text="{_accountInfo.profile.country}"/>
+                    </mx:FormItem>
+                    <mx:FormItem label="{resourceManager.getString('common', 'user.region.label')}" id="regionFormItem"
+                                 width="100%" height="26">
+                        <mx:Label id="regionLbl" text="{_accountInfo.profile.region}"/>
+                    </mx:FormItem>
+                    <mx:FormItem label="{resourceManager.getString('common', 'user.city.label')}" id="cityFormItem"
+                                 width="100%" height="26">
+                        <mx:Label id="cityLbl" text="{_accountInfo.profile.city}"/>
+                    </mx:FormItem>
+                    <mx:FormItem label="{resourceManager.getString('common', 'user.about.label')}" id="aboutFormItem"
+                                 width="100%" height="48">
+                        <mx:Label id="aboutLbl" text="{_accountInfo.profile.about}"/>
+                    </mx:FormItem>
+                </mx:Form>
+                <mx:Spacer height="100%"/>
+                <mx:ControlBar id="profileControlBar" styleName="containerWithGaps" width="100%">
+                    <c:StkButton id="editBtn" label="{resourceManager.getString('common', 'edit.profile.button')}"
+                                 click="onEditProfileBtnClick(event)"/>
+                </mx:ControlBar>
+            </mx:VBox>
+        </mx:HBox>
+        <c:FriendsPanel id="friendsPanel" width="100%" height="60%" showSendMessageDialog="dispatchEvent(event)"/>
+    </mx:VBox>
+</mx:VBox>

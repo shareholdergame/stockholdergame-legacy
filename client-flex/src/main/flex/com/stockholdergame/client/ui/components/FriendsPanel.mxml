@@ -1,0 +1,114 @@
+<?xml version="1.0"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:list="com.stockholdergame.client.ui.components.list.*"
+         xmlns:c="com.stockholdergame.client.ui.components.*"
+         styleName="containerWithGaps" creationComplete="onCreationComplete()">
+
+    <mx:Metadata>
+        [Event(name="getFriends", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showSearchUserDialog", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showSendMessageDialog", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="changeFriendRequestStatus", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="cancelFriendRequest", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.account.FriendRequestStatusDto;
+        import com.stockholdergame.client.model.dto.account.UserFilterDto;
+        import com.stockholdergame.client.model.dto.account.UsersList;
+        import com.stockholdergame.client.model.dto.view.UserSelectionDto;
+        import com.stockholdergame.client.ui.components.list.events.PaginationEvent;
+        import com.stockholdergame.client.ui.components.list.listClasses.PaginationData;
+        import com.stockholdergame.client.ui.components.list.listClasses.UserListAction;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+
+        import mx.collections.ArrayCollection;
+
+        [Bindable]
+        public var friends:UsersList;
+
+        [Bindable]
+        public var friendRequests:UsersList;
+
+        public function refreshData():void {
+            var userFilter:UserFilterDto = createUserFilter(friendsListPaginationBar != null
+                    ? friendsListPaginationBar.paginationData : PaginationBar.DEFAULT_PAGINATION_DATA);
+            dispatchEvent(new BusinessEvent(BusinessActions.GET_FRIENDS, userFilter, true, true));
+
+            var friendRequestFilter:UserFilterDto = createUserFilter(requestsListPaginationBar != null
+                    ? requestsListPaginationBar.paginationData : PaginationBar.DEFAULT_PAGINATION_DATA);
+            dispatchEvent(new BusinessEvent(BusinessActions.GET_FRIEND_REQUESTS, friendRequestFilter, true, true));
+        }
+
+        private function onCreationComplete():void {
+            friendsList.addEventListener(BusinessActions.USER_SELECTED, onUserSelected);
+            friendRequestsList.addEventListener(BusinessActions.USER_SELECTED, onUserSelected);
+        }
+
+        private function onUserSelected(event:BusinessEvent):void {
+            event.stopImmediatePropagation();
+
+            var userSelection:UserSelectionDto = UserSelectionDto(event.data);
+            var action:UserListAction = userSelection.action;
+
+            if (UserListAction.ACCEPT_FRIEND_ACTION == action || UserListAction.REJECT_FRIEND_ACTION == action) {
+                var friendRequestStatus:FriendRequestStatusDto = new FriendRequestStatusDto();
+                friendRequestStatus.requestorName = userSelection.user.userName;
+                friendRequestStatus.status = action == UserListAction.REJECT_FRIEND_ACTION
+                        ? FriendRequestStatusDto.REJECTED : FriendRequestStatusDto.CONFIRMED;
+                dispatchEvent(new BusinessEvent(BusinessActions.CHANGE_FRIEND_REQUEST_STATUS, friendRequestStatus, true, true));
+            } else if (UserListAction.CANCEL_FRIEND_REQUEST_ACTION == action) {
+                dispatchEvent(new BusinessEvent(BusinessActions.CANCEL_FRIEND_REQUEST, userSelection.user.userName, true, true));
+            } else if (UserListAction.SEND_MESSAGE_ACTION == action) {
+                var chatParticipants:ArrayCollection = new ArrayCollection();
+                chatParticipants.addItem(userSelection.user);
+                dispatchEvent(new BusinessEvent(BusinessActions.SHOW_SEND_MESSAGE_DIALOG, chatParticipants));
+            }
+        }
+
+        private function onSearchUserBtnClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_SEARCH_USER_DIALOG, null, true, true));
+        }
+
+        private function onFriendsListPageChanged(event:PaginationEvent):void {
+            var userFilter:UserFilterDto = createUserFilter(event.paginationData);
+            dispatchEvent(new BusinessEvent(BusinessActions.GET_FRIENDS, userFilter, true, true));
+        }
+
+        private function onRequestsListPageChanged(event:PaginationEvent):void {
+            var userFilter:UserFilterDto = createUserFilter(event.paginationData);
+            dispatchEvent(new BusinessEvent(BusinessActions.GET_FRIEND_REQUESTS, userFilter, true, true));
+        }
+
+        private static function createUserFilter(paginationData:PaginationData):UserFilterDto {
+            var userFilter:UserFilterDto = new UserFilterDto();
+            userFilter.offset = paginationData.offset;
+            userFilter.maxResults = paginationData.limit;
+            return userFilter;
+        }
+        ]]></mx:Script>
+
+    <mx:VBox styleName="containerWithGaps" width="75%" height="100%">
+        <mx:HBox width="100%" height="36" styleName="normalBox">
+            <mx:Label text="{resourceManager.getString('common', 'my.friends.title')}" styleName="largeBoldFont"/>
+            <mx:Spacer width="100%"/>
+            <c:StkButton id="searchUserBtn" styleName="searchFriendsButton" toolTip="{resourceManager.getString('common', 'add.friend.button')}"
+                         click="onSearchUserBtnClick(event)"/>
+        </mx:HBox>
+        <list:UserList width="100%" height="100%" id="friendsList" columnCount="3" styleName="darkBox"
+                       showFriendFunctionButtons="false" showInvitationButton="false" dataProvider="{friends.users}"/>
+        <list:PaginationBar id="friendsListPaginationBar" width="100%" height="32" pageChanged="onFriendsListPageChanged(event)"
+                            itemsPerPage="9" totalItems="{friends.totalCount}"/>
+    </mx:VBox>
+    <mx:VBox styleName="containerWithGaps" width="25%" height="100%">
+        <mx:HBox width="100%" height="36" styleName="normalBox">
+            <mx:Label text="{resourceManager.getString('common', 'friends.requests.title')}" styleName="bigBoldFont"/>
+            <mx:Spacer width="100%"/>
+        </mx:HBox>
+        <list:UserList width="100%" height="100%" id="friendRequestsList" styleName="darkBox"
+                       showFriendFunctionButtons="true" showInvitationButton="false" columnCount="1" dataProvider="{friendRequests.users}"/>
+        <list:PaginationBar id="requestsListPaginationBar" width="100%" height="32" pageChanged="onRequestsListPageChanged(event)"
+                            itemsPerPage="3" totalItems="{friendRequests.totalCount}"/>
+    </mx:VBox>
+</mx:HBox>

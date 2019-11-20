@@ -1,0 +1,217 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+         xmlns:list="com.stockholdergame.client.ui.components.list.*" xmlns:c="com.stockholdergame.client.ui.components.*"
+         implements="com.stockholdergame.client.ui.components.page.IRefreshablePage"
+         styleName="page" show="refreshData()">
+
+    <mx:Metadata>
+        [Event(name="getFinishedGames", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="viewGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="getScores", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showSendMessageDialog", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.GameFilterDto;
+        import com.stockholdergame.client.model.dto.game.ScoreFilterDto;
+        import com.stockholdergame.client.model.dto.game.TotalScoreDto;
+        import com.stockholdergame.client.model.dto.game.lite.GamesList;
+        import com.stockholdergame.client.ui.components.classes.GameFilterData;
+        import com.stockholdergame.client.ui.components.list.PaginationBar;
+        import com.stockholdergame.client.ui.components.list.events.PaginationEvent;
+        import com.stockholdergame.client.ui.components.list.listClasses.PaginationData;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+        import com.stockholdergame.client.ui.events.GameFilterEvent;
+
+        [Bindable]
+        public var finishedGames:GamesList;
+
+        [Bindable]
+        public var totalScore:TotalScoreDto;
+
+        [Bindable]
+        private var legacyRules:Boolean = false;
+
+        public function refreshData():void {
+            var gameFilter:GameFilterDto = createGameFilter(getFinishedGamesPaginationData());
+            GameFilterData.mergeFilter(gameFilterPanel.filterData, gameFilter);
+            dispatchEvent(new BusinessEvent(BusinessActions.GET_FINISHED_GAMES, gameFilter));
+
+            var scoreFilter:ScoreFilterDto = createScoreFilter();
+            scoreFilter.totalScoreOnly = false;
+            var paginationData:PaginationData = getScoresPaginationData();
+            scoreFilter.offset = paginationData.offset;
+            scoreFilter.maxResults = paginationData.limit;
+            scoreFilter.userName = scoreFilterPanel.filterData.userName != null && scoreFilterPanel.filterData.userName.length > 0
+                    ? scoreFilterPanel.filterData.userName : null;
+            dispatchEvent(new BusinessEvent(BusinessActions.GET_SCORES, scoreFilter));
+        }
+
+        private function getScoresPaginationData():PaginationData {
+            return scoresList != null ? scoresPaginationBar.paginationData : PaginationBar.DEFAULT_PAGINATION_DATA;
+        }
+
+        private function getFinishedGamesPaginationData():PaginationData {
+            return finishedGamesList != null ? finishedGamesList.paginationData : PaginationBar.DEFAULT_PAGINATION_DATA;
+        }
+
+        private function onFinishedGamesPageChanged(event:PaginationEvent):void {
+            var gameFilter:GameFilterDto = createGameFilter(event.paginationData);
+            GameFilterData.mergeFilter(gameFilterPanel.filterData, gameFilter);
+            dispatchEvent(new BusinessEvent(BusinessActions.GET_FINISHED_GAMES, gameFilter));
+        }
+
+        private function redispatchEvent(event:Event):void {
+            event.stopImmediatePropagation();
+            dispatchEvent(event);
+        }
+
+        private function onFinishedGamesPanelCreationComplete():void {
+            finishedGamesList.addEventListener(BusinessActions.VIEW_GAME, redispatchEvent);
+        }
+
+        private function onScoresPageChanged(event:PaginationEvent):void {
+            var scoreFilter:ScoreFilterDto = createScoreFilter();
+            scoreFilter.totalScoreOnly = false;
+            scoreFilter.offset = event.paginationData.offset;
+            scoreFilter.maxResults = event.paginationData.limit;
+            dispatchEvent(new BusinessEvent(BusinessActions.GET_SCORES, scoreFilter));
+        }
+
+        private function createGameFilter(paginationData:PaginationData):GameFilterDto {
+            var gameFilter:GameFilterDto = new GameFilterDto();
+            gameFilter.offset = paginationData.offset;
+            gameFilter.maxResults = paginationData.limit;
+            gameFilter.legacyRules = this.legacyRules;
+            return gameFilter;
+        }
+
+        private function onGameFilterApplied(event:GameFilterEvent):void {
+            var gameFilter:GameFilterDto = createGameFilter(getFinishedGamesPaginationData());
+            GameFilterData.mergeFilter(event.filterData, gameFilter);
+            dispatchEvent(new BusinessEvent(BusinessActions.GET_FINISHED_GAMES, gameFilter));
+        }
+
+        private function onScoreFilterApplied(event:GameFilterEvent):void {
+            var paginationData:PaginationData;
+            var scoreFilter:ScoreFilterDto = createScoreFilter();
+            scoreFilter.totalScoreOnly = false;
+            paginationData = getScoresPaginationData();
+            scoreFilter.offset = paginationData.offset;
+            scoreFilter.maxResults = paginationData.limit;
+            scoreFilter.userName = event.filterData.userName != null && event.filterData.userName.length > 0
+                    ? event.filterData.userName : null;
+            dispatchEvent(new BusinessEvent(BusinessActions.GET_SCORES, scoreFilter));
+        }
+
+        public function clearData():void {
+            finishedGames = null;
+            totalScore = null;
+        }
+
+        private function onRulesClick():void {
+            legacyRules = !legacyRules;
+            refreshData();
+        }
+
+        private function createScoreFilter():ScoreFilterDto {
+            var scoreFilter:ScoreFilterDto = new ScoreFilterDto();
+            scoreFilter.legacyRules = this.legacyRules;
+            return scoreFilter;
+        }
+        ]]></mx:Script>
+
+    <mx:HBox width="100%" height="36" styleName="pageHeaderBox">
+        <mx:Label text="{resourceManager.getString('common', 'my.statistics.title')}" styleName="lightLargeBoldFont"/>
+        <!--<c:StkLinkButton label="{legacyRules ? resourceManager.getString('common', 'current.rules.link.label') : resourceManager.getString('common', 'legacy.rules.link.label')}"
+                         toolTip="{legacyRules ? resourceManager.getString('common', 'current.rules.link.tooltip') : resourceManager.getString('common', 'legacy.rules.link.tooltip')}"
+                         styleName="bigBoldFont" click="onRulesClick()"/>-->
+        <mx:Label text="{resourceManager.getString('common', 'legacy.rules.stat.warn')}" styleName="normalAttentionFont"
+                  includeInLayout="{legacyRules}" visible="{legacyRules}"/>
+        <mx:HBox horizontalGap="15" visible="{totalScore.totalPlayedGamesCount > 0}">
+            <mx:Label text="{resourceManager.getString('common', 'score.header.total.label')}"
+                      styleName="lightBoldBigFont"/>
+            <!--<mx:Label
+                    text="{resourceManager.getString('common', 'score.footer.played.label', [totalScore.totalPlayedGamesCount])}"
+                    styleName="lightBoldBigFont"/>-->
+            <mx:Label
+                    text="{resourceManager.getString('common', 'score.footer.winnings.label', [totalScore.winningsCount])}"
+                    styleName="lightBoldBigFont"/>
+            <mx:Label
+                    text="{resourceManager.getString('common', 'score.footer.loses.label', [totalScore.defeatsCount, totalScore.bankruptsCount])}"
+                    styleName="lightBoldBigFont"/>
+        </mx:HBox>
+    </mx:HBox>
+
+    <mx:HBox width="100%" height="100%" styleName="pageContentBox">
+        <mx:VBox height="100%" width="100%" styleName="containerWithGaps">
+            <mx:HBox width="100%" styleName="normalBox" height="36" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+                <mx:Label text="{resourceManager.getString('common', 'scores.label')}" styleName="bigBoldFont"/>
+                <mx:Spacer width="100%"/>
+                <c:GameFilterPanel id="scoreFilterPanel" filterApplied="onScoreFilterApplied(event)" labelStyleName="smallFont"
+                                   filterByGameVariant="false"/>
+            </mx:HBox>
+
+            <mx:Grid width="100%" styleName="darkBox">
+                <mx:GridRow width="100%">
+                    <mx:GridItem width="300"/>
+                    <mx:GridItem width="70" horizontalScrollPolicy="off">
+                        <mx:Label text="{resourceManager.getString('common', 'score.header.total.played.label')}"
+                                  truncateToFit="true" styleName="boldFont"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="70" horizontalScrollPolicy="off">
+                        <mx:Text width="63"
+                                 text="{resourceManager.getString('common', 'score.header.total.winnings.label')}"
+                                 truncateToFit="true" styleName="boldFont" textAlign="center"/>
+                    </mx:GridItem>
+                    <mx:GridItem width="100" horizontalScrollPolicy="off">
+                        <mx:Text width="83"
+                                 text="{resourceManager.getString('common', 'score.header.total.defeats.label')}"
+                                 styleName="boldFont" textAlign="center" truncateToFit="true"/>
+                    </mx:GridItem>
+                </mx:GridRow>
+                <!--<mx:HBox width="100%" height="24" paddingTop="5" paddingLeft="2" paddingBottom="2" paddingRight="5"
+                         verticalGap="0" horizontalGap="1">
+                    <mx:Label text="{resourceManager.getString('common', 'score.header.user.name.label')}" width="100"
+                              truncateToFit="true" paddingLeft="10"/>
+                    <mx:VRule/>
+                    <mx:Label text="{resourceManager.getString('common', 'score.header.game.variant.label')}" width="140"
+                              truncateToFit="true" paddingLeft="10"/>
+                    <mx:VRule/>
+                    <mx:Label text="{resourceManager.getString('common', 'score.header.move.order.label')}"
+                    truncateToFit="true"/>
+                    <mx:Label text="{resourceManager.getString('common', 'score.header.total.label')}" truncateToFit="true"
+                              width="40"/>
+                    <mx:VRule/>
+                    <mx:Label text="{resourceManager.getString('common', 'score.header.winnings.label')}" truncateToFit="true"
+                              width="40"/>
+                    <mx:VRule/>
+                    <mx:Label
+                            text="{resourceManager.getString('common', 'score.header.defeats.label')} ({resourceManager.getString('common', 'score.header.bankrupts.label')})"
+                            truncateToFit="true" width="60"/>
+                </mx:HBox>-->
+
+            </mx:Grid>
+
+            <mx:TileList id="scoresList" width="100%" selectable="false" height="100%" variableRowHeight="true"
+                         dataProvider="{totalScore.scores}" columnCount="1" direction="vertical" styleName="zebra"
+                         itemRenderer="com.stockholdergame.client.ui.components.list.renderers.ScoreListItemRenderer"/>
+            <list:PaginationBar id="scoresPaginationBar" width="100%" height="32" totalItems="{totalScore.totalScores}"
+                                pageChanged="onScoresPageChanged(event)" itemsPerPage="10" styleName="normalBox"/>
+        </mx:VBox>
+
+        <mx:VBox width="100%" height="100%"
+                 creationComplete="onFinishedGamesPanelCreationComplete()" styleName="containerWithGaps">
+            <mx:HBox width="100%" height="36" styleName="normalBox" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+                <mx:Label text="{resourceManager.getString('common', 'finished.games.label')}" styleName="bigBoldFont"/>
+                <mx:Spacer width="100%"/>
+                <c:GameFilterPanel id="gameFilterPanel" filterApplied="onGameFilterApplied(event)" labelStyleName="smallFont"/>
+            </mx:HBox>
+            <list:GameList id="finishedGamesList" width="100%" height="100%"
+                           totalItems="{finishedGames.totalCount}" items="{finishedGames.games}"
+                           pageChanged="onFinishedGamesPageChanged(event)" itemsPerPage="3"/>
+        </mx:VBox>
+    </mx:HBox>
+</mx:VBox>

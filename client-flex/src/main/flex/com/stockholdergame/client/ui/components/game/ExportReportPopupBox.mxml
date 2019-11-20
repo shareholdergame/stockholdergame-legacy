@@ -1,0 +1,481 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:c="com.stockholdergame.client.ui.components.*"
+         width="900" height="600" styleName="lightBox">
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.CompensationDto;
+        import com.stockholdergame.client.model.dto.game.CompetitorCardDto;
+        import com.stockholdergame.client.model.dto.game.CompetitorDto;
+        import com.stockholdergame.client.model.dto.game.CompetitorMoveDto;
+        import com.stockholdergame.client.model.dto.game.GameDto;
+        import com.stockholdergame.client.model.dto.game.MoveDto;
+        import com.stockholdergame.client.model.dto.game.MoveStepDto;
+        import com.stockholdergame.client.model.dto.game.SharePriceDto;
+        import com.stockholdergame.client.model.dto.game.ShareQuantityDto;
+        import com.stockholdergame.client.model.dto.game.variant.CardDto;
+        import com.stockholdergame.client.model.dto.game.variant.CardOperationDto;
+        import com.stockholdergame.client.util.collection.CollectionUtil;
+        import com.stockholdergame.client.util.style.StkColorUtil;
+
+        import mx.collections.ArrayCollection;
+        import mx.controls.ComboBox;
+        import mx.events.ListEvent;
+        import mx.managers.PopUpManager;
+
+        [Bindable]
+        private var _game:GameDto;
+
+        [Bindable]
+        public var zyrianovStyle:Boolean = false;
+
+        [Bindable]
+        private var reportText:String;
+
+        [Bindable]
+        private var moveNumbers:Array = [1];
+
+        [Bindable]
+        private var fromMove:int = 0;
+
+        [Bindable]
+        private var toMove:int = 0;
+
+        [Bindable]
+        private var hidePlayerName:Boolean = false;
+
+        [Bindable]
+        private var showCards:Boolean = true;
+
+        [Bindable]
+        private var sortCardsByMoves:Boolean = false;
+
+        private function onClose(event:MouseEvent):void {
+            if (this.isPopUp) {
+                PopUpManager.removePopUp(this);
+            }
+        }
+
+        public function generateReport():void {
+            reportText = "";
+            reportText = generateReportInForumFormat(_game);
+        }
+
+        private function generateReportInForumFormat(game:GameDto):String {
+            var text:String = "";
+            // generate header
+            text += "[table][tr]";
+
+            var competitors:ArrayCollection = game.competitors;
+            for each (var competitorDto:CompetitorDto in competitors) {
+                var content:String = hidePlayerName ? ("Player " + competitorDto.moveOrder) : competitorDto.userName;
+                content += " - " + competitorDto.totalFunds;
+                if (competitorDto.winner) {
+                    content += " ( +" + competitorDto.winSum + " )";
+                }
+                text += "[td align=center color=" + StkColorUtil.moveOrderColorMapping[competitorDto.moveOrder - 1]
+                        + " background=" + StkColorUtil.moveOrderBackgroundColorMapping[competitorDto.moveOrder - 1]
+                        + " width=300px colspan=1 rowspan=1][b]" + content + "[/b][/td]";
+            }
+
+            text += "[/tr][/table]\n\n\n";
+
+            //generate report
+            var cellWidth:String = "50px";
+            var cardCellWidth:String = "50px";
+            var cardCellWidthZyrianovStyle:String = "60px";
+
+            var shareColorsHeader:String = "";
+            var currentSharePrices:ArrayCollection = game.currentSharePrices;
+            for each (var priceDto:SharePriceDto in currentSharePrices) {
+                shareColorsHeader += "[th align=center color=white background=" + priceDto.color + " width=50px colspan=1 rowspan=1][/th]";
+            }
+            shareColorsHeader += "[th]" + (resourceManager.getString('common', 'cash.label')) + "[/th]";
+
+            text += "[table][tr][th align=center color=black background=white width=50px colspan=2 rowspan=1]"
+                    + (resourceManager.getString('common', 'move.label'))
+                    + "[/th]" + shareColorsHeader
+                    + "[th align=center color=black background=white width=60px colspan=" + (zyrianovStyle ? 1 : 2) + " rowspan=1]"
+                    + (resourceManager.getString('common', 'cards.label'))
+                    + "[/th]" + shareColorsHeader + shareColorsHeader + "[/tr]\n";
+
+            var moves:ArrayCollection = game.movesWithoutZero;
+            var currIteration:int = 0;
+            for each (var moveDto:MoveDto in moves) {
+                var moveNumber:int = moveDto.moveNumber;
+
+                if (moveNumber < fromMove || moveNumber > toMove) {
+                    continue;
+                }
+
+                var competitorMoves:ArrayCollection = moveDto.competitorMoves;
+
+                var rowsCount:int = countMoveRows(competitorMoves);
+
+                text += "[tr]";
+                text += "[td align=center color=black background=white width=30px colspan=1 rowspan=" + rowsCount + "][b]" + moveNumber + "[/b][/td]";
+
+                for each (var competitorMoveDto:CompetitorMoveDto in competitorMoves) {
+                    var shareIds:ArrayCollection = new ArrayCollection();
+
+                    if (competitorMoveDto.moveOrder > 1) {
+                        text += "[tr]";
+                    }
+
+                    var rowspan:int = countMoveRows(CollectionUtil.createCollection(competitorMoveDto));
+                    text += "[td align=center color=" + StkColorUtil.moveOrderColorMapping[competitorMoveDto.moveOrder - 1]
+                            + " background=" + StkColorUtil.moveOrderBackgroundColorMapping[competitorMoveDto.moveOrder - 1]
+                            + " width=30px colspan=1 rowspan=" + rowspan + "][b]" + competitorMoveDto.moveOrder + "[/b][/td]";
+
+                    var steps:ArrayCollection = competitorMoveDto.steps;
+                    for each (var moveStepDto:MoveStepDto in steps) {
+                        if (MoveStepDto.FIRST_BUY_SELL_STEP == moveStepDto.stepType
+                                || (isLastMove(competitorMoveDto) && moveStepDto.shareQuantities != null
+                                && MoveStepDto.REPURCHASE_STEP != moveStepDto.stepType
+                                && MoveStepDto.COMPENSATION_STEP != moveStepDto.stepType)) {
+                            var shareQuantities:ArrayCollection = moveStepDto.shareQuantities;
+                            for each (var shareQuantityDto:ShareQuantityDto in shareQuantities) {
+                                var sharesText:String = shareQuantityDto.quantity != 0 ? "" + shareQuantityDto.quantity : "";
+                                text += renderCell(StkColorUtil.moveOrderColorMapping[competitorMoveDto.moveOrder - 1],
+                                        StkColorUtil.moveOrderBackgroundColorMapping[competitorMoveDto.moveOrder - 1],
+                                        cellWidth, sharesText, 1, 1);
+                            }
+
+                            text += renderCell(StkColorUtil.moveOrderColorMapping[competitorMoveDto.moveOrder - 1],
+                                    StkColorUtil.moveOrderBackgroundColorMapping[competitorMoveDto.moveOrder - 1],
+                                    cellWidth, "[i]" + moveStepDto.cashValue + "[/i]", 1, 1);
+                        }
+
+                        if (MoveStepDto.PRICE_CHANGE_STEP == moveStepDto.stepType) {
+                            var card:CardDto = competitorMoveDto.appliedCard.card;
+                            var cardOperations:ArrayCollection = card.cardOperations;
+                            for each (var cardOperationDto:CardOperationDto in cardOperations) {
+                                if (cardOperationDto.isShareFixed) {
+                                    var bigCard:Boolean = isBigCard(card);
+                                    if (!zyrianovStyle) {
+                                        text += renderCell("white", (bigCard ? StkColorUtil.moveOrderBackgroundColorMapping[competitorMoveDto.moveOrder - 1] : "white"), "10px", "", 1, 1);
+                                    }
+                                    text += renderCell((zyrianovStyle ? StkColorUtil.moveOrderColorMapping[competitorMoveDto.moveOrder - 1] : "white"),
+                                            (zyrianovStyle ? (bigCard ? StkColorUtil.moveOrderBackgroundColorMapping[competitorMoveDto.moveOrder - 1] : "white") : cardOperationDto.shareColor),
+                                            (zyrianovStyle ? cardCellWidthZyrianovStyle : cardCellWidth),
+                                            "[b]" + cardOperationDto.operation + " " + cardOperationDto.operandValue
+                                            + (zyrianovStyle ? resourceManager.getString("common", cardOperationDto.colorLetter) : "") + "[/b]"
+                                            , 1, 1);
+                                }
+                            }
+
+                            var sharePrices:ArrayCollection = moveStepDto.sharePrices;
+                            for each (var sharePriceDto:SharePriceDto in sharePrices) {
+                                var isZeroing:Boolean = sharePriceDto.price == 10 ? detectZeroing(competitorMoveDto, sharePriceDto) : false;
+                                var isOutOfMax:Boolean = sharePriceDto.price == 250 ? detectOutOfMax(competitorMoveDto, sharePriceDto) : false;
+                                shareIds.addItem(sharePriceDto.id);
+                                var isFirstMove:Boolean = (moveNumber == 1 && competitorMoveDto.moveOrder == 1) || currIteration == 0;
+                                sharesText = (sharePriceDto.operation != null || isFirstMove)
+                                        ? (isZeroing ? "[u]" : isOutOfMax ? "[ov]" : "")
+                                + sharePriceDto.price + (isZeroing ? "[/u]" : isOutOfMax ? "[/ov]" : "") : "";
+
+                                var moveOrderColorMapping:String = (isFirstMove && sharePriceDto.operation == null)
+                                        ? "gray" : StkColorUtil.moveOrderColorMapping[competitorMoveDto.moveOrder - 1];
+                                text += renderCell(moveOrderColorMapping,
+                                        StkColorUtil.moveOrderBackgroundColorMapping[competitorMoveDto.moveOrder - 1],
+                                        cellWidth, sharesText, 1, 1);
+                            }
+
+                            text += renderCell(StkColorUtil.moveOrderColorMapping[competitorMoveDto.moveOrder - 1],
+                                    StkColorUtil.moveOrderBackgroundColorMapping[competitorMoveDto.moveOrder - 1],
+                                    cellWidth, "[i]" + moveStepDto.cashValue + "[/i]", 1, 1);
+
+                            if (isLastMove(competitorMoveDto)) {
+                                text += "[td colspan=5][/td][/tr]\n";
+                            }
+                        }
+
+                        if (MoveStepDto.LAST_BUY_SELL_STEP == moveStepDto.stepType) {
+                            var shareQuantities1:ArrayCollection = moveStepDto.shareQuantities;
+                            for each (var shareQuantityDto1:ShareQuantityDto in shareQuantities1) {
+                                sharesText = shareQuantityDto1.quantity != 0 ? "" + shareQuantityDto1.quantity : "";
+                                text += renderCell(StkColorUtil.moveOrderColorMapping[competitorMoveDto.moveOrder - 1],
+                                        StkColorUtil.moveOrderBackgroundColorMapping[competitorMoveDto.moveOrder - 1],
+                                        cellWidth, sharesText, 1, 1);
+                            }
+                            text += renderCell(StkColorUtil.moveOrderColorMapping[competitorMoveDto.moveOrder - 1],
+                                    StkColorUtil.moveOrderBackgroundColorMapping[competitorMoveDto.moveOrder - 1],
+                                    cellWidth, "[i]" + moveStepDto.cashValue + "[/i]", 1, 1);
+                            text += "[/tr]\n";
+                        }
+
+                        if (MoveStepDto.COMPENSATION_STEP == moveStepDto.stepType) {
+                            var compensations:ArrayCollection = moveStepDto.compensations;
+
+                            var lastMove:Boolean = isLastMove(competitorMoveDto);
+
+                            text += "[tr]";
+                            if (!lastMove) {
+                                text += "[td colspan=" + (zyrianovStyle ? 11 : 12) + "][/td]";
+                            }
+
+                            for each (var shareId:int in shareIds) {
+                                var found:Boolean = false;
+                                for each (var compensationDto:CompensationDto in compensations) {
+                                    if (compensationDto.id == shareId) {
+                                        found = true;
+                                        var sum:String = compensationDto.sum != 0 ? (compensationDto.sum > 0 ? "+" : "") + compensationDto.sum : "";
+                                        text += renderCell(StkColorUtil.moveOrderColorMapping[competitorMoveDto.moveOrder - 1],
+                                                StkColorUtil.moveOrderBackgroundColorMapping[competitorMoveDto.moveOrder - 1],
+                                                cellWidth, "[i]" + sum + "[/i]", 1, 1);
+                                        break;
+                                    }
+                                }
+                                if (!found) {
+                                    text += renderCell(StkColorUtil.moveOrderColorMapping[competitorMoveDto.moveOrder - 1],
+                                            StkColorUtil.moveOrderBackgroundColorMapping[competitorMoveDto.moveOrder - 1],
+                                            cellWidth, "", 1, 1);
+                                }
+                            }
+
+                            text += renderCell(StkColorUtil.moveOrderColorMapping[competitorMoveDto.moveOrder - 1],
+                                    StkColorUtil.moveOrderBackgroundColorMapping[competitorMoveDto.moveOrder - 1],
+                                    cellWidth, "[i]" + moveStepDto.cashValue + "[/i]", 1, 1);
+                            if (lastMove) {
+                                text += "[td colspan=" + (zyrianovStyle ? 11 : 12) + "][/td]";
+                            }
+                            text += "[/tr]\n";
+                        }
+
+                        if (MoveStepDto.REPURCHASE_STEP == moveStepDto.stepType) {
+                            var shareQuantitiesRep:ArrayCollection = moveStepDto.shareQuantities;
+
+                            lastMove = isLastMove(competitorMoveDto);
+
+                            text += "[tr]";
+                            if (!lastMove) {
+                                text += "[td colspan=" + (zyrianovStyle ? 11 : 12) + "][/td]";
+                            }
+
+                            for each (var shareQuantityDto2:ShareQuantityDto in shareQuantitiesRep) {
+                                var prevValue:String = shareQuantityDto2.prevStepQuantity != shareQuantityDto2.quantity || shareQuantityDto2.buySellQuantity > 0
+                                        ? "[s]" + shareQuantityDto2.prevStepQuantity + "[/s]" : "";
+                                sharesText = shareQuantityDto2.buySellQuantity != 0 ? "" + shareQuantityDto2.buySellQuantity : "";
+                                text += renderCell(StkColorUtil.moveOrderColorMapping[competitorMoveDto.moveOrder - 1],
+                                        StkColorUtil.moveOrderBackgroundColorMapping[competitorMoveDto.moveOrder - 1],
+                                        cellWidth, prevValue + " " + sharesText, 1, 1);
+                            }
+
+                            text += renderCell(StkColorUtil.moveOrderColorMapping[competitorMoveDto.moveOrder - 1],
+                                    StkColorUtil.moveOrderBackgroundColorMapping[competitorMoveDto.moveOrder - 1],
+                                    cellWidth, "[i]" + moveStepDto.cashValue + "[/i]", 1, 1);
+                            if (lastMove) {
+                                text += "[td colspan=" + (zyrianovStyle ? 11 : 12) + "][/td]";
+                            }
+                            text += "[/tr]\n";
+                        }
+                    }
+
+                    currIteration++;
+                }
+            }
+
+            text += "[/table]\n\n";
+
+            if (showCards) {
+                for each (var competitorDto1:CompetitorDto in competitors) {
+                    var competitorCards:ArrayCollection = sortCardsByMoves
+                            ? competitorDto1.competitorCards : competitorDto1.competitorCardsOrderByDisplayOrder;
+
+                    text += "[table][tr][td align=left color="
+                            + StkColorUtil.moveOrderColorMapping[competitorDto1.moveOrder - 1]
+                            + " background=" + StkColorUtil.moveOrderBackgroundColorMapping[competitorDto1.moveOrder - 1]
+                            + " width=1100px colspan=" + (competitorCards.length * 2) + " rowspan=1][b]"
+                            + (hidePlayerName ? ("Player " + competitorDto1.moveOrder) : competitorDto1.userName) + " "
+                            + resourceManager.getString('common', 'cards.label').toLowerCase()
+                            + "[/b][/td][/tr]";
+
+                    var c:int = 0, o:int = 0, rows:Dictionary = new Dictionary();
+                    for (var i:int = 0; i < 4; i++) {
+                        rows[i] = "[tr]";
+                    }
+                    for each (var competitorCardDto:CompetitorCardDto in competitorCards) {
+                        var operations:ArrayCollection = competitorCardDto.card.cardOperations;
+                        o = 0;
+                        for each (var cardOperationDto1:CardOperationDto in operations) {
+                            if (o == 0) {
+                                rows[o] += "[td align=center color="
+                                        + StkColorUtil.moveOrderColorMapping[competitorDto1.moveOrder - 1]
+                                        + " background=" + StkColorUtil.moveOrderBackgroundColorMapping[competitorDto1.moveOrder - 1]
+                                        + " width=15px colspan=1 rowspan=4][b]"
+                                        + competitorCardDto.moveNumber + "[/b][/td]";
+                            }
+                            rows[o] += renderCell((cardOperationDto1.isShareFixed ? "white" : cardOperationDto1.shareColor),
+                                    (cardOperationDto1.isShareFixed ? cardOperationDto1.shareColor : "white"), cardCellWidth,
+                                    "[b]" + cardOperationDto1.operation + " " + cardOperationDto1.operandValue + "[/b]", 1, 1);
+                            o++;
+                        }
+                        if (o < 4) {
+                            rows[o] += "[td rowspan=" + (4 - o) + "][/td]";
+                            o++;
+                        }
+                        c++;
+                    }
+
+                    for each (var row:String in rows) {
+                        text += row + "[/tr]";
+                    }
+
+                    text += "[/table]\n\n";
+                }
+            }
+
+            return text;
+        }
+
+        private static function countMoveRows(competitorMoves:ArrayCollection):int {
+            var i:int = 0;
+            for each (var competitorMoveDto:CompetitorMoveDto in competitorMoves) {
+                i++;
+                var steps:ArrayCollection = competitorMoveDto.steps;
+                for each (var moveStepDto:MoveStepDto in steps) {
+                    if (MoveStepDto.COMPENSATION_STEP == moveStepDto.stepType
+                            || MoveStepDto.REPURCHASE_STEP == moveStepDto.stepType
+                            || MoveStepDto.BANKRUPTING_STEP == moveStepDto.stepType) {
+                        i++;
+                    }
+                }
+            }
+            return i;
+        }
+
+        private static function isBigCard(card:CardDto):Boolean {
+            return card.groupName == 'card.group.big';
+        }
+
+        private static function isLastMove(competitorMove:CompetitorMoveDto):Boolean {
+            return competitorMove.getStepByType(MoveStepDto.LAST_BUY_SELL_STEP).length == 0;
+        }
+
+        private static function renderCell(color:String, backgroundColor:String, cellWidth:String, content:String, colspan:int, rowspan:int):String {
+            var text:String = "";
+            text += "[td align=right color=" + color + " background=" + backgroundColor + " width=" + cellWidth
+                    + " colspan=" + colspan + " rowspan=" + rowspan + "]";
+            text += content;
+            text += "[/td]";
+            return text;
+        }
+
+        private static function detectOutOfMax(competitorMove:CompetitorMoveDto, sharePrice:SharePriceDto):Boolean {
+            var prevSharePrice:SharePriceDto = getPreviousSharePrice(competitorMove, sharePrice);
+            return sharePrice.price == 250 && (sharePrice.operandValue == 2 || sharePrice.price - prevSharePrice.price < sharePrice.operandValue);
+        }
+
+        private static function detectZeroing(competitorMove:CompetitorMoveDto, sharePrice:SharePriceDto):Boolean {
+            var prevSharePrice:SharePriceDto = getPreviousSharePrice(competitorMove, sharePrice);
+            return (prevSharePrice.price == 10 && sharePrice.operandValue == 2) || prevSharePrice.price - sharePrice.price < sharePrice.operandValue;
+        }
+
+        private static function getPreviousSharePrice(competitorMove:CompetitorMoveDto, sharePrice:SharePriceDto):SharePriceDto {
+            var prevPriceMoveStep:MoveStepDto = MoveStepDto(competitorMove.previousCompetitorMove.getStepByType(MoveStepDto.PRICE_CHANGE_STEP).getItemAt(0));
+            var prevSharePrice:SharePriceDto;
+            for each (var sharePrice1:SharePriceDto in prevPriceMoveStep.sharePrices) {
+                if (sharePrice.id == sharePrice1.id) {
+                    prevSharePrice = sharePrice1;
+                }
+            }
+            return prevSharePrice;
+        }
+
+        private function onChangeFromMove(event:ListEvent):void {
+            var fromMoveSelected:int = int(ComboBox(event.currentTarget).selectedItem);
+            var toMoveSelected:int = int(lastMoveComboBox.selectedItem);
+            if (fromMoveSelected > toMoveSelected) {
+                toMove = fromMoveSelected;
+            }
+            fromMove = fromMoveSelected;
+
+            generateReport();
+        }
+
+        private function onChangeToMove(event:ListEvent):void {
+            var toMoveSelected:int = int(ComboBox(event.currentTarget).selectedItem);
+            var fromMoveSelected:int = int(firstMoveComboBox.selectedItem);
+            if (toMoveSelected < fromMoveSelected) {
+                fromMove = toMoveSelected;
+            }
+            toMove = toMoveSelected;
+
+            generateReport();
+        }
+
+        public function get game():GameDto {
+            return _game;
+        }
+
+        public function set game(value:GameDto):void {
+            _game = value;
+            if (_game != null) {
+                var moveNums:ArrayCollection = new ArrayCollection();
+                for (var i:int = 1; i <= _game.movesQuantity; i++) {
+                    moveNums.addItem(i);
+                }
+                moveNumbers = moveNums.toArray();
+                fromMove = 1;
+                toMove = _game.movesQuantity;
+            }
+        }
+
+        private function onChangeHidePlayer(event:Event):void {
+            hidePlayerName = CheckBox(event.currentTarget).selected;
+
+            generateReport();
+        }
+
+        private function onFormReset(event:MouseEvent):void {
+            fromMove = 1;
+            toMove = _game.movesQuantity;
+            hidePlayerName = false;
+            showCards = true;
+            sortCardsByMoves = false;
+            sortByMoveCheckBox.enabled = true;
+
+            generateReport();
+        }
+
+        private function onChangeShowCards(event:Event):void {
+            showCards = !showCards;
+            sortByMoveCheckBox.enabled = showCards;
+
+            generateReport();
+        }
+
+        private function onChangeCardSorting(event:Event):void {
+            sortCardsByMoves = !sortCardsByMoves;
+
+            generateReport();
+        }
+        ]]></mx:Script>
+
+    <mx:HBox width="100%" height="36" styleName="containerWithGaps">
+        <mx:Label text="{resourceManager.getString('common', 'game.report.export.title')}" styleName="largeBoldFont"/>
+    </mx:HBox>
+    <mx:HBox width="100%" styleName="containerWithGaps">
+        <mx:Label text="{resourceManager.getString('common', 'from.move.label')}"/>
+        <mx:ComboBox id="firstMoveComboBox" dataProvider="{moveNumbers}" selectedItem="{fromMove}" change="onChangeFromMove(event)"/>
+        <mx:Label text="{resourceManager.getString('common', 'to.move.label')}"/>
+        <mx:ComboBox id="lastMoveComboBox" dataProvider="{moveNumbers}" selectedItem="{toMove}" change="onChangeToMove(event)"/>
+        <mx:Spacer width="20"/>
+        <mx:CheckBox label="{resourceManager.getString('common', 'hide.player.names.label')}" selected="{hidePlayerName}" change="onChangeHidePlayer(event)"/>
+    </mx:HBox>
+    <mx:HBox width="100%" styleName="containerWithGaps">
+        <mx:CheckBox label="{resourceManager.getString('common', 'show.cards.label')}" selected="{showCards}" change="onChangeShowCards(event)"/>
+        <mx:CheckBox id="sortByMoveCheckBox" label="{resourceManager.getString('common', 'sort.cards.by.move.label')}" selected="{sortCardsByMoves}"
+                     change="onChangeCardSorting(event)"/>
+        <c:StkButton label="{resourceManager.getString('common', 'reset.button.label')}" click="onFormReset(event)"/>
+    </mx:HBox>
+    <mx:Spacer height="5"/>
+    <mx:TextArea editable="false" selectable="true" id="gameReportForumText" text="{reportText}" width="95%" height="95%"/>
+    <mx:Spacer height="5"/>
+    <c:StkButton label="{resourceManager.getString('common', 'copy.text.to.clipboard')}"
+                 click="{System.setClipboard(gameReportForumText.text)}"/>
+
+    <mx:HBox height="36">
+        <c:StkButton id="closeGameBtn" styleName="closeButton" toolTip="{resourceManager.getString('common', 'close.button')}"
+                     click="onClose(event)"/>
+    </mx:HBox>
+</mx:VBox>

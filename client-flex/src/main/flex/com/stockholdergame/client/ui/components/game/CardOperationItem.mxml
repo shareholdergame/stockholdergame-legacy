@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml"
+         backgroundColor="{_cardOperation.isShareFixed ? StyleManager.getColorName(_cardOperation.shareColor) : StyleManager.getColorName('white')}"
+         width="100%" height="24" horizontalAlign="right" verticalAlign="middle" paddingLeft="5"
+         click="handleClick(event)"
+         toolTip="{_cardOperation.isShareFixed ? '' : 'Click here for assign share to this operation'}">
+
+    <mx:Metadata>
+        [Event(name="clickOperationItem", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.variant.CardOperationDto;
+        import com.stockholdergame.client.model.dto.view.CardOperationItemSelectionDto;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+        import com.stockholdergame.client.util.style.StkColorUtil;
+
+        [Bindable]
+        private var _cardOperation:CardOperationDto;
+
+        [Bindable]
+        private var operation:String;
+
+        [Bindable]
+        private var operandValue:int;
+
+        public function get cardOperation():CardOperationDto {
+            return _cardOperation;
+        }
+
+        public function set cardOperation(value:CardOperationDto):void {
+            _cardOperation = value;
+            if (_cardOperation != null) {
+                operation = _cardOperation.operation;
+                operandValue = _cardOperation.operandValue;
+            }
+        }
+
+        private function handleClick(event:MouseEvent):void {
+            if (!_cardOperation.isShareFixed) {
+                dispatchEvent(new BusinessEvent(BusinessActions.CLICK_OPERATION_ITEM,
+                        new CardOperationItemSelectionDto(_cardOperation.shareId, _cardOperation.priceOperationId)));
+            }
+        }
+        ]]></mx:Script>
+
+    <mx:HBox width="16" height="16" borderStyle="solid" cornerRadius="8" visible="{!_cardOperation.isShareFixed}"
+             backgroundColor="{StyleManager.getColorName(_cardOperation.shareColor)}" borderColor="{StyleManager.getColorName(_cardOperation.shareColor)}"/>
+    <mx:Spacer width="100%"/>
+    <mx:Label text="{operation + ' ' + operandValue}" fontWeight="{_cardOperation.isShareFixed ? 'bold' : 'normal'}"
+              color="{_cardOperation.isShareFixed ? StyleManager.getColorName('white') : StyleManager.getColorName('#7E7A53')}"/>
+</mx:HBox>

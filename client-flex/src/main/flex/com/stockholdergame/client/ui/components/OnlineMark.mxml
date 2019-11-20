@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<mx:Image xmlns:mx="http://www.adobe.com/2006/mxml"
+          source="{online ? IconResources.ONLINE_IMG : IconResources.OFFLINE_IMG}"
+          toolTip="{online ? resourceManager.getString('common', 'user.online.label') : resourceManager.getString('common', 'user.offline.label')}">
+  <mx:Script><![CDATA[
+    import com.stockholdergame.client.ui.IconResources;
+
+    [Bindable]
+    public var online:Boolean;
+
+    ]]></mx:Script>
+</mx:Image>

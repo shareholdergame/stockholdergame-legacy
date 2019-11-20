@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<list:BaseListItemRenderer xmlns:mx="http://www.adobe.com/2006/mxml"
+                           xmlns:list="com.stockholdergame.client.ui.components.list.renderers.*"
+                           xmlns:items="com.stockholdergame.client.ui.components.list.items.*" paddingBottom="1"
+                           paddingTop="1">
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.MoveDto;
+        import com.stockholdergame.client.ui.components.list.MoveList;
+        import com.stockholdergame.client.util.style.StkColorUtil;
+
+        import mx.controls.listClasses.BaseListData;
+
+        [Bindable]
+        private var zyrianovStyle:Boolean = false;
+
+        override public function set listData(value:BaseListData):void {
+            super.listData = value;
+            if (value != null) {
+                var moveList:MoveList = MoveList(value.owner);
+                zyrianovStyle = moveList.zyrianovStyle;
+            }
+        }
+        ]]></mx:Script>
+
+    <mx:DateFormatter id="dateFormatter" formatString="M/D/YY"/>
+    <mx:DateFormatter id="timeFormatter" formatString="J:NN:SS"/>
+    <mx:DateFormatter id="dateTimeFormatter" formatString="YYYY-MM-DD J:NN:SS"/>
+
+    <mx:VBox width="30" height="100%" styleName="{MoveDto(data).moveNumber % 2 == 0 ? 'normalBox' : 'lightBox'}"
+             horizontalAlign="right">
+        <mx:Label text="{MoveDto(data).moveNumber > 0 ? '' + MoveDto(data).moveNumber : ''}" styleName="xLargeBoldFont"
+                  textAlign="right"/>
+    </mx:VBox>
+    <mx:Spacer width="5"/>
+    <mx:VBox width="100%" height="100%" verticalGap="2">
+        <mx:Repeater id="competitorMoveRep" dataProvider="{MoveDto(data).competitorMoves}">
+            <mx:HBox width="100%" horizontalGap="2">
+                <mx:HBox width="30" height="100%"
+                         toolTip="{dateTimeFormatter.format(competitorMoveRep.currentItem.finishedTime)}"
+                         backgroundColor="{StyleManager.getColorName(StkColorUtil.moveOrderBackgroundColorMapping.getItemAt(competitorMoveRep.currentItem.moveOrder - 1))}"
+                         borderColor="{StyleManager.getColorName(StkColorUtil.moveOrderBackgroundColorMapping.getItemAt(competitorMoveRep.currentItem.moveOrder - 1))}"
+                         borderStyle="solid" cornerRadius="6">
+                    <mx:Label text="{competitorMoveRep.currentItem.moveOrder}" styleName="bigBoldFont" height="16"
+                              textAlign="right"
+                              color="{StyleManager.getColorName(StkColorUtil.moveOrderColorMapping.getItemAt(competitorMoveRep.currentItem.moveOrder - 1))}"/>
+                </mx:HBox>
+                <items:HorizontalMoveStepsItem width="100%" height="100%" competitorMove="{competitorMoveRep.currentItem}"
+                                               lastMoveCompetitorsQuantity="{MoveDto(data).competitorMoves.length}" zyrianovStyle="{zyrianovStyle}"/>
+            </mx:HBox>
+        </mx:Repeater>
+    </mx:VBox>
+</list:BaseListItemRenderer>

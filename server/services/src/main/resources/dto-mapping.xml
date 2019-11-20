@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mappings xmlns="http://dozer.sourceforge.net"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://dozer.sourceforge.net
+          http://dozer.sourceforge.net/schema/beanmapping.xsd">
+
+    <configuration>
+        <stop-on-errors>true</stop-on-errors>
+        <date-format>yyyy-MM-dd HH:mm</date-format>
+        <wildcard>true</wildcard>
+    </configuration>
+
+    <mapping>
+        <class-a>com.stockholdergame.server.model.account.GamerAccount</class-a>
+        <class-b>com.stockholdergame.server.dto.account.MyAccountDto</class-b>
+
+        <field custom-converter="com.stockholdergame.server.dto.converter.LocaleCustomConverter">
+            <a>locale</a>
+            <b>locale</b>
+        </field>
+    </mapping>
+
+    <mapping>
+        <class-a>com.stockholdergame.server.model.game.variant.GameShare</class-a>
+        <class-b>com.stockholdergame.server.dto.game.variant.GameShareDto</class-b>
+
+        <field>
+            <a>id.shareId</a>
+            <b>id</b>
+        </field>
+    </mapping>
+
+    <mapping>
+        <class-a>com.stockholdergame.server.model.game.variant.GameCardGroup</class-a>
+        <class-b>com.stockholdergame.server.dto.game.variant.CardGroupDto</class-b>
+
+        <field>
+            <a>id.cardGroupId</a>
+            <b>id</b>
+        </field>
+
+        <field>
+            <a>cardGroup.groupName</a>
+            <b>groupName</b>
+        </field>
+
+        <field>
+            <a>cardGroup.cardQuantities</a>
+            <b>cards</b>
+        </field>
+    </mapping>
+
+    <mapping>
+        <class-a>com.stockholdergame.server.model.game.variant.CardQuantity</class-a>
+        <class-b>com.stockholdergame.server.dto.game.variant.CardDto</class-b>
+
+        <field>
+            <a>card.id</a>
+            <b>id</b>
+        </field>
+
+        <field>
+            <a>card.cardOperations</a>
+            <b>cardOperations</b>
+        </field>
+
+        <field>
+            <a>cardGroup.groupName</a>
+            <b>groupName</b>
+        </field>
+    </mapping>
+
+    <mapping>
+        <class-a>com.stockholdergame.server.model.game.variant.CardOperation</class-a>
+        <class-b>com.stockholdergame.server.dto.game.variant.CardOperationDto</class-b>
+
+        <field>
+            <a>priceOperation.id</a>
+            <b>priceOperationId</b>
+        </field>
+
+        <field>
+            <a>priceOperation.priceOperationType.operationSign</a>
+            <b>operation</b>
+        </field>
+
+        <field>
+            <a>priceOperation.operandValue</a>
+            <b>operandValue</b>
+        </field>
+    </mapping>
+
+    <mapping>
+        <class-a>com.stockholdergame.server.model.game.Game</class-a>
+        <class-b>com.stockholdergame.server.dto.game.GameDto</class-b>
+
+        <field>
+            <a>gameSeries.id</a>
+            <b>gameSeriesId</b>
+        </field>
+
+        <field>
+            <a>gameSeries.gameVariantId</a>
+            <b>gameVariantId</b>
+        </field>
+
+        <field>
+            <a>gameSeries.switchMoveOrder</a>
+            <b>switchMoveOrder</b>
+        </field>
+
+        <field>
+            <a>gameSeries.competitorsQuantity</a>
+            <b>competitorsQuantity</b>
+        </field>
+
+        <field>
+            <a>gameSeries.rulesVersion</a>
+            <b>rulesVersion</b>
+        </field>
+    </mapping>
+
+    <mapping>
+        <class-a>com.stockholdergame.server.model.game.archive.FinishedGame</class-a>
+        <class-b>com.stockholdergame.server.dto.game.GameDto</class-b>
+
+        <field>
+            <a>gameSeries.id</a>
+            <b>gameSeriesId</b>
+        </field>
+
+        <field>
+            <a>gameSeries.gameVariantId</a>
+            <b>gameVariantId</b>
+        </field>
+
+        <field>
+            <a>gameSeries.switchMoveOrder</a>
+            <b>switchMoveOrder</b>
+        </field>
+
+        <field>
+            <a>gameSeries.competitorsQuantity</a>
+            <b>competitorsQuantity</b>
+        </field>
+
+        <field>
+            <a>gameSeries.rulesVersion</a>
+            <b>rulesVersion</b>
+        </field>
+    </mapping>
+
+    <mapping>
+        <class-a>com.stockholdergame.server.model.game.Competitor</class-a>
+        <class-b>com.stockholdergame.server.dto.game.CompetitorDto</class-b>
+
+        <field>
+            <a>gamerAccount.userName</a>
+            <b>userName</b>
+        </field>
+
+        <field>
+            <a>gamerAccount.profile.avatar</a>
+            <b>avatar</b>
+        </field>
+
+        <field>
+            <a>gamerAccount.isBot</a>
+            <b>bot</b>
+        </field>
+    </mapping>
+
+    <mapping>
+        <class-a>com.stockholdergame.server.model.game.CompetitorMove</class-a>
+        <class-b>com.stockholdergame.server.dto.game.CompetitorMoveDto</class-b>
+
+        <field>
+            <a>move.moveNumber</a>
+            <b>moveNumber</b>
+        </field>
+    </mapping>
+
+    <mapping>
+        <class-a>com.stockholdergame.server.model.game.MoveStep</class-a>
+        <class-b>com.stockholdergame.server.dto.game.MoveStepDto</class-b>
+
+        <field>
+            <a>originalStep.id</a>
+            <b>originalStepId</b>
+        </field>
+    </mapping>
+
+    <mapping>
+        <class-a>com.stockholdergame.server.model.game.Compensation</class-a>
+        <class-b>com.stockholdergame.server.dto.game.CompensationDto</class-b>
+
+        <field>
+            <a>id.shareId</a>
+            <b>id</b>
+        </field>
+    </mapping>
+
+    <mapping>
+        <class-a>com.stockholdergame.server.model.game.SharePrice</class-a>
+        <class-b>com.stockholdergame.server.dto.game.SharePriceDto</class-b>
+
+        <field>
+            <a>id.shareId</a>
+            <b>id</b>
+        </field>
+    </mapping>
+
+    <mapping>
+        <class-a>com.stockholdergame.server.model.game.ShareQuantity</class-a>
+        <class-b>com.stockholdergame.server.dto.game.ShareQuantityDto</class-b>
+
+        <field>
+            <a>id.shareId</a>
+            <b>id</b>
+        </field>
+    </mapping>
+
+    <mapping>
+        <class-a>com.stockholdergame.server.model.game.result.CompetitorResult</class-a>
+        <class-b>com.stockholdergame.server.dto.game.result.CompetitorResultDto</class-b>
+
+        <field>
+            <a>gamerAccount.userName</a>
+            <b>userName</b>
+        </field>
+    </mapping>
+
+    <mapping>
+        <class-a>com.stockholdergame.server.model.game.result.CompetitorDiff</class-a>
+        <class-b>com.stockholdergame.server.dto.game.result.CompetitorDiffDto</class-b>
+
+        <field>
+            <a>firstGamerAccount.userName</a>
+            <b>firstUserName</b>
+        </field>
+
+        <field>
+            <a>secondGamerAccount.userName</a>
+            <b>secondUserName</b>
+        </field>
+    </mapping>
+
+    <mapping>
+        <class-a>com.stockholdergame.server.model.game.Invitation</class-a>
+        <class-b>com.stockholdergame.server.dto.game.InvitationDto</class-b>
+
+        <field>
+            <a>game.gameSeries.gameVariantId</a>
+            <b>gameVariantId</b>
+        </field>
+
+        <field>
+            <a>game.gameSeries.competitorsQuantity</a>
+            <b>competitorsQuantity</b>
+        </field>
+
+        <field>
+            <a>inviterAccount.userName</a>
+            <b>inviterName</b>
+        </field>
+
+        <field>
+            <a>inviteeAccount.userName</a>
+            <b>inviteeName</b>
+        </field>
+    </mapping>
+
+    <mapping>
+        <class-a>com.stockholdergame.server.model.account.FriendRequest</class-a>
+        <class-b>com.stockholdergame.server.dto.account.FriendRequestDto</class-b>
+
+        <field>
+            <a>requestor.userName</a>
+            <b>requestorName</b>
+        </field>
+    </mapping>
+
+    <mapping>
+        <class-a>com.stockholdergame.server.model.game.archive.Score</class-a>
+        <class-b>com.stockholdergame.server.dto.game.ScoreDto</class-b>
+
+        <field>
+            <a>secondGamerAccount.userName</a>
+            <b>user.userName</b>
+        </field>
+
+        <field>
+            <a>secondGamerAccount.profile.avatar</a>
+            <b>user.profile.avatar</b>
+        </field>
+
+        <field>
+            <a>secondGamerAccount.profile.country</a>
+            <b>user.profile.country</b>
+        </field>
+
+        <field>
+            <a>secondGamerAccount.profile.city</a>
+            <b>user.profile.city</b>
+        </field>
+
+        <field>
+            <a>secondGamerAccount.isBot</a>
+            <b>user.bot</b>
+        </field>
+
+        <field custom-converter="com.stockholdergame.server.dto.converter.LocaleCustomConverter">
+            <a>secondGamerAccount.locale</a>
+            <b>user.locale</b>
+        </field>
+
+        <field>
+            <a>gameVariant.name</a>
+            <b>gameVariantName</b>
+        </field>
+
+        <field>
+            <a>gameVariant.movesQuantity</a>
+            <b>movesQuantity</b>
+        </field>
+
+        <field>
+            <a>id.firstGamerMoveOrder</a>
+            <b>moveOrder</b>
+        </field>
+    </mapping>
+
+    <mapping>
+        <class-a>com.stockholdergame.server.model.game.CompetitorProjection</class-a>
+        <class-b>com.stockholdergame.server.dto.account.UserDto</class-b>
+
+        <field>
+            <a>avatar</a>
+            <b>profile.avatar</b>
+        </field>
+    </mapping>
+
+    <mapping>
+        <class-a>com.stockholdergame.server.model.game.GameSeriesResult</class-a>
+        <class-b>com.stockholdergame.server.dto.game.GameSeriesResultDto</class-b>
+
+        <field>
+            <a>gamerAccount.userName</a>
+            <b>userName</b>
+        </field>
+
+        <field>
+            <a>gamerAccount.profile.avatar</a>
+            <b>avatar</b>
+        </field>
+
+        <field>
+            <a>gamerAccount.isBot</a>
+            <b>bot</b>
+        </field>
+
+        <field custom-converter="com.stockholdergame.server.dto.converter.LocaleCustomConverter">
+            <a>gamerAccount.locale</a>
+            <b>locale</b>
+        </field>
+    </mapping>
+
+</mappings>

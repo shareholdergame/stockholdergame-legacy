@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<application xmlns="http://ns.adobe.com/air/application/1.0">
+
+    <id>stockholdergame.client.application</id>
+    <filename>client-flex</filename>
+    <name>Stockholder Game</name>
+    <version>1.0</version>
+
+    <initialWindow>
+        <content>client-flex.swf</content>
+        <width>1152</width>
+        <height>768</height>
+        <visible>true</visible>
+        <systemChrome>none</systemChrome>
+    </initialWindow>
+</application>

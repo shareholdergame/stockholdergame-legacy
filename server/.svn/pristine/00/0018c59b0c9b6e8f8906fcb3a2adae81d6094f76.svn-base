@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="User">
+
+    <resultMap id="BaseUserResultMap" type="com.stockholdergame.server.dto.account.UserInfoDto">
+        <id property="userName" column="user_name"/>
+        <result property="locale" column="locale_id"/>
+        <result property="profile.sex" column="sex"/>
+        <result property="profile.country" column="country"/>
+        <result property="profile.region" column="region"/>
+        <result property="profile.city" column="city"/>
+        <result property="profile.birthday" column="birthday" javaType="java.util.Date"/>
+        <result property="profile.about" column="about"/>
+        <result property="profile.avatar" column="avatar"
+                typeHandler="org.apache.ibatis.type.ByteArrayTypeHandler"/>
+    </resultMap>
+
+    <resultMap id="UserResultMap" type="com.stockholdergame.server.dto.account.UserDto" extends="BaseUserResultMap">
+        <result property="isRemoved" column="is_removed" typeHandler="org.apache.ibatis.type.BooleanTypeHandler"/>
+        <result property="isFriend" column="is_friend" typeHandler="org.apache.ibatis.type.BooleanTypeHandler"/>
+        <result property="isFriendRequestee" column="is_friend_requestee" typeHandler="org.apache.ibatis.type.BooleanTypeHandler"/>
+        <result property="isFriendRequestor" column="is_friend_requestor" typeHandler="org.apache.ibatis.type.BooleanTypeHandler"/>
+    </resultMap>
+
+    <select id="countUsers" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT
+        COUNT(ga.user_name)
+        FROM
+        a_gamer_accounts ga
+        LEFT OUTER JOIN a_profiles p ON ga.gamer_id = p.gamer_id
+        WHERE
+        ga.gamer_id != #{currentUserId}
+        AND ga.is_bot = 0
+        AND ga.status_id IN (0,1
+        <if test="showRemoved">
+            ,2
+        </if>
+        )
+        <if test="gameId != null">
+            AND ga.gamer_id NOT IN (SELECT c.gamer_id FROM ag_competitors c WHERE c.game_id = #{gameId}
+            UNION SELECT i.invitee_id FROM ag_invitations i WHERE i.game_id = #{gameId} AND i.status_id = 0)
+        </if>
+        <if test="userNames != null">
+            AND LOWER(ga.user_name) IN <foreach collection="userNames" open="(" close=")" separator="," item="item">LOWER(#{item})</foreach>
+        </if>
+        <if test="userName != null">
+            AND LOWER(ga.user_name) LIKE #{userName}
+        </if>
+        <if test="excludedUserNames != null">
+            AND LOWER(ga.user_name) NOT IN <foreach collection="excludedUserNames" open="(" close=")" separator="," item="item">LOWER(#{item})</foreach>
+        </if>
+        <if test="locale != null">
+            AND ga.locale_id = #{locale}
+        </if>
+        <if test="sex != null">
+            AND p.sex = #{sex}
+        </if>
+        <if test="country != null">
+            AND p.country = #{country}
+        </if>
+        <if test="city != null">
+            AND p.city = #{city}
+        </if>
+        <if test="isFriend or isExcludeFriends">
+            AND ga.gamer_id
+            <if test="isExcludeFriends">
+                NOT
+            </if>
+            IN (SELECT f.gamer_id FROM a_friends f WHERE f.friend_id = #{currentUserId})
+        </if>
+        <if test="hasFriendRequest or isExcludeFriendRequests">
+            <choose>
+                <when test="isFriend">
+                    OR
+                </when>
+                <otherwise>
+                    AND
+                </otherwise>
+            </choose>
+            <if test="hasFriendRequest">
+                (ga.gamer_id IN (SELECT requestor_id FROM a_friend_requests WHERE requestee_id = #{currentUserId} AND status_id = 0) OR
+            </if>
+            ga.gamer_id
+            <if test="isExcludeFriendRequests">
+                NOT
+            </if>
+            IN (SELECT requestee_id FROM a_friend_requests WHERE requestor_id = #{currentUserId} AND status_id = 0)
+            <if test="hasFriendRequest">
+                )
+            </if>
+        </if>
+    </select>
+
+    <select id="findUsers" parameterType="java.util.Map" resultMap="UserResultMap">
+        SELECT
+        ga.user_name,
+        ga.locale_id,
+        p.sex,
+        p.country,
+        p.region,
+        p.city,
+        p.birthday,
+        p.about,
+        p.avatar,
+        CASE WHEN ga.status_id > 1
+             THEN 1
+             ELSE 0
+             END AS is_removed,
+        CASE WHEN ga.gamer_id IN (SELECT f.gamer_id FROM a_friends f WHERE f.friend_id = #{currentUserId})
+             THEN 1
+             ELSE 0
+             END AS is_friend,
+        CASE WHEN ga.gamer_id IN (SELECT requestee_id FROM a_friend_requests WHERE requestor_id = #{currentUserId} AND status_id = 0)
+             THEN 1
+             ELSE 0
+             END AS is_friend_requestee,
+        CASE WHEN ga.gamer_id IN (SELECT requestor_id FROM a_friend_requests WHERE requestee_id = #{currentUserId} AND status_id = 0)
+             THEN 1
+             ELSE 0
+             END AS is_friend_requestor
+        FROM
+        a_gamer_accounts ga
+        LEFT OUTER JOIN a_profiles p ON ga.gamer_id = p.gamer_id
+        WHERE
+        ga.gamer_id != #{currentUserId}
+        AND ga.is_bot = 0
+        AND ga.status_id IN (0,1
+        <if test="showRemoved">
+            ,2
+        </if>
+        )
+        <if test="gameId != null">
+            AND ga.gamer_id NOT IN (SELECT c.gamer_id FROM ag_competitors c WHERE c.game_id = #{gameId}
+                                    UNION SELECT i.invitee_id FROM ag_invitations i WHERE i.game_id = #{gameId} AND i.status_id = 0)
+        </if>
+        <if test="userNames != null">
+            AND LOWER(ga.user_name) IN <foreach collection="userNames" open="(" close=")" separator="," item="item">LOWER(#{item})</foreach>
+        </if>
+        <if test="userName != null">
+            AND LOWER(ga.user_name) LIKE #{userName}
+        </if>
+        <if test="excludedUserNames != null">
+            AND LOWER(ga.user_name) NOT IN <foreach collection="excludedUserNames" open="(" close=")" separator="," item="item">LOWER(#{item})</foreach>
+        </if>
+        <if test="locale != null">
+            AND ga.locale_id = #{locale}
+        </if>
+        <if test="sex != null">
+            AND p.sex = #{sex}
+        </if>
+        <if test="country != null">
+            AND p.country = #{country}
+        </if>
+        <if test="city != null">
+            AND p.city = #{city}
+        </if>
+        <if test="isFriend or isExcludeFriends">
+            AND ga.gamer_id
+            <if test="isExcludeFriends">
+                NOT
+            </if>
+            IN (SELECT f.gamer_id FROM a_friends f WHERE f.friend_id = #{currentUserId})
+        </if>
+        <if test="hasFriendRequest or isExcludeFriendRequests">
+            <choose>
+                <when test="isFriend">
+                    OR
+                </when>
+                <otherwise>
+                    AND
+                </otherwise>
+           </choose>
+           <if test="hasFriendRequest">
+             (ga.gamer_id IN (SELECT requestor_id FROM a_friend_requests WHERE requestee_id = #{currentUserId} AND status_id = 0) OR
+           </if>
+             ga.gamer_id
+            <if test="isExcludeFriendRequests">
+                NOT
+            </if>
+            IN (SELECT requestee_id FROM a_friend_requests WHERE requestor_id = #{currentUserId} AND status_id = 0)
+            <if test="hasFriendRequest">
+            )
+            </if>
+        </if>
+        ORDER BY 1
+    </select>
+</mapper>

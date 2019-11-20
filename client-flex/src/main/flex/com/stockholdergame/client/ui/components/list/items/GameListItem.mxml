@@ -1,0 +1,233 @@
+<?xml version="1.0"?>
+<mx:Grid xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:c="com.stockholdergame.client.ui.components.*"
+         xmlns:game="com.stockholdergame.client.ui.components.game.*"
+         height="100%" styleName="listItem" horizontalScrollPolicy="off" verticalAlign="top"
+         horizontalGap="1">
+
+    <mx:Metadata>
+        [Event(name="joinToGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="cancelGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showInviteUserDialog", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="playGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="viewGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="changeInvitationStatus", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showGameChatWindow", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.ChangeInvitationStatusDto;
+        import com.stockholdergame.client.model.dto.game.GameDto;
+        import com.stockholdergame.client.model.dto.game.InvitationDto;
+        import com.stockholdergame.client.model.dto.game.lite.CompetitorLiteDto;
+        import com.stockholdergame.client.model.dto.game.lite.GameLiteDto;
+        import com.stockholdergame.client.model.session.SessionManager;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+        import com.stockholdergame.client.util.StringUtil;
+        import com.stockholdergame.client.util.style.StkColorUtil;
+
+        import mx.collections.ArrayCollection;
+
+        [Bindable]
+        public var game:GameLiteDto;
+
+        private function handleJoinToGameButtonClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.JOIN_TO_GAME, game.id, true, true));
+        }
+
+        private function handleCancelGameButtonClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.CANCEL_GAME, game.id, true, true));
+        }
+
+        private function handleInviteUserButtonClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_INVITE_USER_DIALOG, game, true, true));
+        }
+
+        private function handlePlayGameButtonClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.PLAY_GAME, game.id, true, true));
+        }
+
+        private function onViewGameButtonClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.VIEW_GAME, game.id, true, true));
+        }
+
+        private function onGameChatBtn(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_GAME_CHAT_WINDOW, game, true, true));
+        }
+
+        private static function getUserName():String {
+            return SessionManager.instance.getAccountInfo().userName;
+        }
+
+        private function onRejectInvitation():void {
+            redispatchInvitationEvent(InvitationDto.REJECTED, null);
+        }
+
+        private function redispatchInvitationEvent(newStatus:String, inviteeName:String = null):void {
+            var invitationStatus:ChangeInvitationStatusDto = new ChangeInvitationStatusDto();
+            invitationStatus.gameId = game.id;
+            invitationStatus.inviteeNames = [inviteeName];
+            invitationStatus.status = newStatus;
+            dispatchEvent(new BusinessEvent(BusinessActions.CHANGE_INVITATION_STATUS, invitationStatus, true, true));
+        }
+
+        private function onAcceptInvitation():void {
+            dispatchEvent(new BusinessEvent(BusinessActions.JOIN_TO_GAME, game.id, true, true));
+        }
+
+        private function isPlayWithRealUser():Boolean {
+            var competitors:ArrayCollection = game.competitors;
+            for each (var competitorDto:CompetitorLiteDto in competitors) {
+                if (competitorDto.bot) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private function onRulesVersionClick():void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_RULES_PAGE, game.rulesVersion, true, true));
+        }
+        ]]></mx:Script>
+
+    <mx:DateFormatter id="dateFormatter" formatString="{resourceManager.getString('common', 'datetime.format')}"/>
+
+    <mx:GridRow width="100%">
+        <mx:GridItem width="100%" height="24" styleName="standardContainer">
+            <mx:Label id="gameVariantNameLabel"
+                      text="{resourceManager.getString('common', game.gameVariantName)}" styleName="boldFont"/>
+            <mx:Label text="{resourceManager.getString('common', 'moves.number.label', [game.movesQuantity])}"
+                      styleName="boldFont"/>
+            <mx:Spacer width="10"/>
+            <!--<mx:Image source="@Embed('/images/rounding-up-16.png')" visible="{game.rounding == GameDto.ROUND_UP}"
+                      includeInLayout="{game.rounding == GameDto.ROUND_UP}"
+                      toolTip="{resourceManager.getString('common', 'rounding.label', [resourceManager.getString('common', game.rounding)])}"/>
+            <mx:Image source="@Embed('/images/rounding-down-16.png')" visible="{game.rounding == GameDto.ROUND_DOWN}"
+                      includeInLayout="{game.rounding == GameDto.ROUND_DOWN}"
+                      toolTip="{resourceManager.getString('common', 'rounding.label', [resourceManager.getString('common', game.rounding)])}"/>-->
+            <mx:Spacer width="10"/>
+            <mx:Image source="@Embed('/images/switch-16.png')" visible="{game.switchMoveOrder}" includeInLayout="{game.switchMoveOrder}"
+                      toolTip="{resourceManager.getString('common', 'switch.move.order.label')}"/>
+            <mx:Label text="{resourceManager.getString('common', 'game.letter.label', [game.gameLetter])}"
+                      styleName="boldFont" visible="{game.switchMoveOrder}"/>
+            <mx:Spacer width="100%"/>
+            <mx:Label
+                    text="{resourceManager.getString('common', 'open.at.label', [dateFormatter.format(game.createdTime)])}"
+                    styleName="smallFont"
+                    includeInLayout="{game.gameStatus == GameDto.OPEN}"
+                    visible="{game.gameStatus == GameDto.OPEN}"/>
+            <mx:Label
+                    text="{resourceManager.getString('common', 'started.at.label', [dateFormatter.format(game.startedTime)])}"
+                    styleName="smallFont"
+                    includeInLayout="{game.gameStatus == GameDto.RUNNING}"
+                    visible="{game.gameStatus == GameDto.RUNNING}"/>
+            <mx:Label
+                    text="{resourceManager.getString('common', 'finished.at.label', [dateFormatter.format(game.finishedTime)])}"
+                    styleName="smallFont"
+                    includeInLayout="{game.gameStatus == GameDto.FINISHED}"
+                    visible="{game.gameStatus == GameDto.FINISHED}"/>
+        </mx:GridItem>
+    </mx:GridRow>
+    <mx:GridRow width="100%" height="100%" styleName="listItemContentBox">
+        <mx:GridItem width="100%" height="100%">
+            <mx:VBox height="100%" width="100%">
+                <mx:Grid width="100%" includeInLayout="{game.gameStatus == GameDto.RUNNING}"
+                         visible="{game.gameStatus == GameDto.RUNNING}" styleName="containerWithGaps">
+                    <mx:GridRow width="100%" height="20">
+                        <mx:GridItem width="20%">
+                            <mx:Label
+                                    text="{resourceManager.getString('common', 'current.move.order.label', [game.lastMoveNumber, game.currentMoveMaker.moveOrder])}"
+                                    toolTip="{resourceManager.getString('common', 'current.move.order.label', [game.lastMoveNumber, game.currentMoveMaker.moveOrder])}"
+                                    styleName="largeBoldFont"
+                                    includeInLayout="{game.gameStatus == GameDto.RUNNING}"
+                                    visible="{game.gameStatus == GameDto.RUNNING}"/>
+                        </mx:GridItem>
+                        <mx:Repeater id="sharesRep" dataProvider="{game.shares}">
+                            <mx:GridItem percentWidth="{80 / game.shares.length}"
+                                         backgroundColor="{StyleManager.getColorName(SessionManager.instance.getShareColor(game.gameVariantId, sharesRep.currentItem.id))}"
+                                         borderColor="{StyleManager.getColorName(SessionManager.instance.getShareColor(game.gameVariantId, sharesRep.currentItem.id))}"
+                                         styleName="normalBox">
+                                <mx:Label text="{sharesRep.currentItem.price}" color="white" styleName="boldFont"/>
+                            </mx:GridItem>
+                        </mx:Repeater>
+                    </mx:GridRow>
+                </mx:Grid>
+                <mx:Label text="{game.currentMoveMaker.me
+                    ? resourceManager.getString('common', 'your.move.label') : resourceManager.getString('common', 'move.waiting.label')}"
+                          styleName="{game.currentMoveMaker.me ? 'normalAttentionFont' : 'normalFont'}"
+                          visible="{game.gameStatus == GameDto.RUNNING}"
+                          includeInLayout="{game.gameStatus == GameDto.RUNNING}"/>
+                <mx:Label text="{resourceManager.getString('common', 'played.by.rule', [game.rulesVersion])}"
+                          visible="{game.rulesVersion == GameDto.LEGACY_RULES}"
+                          includeInLayout="{game.rulesVersion == GameDto.LEGACY_RULES}"/>
+                <mx:HBox width="100%" height="100%" styleName="containerWithGaps">
+                    <mx:Repeater id="competitorsRep" dataProvider="{game.competitors}">
+                        <game:CompetitorView competitor="{competitorsRep.currentItem}" width="80"
+                                             showTotal="{game.gameStatus == GameDto.FINISHED}"/>
+                    </mx:Repeater>
+                </mx:HBox>
+            </mx:VBox>
+        </mx:GridItem>
+    </mx:GridRow>
+    <mx:GridRow width="100%">
+        <mx:GridItem width="100%" height="36" styleName="listItemControlBar">
+            <c:StkButton id="joinToGameBtn" styleName="joinGameButton"
+                         toolTip="{resourceManager.getString('common', 'join.to.game.label')}"
+                         visible="{game.gameStatus == GameDto.OPEN &amp;&amp; !game.currentUserJoined
+                               &amp;&amp; GameLiteDto(game).initiationMethod == GameDto.GAME_OFFER &amp;&amp; !SessionManager.instance.isRemoved()}"
+                         includeInLayout="{game.gameStatus == GameDto.OPEN &amp;&amp; !game.currentUserJoined
+                               &amp;&amp; GameLiteDto(game).initiationMethod == GameDto.GAME_OFFER &amp;&amp; !SessionManager.instance.isRemoved()}"
+                         click="handleJoinToGameButtonClick(event)"/>
+            <!--<c:StkButton id="inviteUserBtn" styleName="invitationButton"
+                         toolTip="{resourceManager.getString('common', 'invite.users.label')}"
+                         visible="{game.gameStatus == GameDto.OPEN &amp;&amp; GameLiteDto(game).initiationMethod == GameDto.INVITATION
+                                       &amp;&amp; game.currentUserInitiator &amp;&amp; !SessionManager.instance.isRemoved()}"
+                         includeInLayout="{game.gameStatus == GameDto.OPEN &amp;&amp; GameLiteDto(game).initiationMethod == GameDto.INVITATION
+                                       &amp;&amp; game.currentUserInitiator &amp;&amp; !SessionManager.instance.isRemoved()}"
+                         click="handleInviteUserButtonClick(event)"/>-->
+            <c:StkButton styleName="acceptInvitationButton" id="acceptInvitationBtn"
+                         toolTip="{resourceManager.getString('common', 'accept.invitation.button')}"
+                         click="onAcceptInvitation()"
+                         includeInLayout="{game.gameStatus == GameDto.OPEN
+                                           &amp;&amp; GameLiteDto(game).initiationMethod == GameDto.INVITATION
+                                           &amp;&amp;!game.currentUserInitiator &amp;&amp; !game.currentUserJoined
+                                           &amp;&amp; !SessionManager.instance.isRemoved()}"
+                         visible="{game.gameStatus == GameDto.OPEN
+                               &amp;&amp; GameLiteDto(game).initiationMethod == GameDto.INVITATION
+                                           &amp;&amp;!game.currentUserInitiator &amp;&amp; !game.currentUserJoined
+                                           &amp;&amp; !SessionManager.instance.isRemoved()}"/>
+            <c:StkButton id="rejectInvitationBtn" styleName="rejectInvitationButton"
+                         toolTip="{resourceManager.getString('common', 'reject.invitation.button')}"
+                         click="onRejectInvitation()"
+                         includeInLayout="{game.gameStatus == GameDto.OPEN
+                               &amp;&amp; GameLiteDto(game).initiationMethod == GameDto.INVITATION
+                                           &amp;&amp;!game.currentUserInitiator &amp;&amp; !game.currentUserJoined
+                                           &amp;&amp; !SessionManager.instance.isRemoved()}"
+                         visible="{game.gameStatus == GameDto.OPEN
+                               &amp;&amp; GameLiteDto(game).initiationMethod == GameDto.INVITATION
+                                           &amp;&amp;!game.currentUserInitiator &amp;&amp; !game.currentUserJoined
+                                           &amp;&amp; !SessionManager.instance.isRemoved()}"/>
+            <!--<c:StkButton id="cancelGameBtn" styleName="removeButton"
+                         toolTip="{resourceManager.getString('common', 'cancel.game.label')}"
+                         visible="{game.gameStatus == GameDto.OPEN &amp;&amp; game.currentUserInitiator}"
+                         includeInLayout="{game.gameStatus == GameDto.OPEN &amp;&amp; game.currentUserInitiator}"
+                         click="handleCancelGameButtonClick(event)"/>-->
+            <c:StkButton id="playGameBtn" styleName="playGameButton"
+                         toolTip="{resourceManager.getString('common', 'play.game.label')}"
+                         visible="{game.gameStatus == GameDto.RUNNING}"
+                         includeInLayout="{game.gameStatus == GameDto.RUNNING}"
+                         click="handlePlayGameButtonClick(event)"/>
+            <c:StkButton id="viewGameBtn" styleName="viewGameButton"
+                         toolTip="{resourceManager.getString('common', 'view.game.label')}"
+                         visible="{game.gameStatus == GameDto.FINISHED}"
+                         includeInLayout="{game.gameStatus == GameDto.FINISHED}"
+                         click="onViewGameButtonClick(event)"/>
+            <c:StkButton id="gameChatBtn" styleName="chatButton"
+                         visible="{game.gameStatus != GameDto.OPEN &amp;&amp; isPlayWithRealUser()}"
+                         includeInLayout="{game.gameStatus != GameDto.OPEN &amp;&amp; isPlayWithRealUser()}"
+                         toolTip="{resourceManager.getString('common', 'game.chat.button')}"
+                         click="onGameChatBtn(event)"/>
+        </mx:GridItem>
+    </mx:GridRow>
+</mx:Grid>

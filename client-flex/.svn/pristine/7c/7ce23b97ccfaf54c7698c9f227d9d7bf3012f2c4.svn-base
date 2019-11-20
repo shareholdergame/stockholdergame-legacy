@@ -1,0 +1,215 @@
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+         xmlns:list="com.stockholdergame.client.ui.components.list.*" xmlns:c="com.stockholdergame.client.ui.components.*"
+         implements="com.stockholdergame.client.ui.components.page.IRefreshablePage"
+         styleName="page" show="refreshData()" creationComplete="onCreationComplete()">
+
+    <mx:Metadata>
+        [Event(name="getUserStatistics", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showSendMessageDialog", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.UserStatisticsFilterDto;
+        import com.stockholdergame.client.model.dto.game.UserStatisticsList;
+        import com.stockholdergame.client.ui.components.list.events.PaginationEvent;
+        import com.stockholdergame.client.ui.components.list.listClasses.PaginationData;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+        import com.stockholdergame.client.ui.events.GameFilterEvent;
+
+        import mx.controls.Button;
+
+        [Bindable]
+        public var userStatisticsListData:UserStatisticsList;
+
+        [Bindable]
+        private var legacyRules:Boolean = false;
+
+        [Bindable]
+        private var selectedStatistics:String = "Statistics10";
+
+        public function refreshData():void {
+            var filter:UserStatisticsFilterDto = new UserStatisticsFilterDto();
+            var paginationData:PaginationData = getPaginationData();
+            filter.offset = paginationData.offset;
+            filter.maxResults = paginationData.limit;
+            filter.statisticsVariant = selectedStatistics;
+            dispatchEvent(new BusinessEvent(BusinessActions.GET_USER_STATISTICS, filter, true, true));
+        }
+
+        private function getPaginationData():PaginationData {
+            return userStatisticsList != null ? userStatisticsPaginationBar.paginationData : PaginationBar.DEFAULT_PAGINATION_DATA;
+        }
+
+        public function clearData():void {
+        }
+
+        private function onRatingPageChanged(event:PaginationEvent):void {
+            var filter:UserStatisticsFilterDto = new UserStatisticsFilterDto();
+            filter.offset = event.paginationData.offset;
+            filter.maxResults = event.paginationData.limit;
+            filter.statisticsVariant = selectedStatistics;
+            dispatchEvent(new BusinessEvent(BusinessActions.GET_USER_STATISTICS, filter, true, true));
+        }
+
+        private function onCreationComplete():void {
+            userStatisticsList.addEventListener(BusinessActions.SHOW_SEND_MESSAGE_DIALOG, onShowSendMessageDialog);
+        }
+
+        private function onShowSendMessageDialog(event:BusinessEvent):void {
+            event.stopImmediatePropagation();
+            dispatchEvent(event);
+        }
+
+        private function onUserFilterApplied(event:GameFilterEvent):void {
+            var filter:UserStatisticsFilterDto = new UserStatisticsFilterDto();
+            var paginationData:PaginationData = getPaginationData();
+            filter.offset = paginationData.offset;
+            filter.maxResults = paginationData.limit;
+            filter.statisticsVariant = selectedStatistics;
+            filter.userName = event.filterData.userName != null && event.filterData.userName.length > 0
+                    ? event.filterData.userName : null;
+            dispatchEvent(new BusinessEvent(BusinessActions.GET_USER_STATISTICS, filter, true, true));
+        }
+
+        /*private function onRulesClick():void {
+            this.legacyRules = !legacyRules;
+            userStatisticsList.invalidateList();
+        }*/
+
+        private function onStatClick(event:MouseEvent):void {
+            var buttons:Array = [stat8Btn, stat10Btn, stat12Btn, stat3Btn];
+            selectedStatistics = event.currentTarget.data;
+            refreshData();
+            for each (var button:Object in buttons) {
+                if (button.id == event.currentTarget.id) {
+                    LinkToggleButton(button).flag = true;
+                } else {
+                    LinkToggleButton(button).flag = false;
+                }
+            }
+        }
+
+        ]]></mx:Script>
+
+    <mx:HBox width="100%" height="36" styleName="pageHeaderBox">
+        <mx:Label text="{resourceManager.getString('common', 'rating.page.title')}"
+                  styleName="lightLargeBoldFont"/>
+        <mx:Spacer width="200"/>
+
+        <c:LinkToggleButton id="stat8Btn" trueLabel="{resourceManager.getString('common', 'moves.number.label', [8])}"
+                            falseLabel="{resourceManager.getString('common', 'moves.number.label', [8])}" trueStyle="light2Box" falseStyle="darkBox"
+                            click="onStatClick(event)" data="Statistics8"/>
+        <c:LinkToggleButton id="stat10Btn" trueLabel="{resourceManager.getString('common', 'moves.number.label', [10])}"
+                            falseLabel="{resourceManager.getString('common', 'moves.number.label', [10])}" trueStyle="light2Box" falseStyle="darkBox"
+                            click="onStatClick(event)" data="Statistics10" flag="true"/>
+        <c:LinkToggleButton id="stat12Btn" trueLabel="{resourceManager.getString('common', 'moves.number.label', [12])}"
+                            falseLabel="{resourceManager.getString('common', 'moves.number.label', [12])}" trueStyle="light2Box" falseStyle="darkBox"
+                            click="onStatClick(event)" data="Statistics12"/>
+        <c:LinkToggleButton id="stat3Btn" trueLabel="{resourceManager.getString('common', 'more.than.two.competitors')}"
+                            falseLabel="{resourceManager.getString('common', 'more.than.two.competitors')}" trueStyle="light2Box" falseStyle="darkBox"
+                            click="onStatClick(event)" data="Statistics3"/>
+        <!--<c:StkLinkButton
+                label="{legacyRules ? resourceManager.getString('common', 'current.rules.link.label') : resourceManager.getString('common', 'legacy.rules.link.label')}"
+                toolTip="{legacyRules ? resourceManager.getString('common', 'current.rules.link.tooltip') : resourceManager.getString('common', 'legacy.rules.link.tooltip')}"
+                styleName="bigBoldFont" click="onRulesClick()"/>-->
+        <!--<mx:Label text="{resourceManager.getString('common', 'legacy.rules.stat.warn')}" styleName="normalAttentionFont"
+                  includeInLayout="{legacyRules}" visible="{legacyRules}"/>-->
+        <mx:Spacer width="100%"/>
+        <c:GameFilterPanel id="userFilterPanel" filterApplied="onUserFilterApplied(event)" labelStyleName="smallFont"
+                           filterByGameVariant="false"/>
+    </mx:HBox>
+    <mx:VBox id="contentBox" width="100%" height="100%" styleName="pageContentBox" verticalGap="5">
+        <mx:Grid width="100%" styleName="darkBox">
+            <mx:GridRow width="100%">
+                <mx:GridItem width="240"/>
+                <mx:GridItem width="160" horizontalScrollPolicy="off" colSpan="2">
+                    <mx:Text width="154"
+                             text="{resourceManager.getString('common', 'stat.header.games.label')}"
+                             truncateToFit="true" styleName="boldFont" textAlign="center"/>
+                </mx:GridItem>
+                <mx:GridItem width="150" horizontalScrollPolicy="off" colSpan="3">
+                    <mx:Text width="144"
+                             text="{resourceManager.getString('common', 'stat.header.game.series.label')}"
+                             truncateToFit="true" styleName="boldFont" textAlign="center"/>
+                </mx:GridItem>
+                <mx:GridItem width="50" horizontalScrollPolicy="off" rowSpan="2">
+                    <mx:Text width="44"
+                             text="{resourceManager.getString('common', 'stat.header.total.bankrupts.label')}"
+                             styleName="boldFont" textAlign="center" truncateToFit="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="70" horizontalScrollPolicy="off" rowSpan="2">
+                    <mx:Text width="64"
+                             text="{resourceManager.getString('common', 'stat.header.winnings.percent')}"
+                             styleName="boldFont" textAlign="center" truncateToFit="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="90" horizontalScrollPolicy="off" rowSpan="2">
+                    <mx:Text width="84"
+                             text="{resourceManager.getString('common', 'stat.header.max.total')}"
+                             styleName="boldFont" textAlign="center" truncateToFit="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="90" horizontalScrollPolicy="off" rowSpan="2">
+                    <mx:Text width="84"
+                             text="{resourceManager.getString('common', 'stat.header.max.diff')}"
+                             styleName="boldFont" textAlign="center" truncateToFit="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="90" horizontalScrollPolicy="off" rowSpan="2">
+                    <mx:Text width="84"
+                             text="{resourceManager.getString('common', 'stat.header.total.win')}"
+                             styleName="boldFont" textAlign="center" truncateToFit="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="80" horizontalScrollPolicy="off" rowSpan="2">
+                    <mx:Text width="74"
+                             text="{resourceManager.getString('common', 'stat.header.last.play')}"
+                             styleName="boldFont" textAlign="center" truncateToFit="true"/>
+                </mx:GridItem>
+                <mx:GridItem width="80" horizontalScrollPolicy="off" rowSpan="2">
+                    <mx:Text width="74"
+                             text="{resourceManager.getString('common', 'stat.header.last.visit')}"
+                             styleName="boldFont" textAlign="center" truncateToFit="true"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="240"/>
+                <mx:GridItem width="80" horizontalScrollPolicy="off">
+                    <mx:Text width="74"
+                             text="{resourceManager.getString('common', 'stat.header.total.played.label')}"
+                             truncateToFit="true" styleName="boldFont" textAlign="center"/>
+                </mx:GridItem>
+                <mx:GridItem width="80" horizontalScrollPolicy="off">
+                    <mx:Text width="74"
+                             text="{resourceManager.getString('common', 'stat.header.total.winnings.label')}"
+                             truncateToFit="true" styleName="boldFont" textAlign="center"/>
+                </mx:GridItem>
+                <mx:GridItem width="50" horizontalScrollPolicy="off">
+                    <mx:Text width="44"
+                             text="{resourceManager.getString('common', 'stat.header.total.played.label')}"
+                             truncateToFit="true" styleName="boldFont" textAlign="center"/>
+                </mx:GridItem>
+                <mx:GridItem width="50" horizontalScrollPolicy="off">
+                    <mx:Text width="44"
+                             text="{resourceManager.getString('common', 'stat.header.total.winnings.label')}"
+                             truncateToFit="true" styleName="boldFont" textAlign="center"/>
+                </mx:GridItem>
+                <mx:GridItem width="50" horizontalScrollPolicy="off">
+                    <mx:Text width="44"
+                             text="{resourceManager.getString('common', 'stat.header.total.draws.label')}"
+                             truncateToFit="true" styleName="boldFont" textAlign="center"/>
+                </mx:GridItem>
+            </mx:GridRow>
+        </mx:Grid>
+
+        <list:RatingList id="userStatisticsList" width="100%" height="100%" showLegacyRulesStatistics="{legacyRules}"
+                                 dataProvider="{userStatisticsListData.userStatistics}"/>
+
+        <mx:VBox width="100%" height="40">
+            <mx:Label text="{resourceManager.getString('common', 'winnings.percent.notice')}"/>
+            <mx:Label text="{resourceManager.getString('common', 'winnings.percent.notice.2')}"/>
+        </mx:VBox>
+
+        <list:PaginationBar id="userStatisticsPaginationBar" width="100%" height="32"
+                            totalItems="{userStatisticsListData.totalCount}"
+                            pageChanged="onRatingPageChanged(event)" itemsPerPage="10" styleName="normalBox"/>
+    </mx:VBox>
+</mx:VBox>

@@ -1,0 +1,24 @@
+# Services properties
+game.offer.timeout=10
+invitation.timeout=43200
+max.initiated.game.offers=1
+max.initiated.game.invitations=100
+game.interruption.timeout=4320
+invitation.expiration.timeout=10080
+
+game.registry.max.size=100
+game.registry.fill.factor=0.8
+game.registry.eviction.timeout=3600000
+
+send.mail.repeat.interval=15000
+failed.mail.repeat.interval=1800000
+statistics.repeat.interval=10000
+game.offer.expiration.cron.exp=0 0/1 * * * ?
+game.interruption.cron.exp=0 35 0/1 * * ?
+clean.games.cron.exp=0 40 0/1 * * ?
+invitation.expiration.cron.exp=0 30 0/1 * * ?
+clean.archive.cron.exp=0 25 1 * * ?
+game.archiver.cron.exp=0 20 0/1 * * ?
+account.operation.cron.exp=0 15 0/1 * * ?
+remove.account.cron.exp=0 10 1 * * ?
+chat.notification.cron.exp=0 0/15 * * * ?

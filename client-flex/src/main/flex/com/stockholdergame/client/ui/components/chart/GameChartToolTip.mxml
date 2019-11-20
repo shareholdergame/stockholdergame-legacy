@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:game="com.stockholdergame.client.ui.components.game.*"
+         implements="mx.core.IToolTip"
+         styleName="customToolTipBox">
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.ui.components.chart.chartClasses.GameChartData;
+        import com.stockholdergame.client.util.style.StkColorUtil;
+
+        [Bindable]
+        public var chartDataPoint:GameChartData;
+
+        public function set text(value:String):void {
+        }
+
+        public function get text():String {
+            return "";
+        }
+        ]]></mx:Script>
+
+    <mx:Label text="{'' + chartDataPoint.moveNumber + '.' + chartDataPoint.moveOrder}" styleName="largeBoldFont"/>
+    <mx:Spacer width="10"/>
+    <mx:VBox styleName="containerWithGaps">
+        <mx:Repeater id="totalRep" dataProvider="{chartDataPoint.competitorItems}">
+            <mx:Label text="{totalRep.currentItem.moveOrder + ': ' + totalRep.currentItem.totalFunds}"
+                      color="{StyleManager.getColorName(StkColorUtil.moveOrderColorMapping.getItemAt(totalRep.currentItem.moveOrder - 1))}"
+                      styleName="largeBoldFont"/>
+        </mx:Repeater>
+    </mx:VBox>
+    <mx:Spacer width="10"/>
+    <game:CardItem dataProvider="{{card: chartDataPoint.competitorMove.appliedCard, shares: null}}"/>
+    <mx:Spacer width="10"/>
+    <mx:VBox styleName="containerWithGaps" width="60">
+        <mx:Repeater id="priceRep" dataProvider="{chartDataPoint.sharePriceItems}">
+            <mx:HBox backgroundColor="{StyleManager.getColorName(priceRep.currentItem.color)}" styleName="normalBox"
+                     width="100%">
+                <mx:Label text="{priceRep.currentItem.newPrice}" color="white" styleName="boldFont"/>
+            </mx:HBox>
+        </mx:Repeater>
+    </mx:VBox>
+</mx:HBox>

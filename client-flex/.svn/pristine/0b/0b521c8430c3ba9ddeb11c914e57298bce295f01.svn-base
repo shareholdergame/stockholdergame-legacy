@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+         verticalScrollPolicy="off" horizontalScrollPolicy="off"
+         horizontalAlign="center" verticalAlign="middle">
+
+    <mx:Image id="avatarImg"  width="48" height="48"/>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.ui.IconResources;
+
+        public function set avatar(value:ByteArray):void {
+            if (value != null) {
+                avatarImg.source = value;
+            } else {
+                avatarImg.source = IconResources.NO_AVATAR_IMG;
+            }
+        }
+
+        ]]></mx:Script>
+</mx:VBox>

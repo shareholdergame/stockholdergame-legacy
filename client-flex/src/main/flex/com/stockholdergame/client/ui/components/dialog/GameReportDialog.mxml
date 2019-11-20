@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:game="com.stockholdergame.client.ui.components.game.*"
+                title="{resourceManager.getString('common', 'game.report.label')}"
+                width="1152" height="300" initialize="onInitialize()"
+                showCloseButton="true" close="closeDialog(event)" horizontalAlign="left">
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.GameDto;
+
+        import mx.events.FlexMouseEvent;
+
+        import mx.managers.PopUpManager;
+
+        private function closeDialog(event:Event):void {
+            if (this.isPopUp) {
+                PopUpManager.removePopUp(this);
+            }
+        }
+
+        [Bindable]
+        public var game:GameDto;
+
+        private function onInitialize():void {
+            this.addEventListener(FlexMouseEvent.MOUSE_DOWN_OUTSIDE, closeDialog);
+        }
+
+        ]]></mx:Script>
+
+    <game:GameReport game="{game}" width="100%" height="100%" styleName="dark2Box"/>
+</mx:TitleWindow>

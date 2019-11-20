@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:c="com.stockholdergame.client.ui.components.*"
+         currentState="{NO_STATISTICS_STATE}">
+
+    <mx:Metadata>
+        [Event(name="showStatisticsPage", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.TotalScoreDto;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+
+        private const NO_STATISTICS_STATE:String = "noStatisticsState";
+        private const SHOW_STATISTICS_STATE:String = "showStatisticsState";
+
+        [Bindable]
+        private var _totalScore:TotalScoreDto = new TotalScoreDto();
+
+        public function get totalScore():TotalScoreDto {
+            return _totalScore;
+        }
+
+        public function set totalScore(value:TotalScoreDto):void {
+            _totalScore = value;
+            currentState = _totalScore != null && _totalScore.totalPlayedGamesCount > 0 ? SHOW_STATISTICS_STATE : NO_STATISTICS_STATE;
+        }
+
+        private function onStatisticsButtonClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_STATISTICS_PAGE, null, true, true));
+        }
+        ]]></mx:Script>
+
+    <c:StkLinkButton id="statisticsBtn"
+                     label="{resourceManager.getString('common', 'my.statistics.button.label')}"
+                     click="onStatisticsButtonClick(event)" styleName="largeBoldFont"/>
+
+    <mx:states>
+        <mx:State name="{NO_STATISTICS_STATE}">
+            <mx:AddChild>
+                <mx:TextArea text="{resourceManager.getString('common', 'finished.games.description')}"
+                             width="100%" height="100%" editable="false" styleName="descriptionTextArea"/>
+            </mx:AddChild>
+        </mx:State>
+        <mx:State name="{SHOW_STATISTICS_STATE}">
+            <mx:AddChild>
+                <mx:VBox width="100%" styleName="leftAlignedContainer" paddingLeft="40">
+                    <!--<mx:Label text="{resourceManager.getString('common', 'score.footer.played.label', [_totalScore.totalPlayedGamesCount])}"
+                              styleName="bigBoldFont"/>-->
+                    <mx:Label text="{resourceManager.getString('common', 'score.footer.winnings.label', [_totalScore.winningsCount])}"
+                              styleName="bigBoldFont"/>
+                    <mx:Label
+                            text="{resourceManager.getString('common', 'score.footer.loses.label', [_totalScore.defeatsCount, _totalScore.bankruptsCount])}"
+                            styleName="bigBoldFont"/>
+                </mx:VBox>
+            </mx:AddChild>
+        </mx:State>
+    </mx:states>
+</mx:VBox>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC
+        "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+        "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+
+<hibernate-mapping>
+    <!--<query name="Statistics.countUserStatistics">
+        select count(s) from Statistics s
+    </query>
+    <query name="Statistics.countUserStatisticsByUserName">
+        select count(s) from Statistics s where s.userName like ?
+    </query>
+    <query name="Statistics.findUserStatistics">
+        select s from Statistics s order by s.notActual, s.ratio desc, s.lastPlay desc
+    </query>
+    <query name="Statistics.findUserStatisticsByUserName">
+        select s from Statistics s where s.userName like ? order by s.notActual, s.ratio desc, s.lastPlay desc
+    </query>-->
+</hibernate-mapping>

@@ -1,0 +1,2 @@
+com.stockholdergame.server.dto.validation.constraints.NotBlank.message=must be not null or not contain only whitespaces.
+com.stockholdergame.server.dto.validation.constraints.EnumName.message=must be a name of {enumClass} enum constant.

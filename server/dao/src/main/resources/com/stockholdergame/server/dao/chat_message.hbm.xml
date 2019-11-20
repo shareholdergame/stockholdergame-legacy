@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC
+    "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+    "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+
+<hibernate-mapping>
+    <query name="UserChat.findAllForLastDays">
+        select new com.stockholdergame.server.model.account.ChatMessageProjection(cm.id,
+        case when uc.messageType = com.stockholdergame.server.model.account.ChatMessageType.OUT then uc.id.firstUserName
+        else uc.id.secondUserName end, cm.message, cm.sent, uc.isUnread, cm.chatId)
+        from UserChat uc, ChatMessage cm where cm.id = uc.id.chatMessageId
+        and cm.chatId = ?1 and cm.sent > ?2 and uc.id.firstUserName = ?3
+        group by 1 order by uc.chatMessage.sent
+    </query>
+    <query name="UserChat.removeUserChatByChatId">
+        delete from UserChat uc where uc.id.chatMessageId in (select cm.id from ChatMessage cm where cm.chatId = ?1)
+        and uc.id.firstUserName = ?2
+    </query>
+    <query name="UserChat.removeUserChatsByUserId">
+        delete from UserChat uc where uc.id.firstUserName = ?1
+    </query>
+    <query name="UserChat.findUnread">
+        select new com.stockholdergame.server.model.account.ChatMessageProjection(cm.id,
+        case when uc.messageType = com.stockholdergame.server.model.account.ChatMessageType.OUT then uc.id.firstUserName
+        else uc.id.secondUserName end, cm.message, cm.sent, uc.isUnread, cm.chatId)
+        from UserChat uc, ChatMessage cm where cm.id = uc.id.chatMessageId
+        and uc.isUnread = true and uc.id.firstUserName = ?
+        group by 1 order by uc.chatMessage.sent
+    </query>
+    <query name="ChatMessage.findUnreadByUserName">
+        select cm from ChatMessage cm, UserChat uc where cm.id = uc.id.chatMessageId and uc.id.firstUserName = ?
+        and uc.isUnread = true
+    </query>
+    <query name="ChatMessage.findChatsByUserName">
+        select new com.stockholdergame.server.model.account.ChatProjection(cm.chatId, uc.id.firstUserName, uc.id.secondUserName)
+        from ChatMessage cm, UserChat uc where cm.id = uc.id.chatMessageId
+        and (uc.id.firstUserName = ?1 or uc.id.secondUserName = ?2) and cm.sent > ?3 group by 1,2,3
+    </query>
+    <query name="UserChat.findLastThreeMessages">
+        select new com.stockholdergame.server.model.account.ChatMessageProjection(cm.id,
+        case when uc.messageType = com.stockholdergame.server.model.account.ChatMessageType.OUT then uc.id.firstUserName
+        else uc.id.secondUserName end, cm.message, cm.sent, uc.isUnread, cm.chatId)
+        from UserChat uc, ChatMessage cm where cm.id = uc.id.chatMessageId
+        and cm.chatId = ?1 and uc.id.firstUserName = ?2
+        group by 1 order by uc.chatMessage.sent desc
+    </query>
+    <query name="UserChat.countUnNotifiedMessages">
+        select new com.stockholdergame.server.model.account.ChatMessagesCount(uc.id.firstUserName, uc.id.secondUserName, count(cm.id))
+        from UserChat uc, ChatMessage cm
+        where uc.id.chatMessageId = cm.id
+        and uc.messageType = com.stockholdergame.server.model.account.ChatMessageType.IN
+        and uc.isUnread = true
+        and uc.isNotified = false
+        and cm.sent &lt; ?1
+        group by 1, 2
+    </query>
+    <query name="UserChat.markNotified">
+        update UserChat uc set uc.isNotified = true where uc.id.firstUserName = ?1 and uc.id.secondUserName = ?2
+        and uc.isUnread = true and uc.isNotified = false
+    </query>
+</hibernate-mapping>

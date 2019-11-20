@@ -1,0 +1,107 @@
+<?xml version="1.0"?>
+<mx:Grid styleName="listItemContentBox" xmlns:mx="http://www.adobe.com/2006/mxml"
+         xmlns:c="com.stockholdergame.client.ui.components.*"
+         xmlns:game="com.stockholdergame.client.ui.components.game.*">
+
+    <mx:Metadata>
+        [Event(name="playGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.GameDto;
+        import com.stockholdergame.client.model.dto.game.lite.CompetitorLiteDto;
+        import com.stockholdergame.client.model.dto.game.lite.GameLiteDto;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+        import com.stockholdergame.client.util.StringUtil;
+
+        import mx.collections.ArrayCollection;
+
+        [Bindable]
+        public var game:GameLiteDto;
+
+        private function handlePlayGameButtonClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.PLAY_GAME, game.id, true, true));
+        }
+
+        private function onGameChatBtn(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_GAME_CHAT_WINDOW, game, true, true));
+        }
+
+        private function isPlayWithRealUser():Boolean {
+            var competitors:ArrayCollection = game.competitors;
+            for each (var competitorDto:CompetitorLiteDto in competitors) {
+                if (competitorDto.bot) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        ]]></mx:Script>
+
+    <mx:GridRow height="20" width="100%">
+        <mx:GridItem width="100%">
+            <mx:Label id="gameVariantNameLabel"
+                      text="{resourceManager.getString('common', game.gameVariantName)}"
+                      styleName="boldFont"/>
+            <mx:Label
+                    text="{resourceManager.getString('common', 'moves.number.label', [game.movesQuantity])}"
+                    styleName="boldFont"/>
+        </mx:GridItem>
+    </mx:GridRow>
+    <mx:GridRow height="20" width="100%">
+        <mx:GridItem width="100%">
+            <!--<mx:Image source="@Embed('/images/rounding-up-16.png')" visible="{game.rounding == GameDto.ROUND_UP}"
+                      includeInLayout="{data.rounding == GameDto.ROUND_UP}"
+                      toolTip="{resourceManager.getString('common', 'rounding.label', [resourceManager.getString('common', game.rounding)])}"/>
+            <mx:Image source="@Embed('/images/rounding-down-16.png')" visible="{game.rounding == GameDto.ROUND_DOWN}"
+                      includeInLayout="{data.rounding == GameDto.ROUND_DOWN}"
+                      toolTip="{resourceManager.getString('common', 'rounding.label', [resourceManager.getString('common', game.rounding)])}"/>-->
+            <mx:Image source="@Embed('/images/switch-16.png')" visible="{game.switchMoveOrder}" includeInLayout="{game.switchMoveOrder}"
+                      toolTip="{resourceManager.getString('common', 'switch.move.order.label')}"/>
+            <mx:Label text="{resourceManager.getString('common', 'game.letter.label', [game.gameLetter])}"
+                      styleName="boldFont" visible="{game.switchMoveOrder}"
+                      includeInLayout="{game.switchMoveOrder}"/>
+        </mx:GridItem>
+    </mx:GridRow>
+    <mx:GridRow width="100%">
+        <mx:GridItem width="100%">
+            <mx:HBox width="100%">
+                <mx:Repeater dataProvider="{game.competitors}" id="competitorsRep10">
+                    <game:CompetitorView competitor="{competitorsRep10.currentItem}" noAvatar="true" smallSize="true"/>
+                </mx:Repeater>
+            </mx:HBox>
+        </mx:GridItem>
+    </mx:GridRow>
+    <mx:GridRow height="20" width="100%">
+        <mx:GridItem width="100%">
+            <mx:Label
+                    text="{resourceManager.getString('common', 'current.move.order.label', [game.lastMoveNumber, game.currentMoveMaker.moveOrder])}"
+                    styleName="boldFont"/>
+        </mx:GridItem>
+    </mx:GridRow>
+    <mx:GridRow height="100%" width="100%">
+        <mx:GridItem width="100%">
+            <mx:VBox height="100%" width="100%" styleName="topAlignedContainer">
+                <mx:Label text="{game.currentMoveMaker.me
+                    ? resourceManager.getString('common', 'your.move.label') : resourceManager.getString('common', 'move.waiting.label')}"
+                          styleName="{game.currentMoveMaker.me ? 'normalAttentionFont' : 'normalFont'}"/>
+                <c:UserView user="{game.currentMoveMaker}"
+                            userNameLabelStyleName="{game.currentMoveMaker.bot ? 'botNameBigFont' : 'userNameBigFont'}"
+                            width="96"/>
+            </mx:VBox>
+        </mx:GridItem>
+    </mx:GridRow>
+    <mx:GridRow width="100%" height="36">
+        <mx:GridItem height="100%" width="100%" styleName="listItemControlBar">
+            <c:StkButton id="playGameBtn" styleName="playGameButton"
+                         toolTip="{resourceManager.getString('common', 'play.game.label')}"
+                         click="handlePlayGameButtonClick(event)"/>
+            <c:StkButton id="gameChatBtn" styleName="chatButton"
+                         visible="{game.gameStatus == GameDto.RUNNING &amp;&amp; isPlayWithRealUser()}"
+                         includeInLayout="{game.gameStatus == GameDto.RUNNING &amp;&amp; isPlayWithRealUser()}"
+                         toolTip="{resourceManager.getString('common', 'game.chat.button')}"
+                         click="onGameChatBtn(event)"/>
+        </mx:GridItem>
+    </mx:GridRow>
+</mx:Grid>

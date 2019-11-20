@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.stockholdergame</groupId>
+    <artifactId>client-flex</artifactId>
+    <version>1.5</version>
+    <packaging>swf</packaging>
+
+    <name>Stockholdergame client</name>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <flex.version>3.6.0.16995</flex.version>
+        <flexunit.version>0.90</flexunit.version>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>sonatype-public</id>
+            <url>http://repository.sonatype.org/content/groups/public/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>sonatype-flexgroup</id>
+            <url>http://repository.sonatype.org/content/groups/flexgroup/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>yoolab.org-releases</id>
+            <url>http://projects.yoolab.org/maven/content/repositories/releases</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+    </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>flex-mojos-repository</id>
+            <url>http://repository.sonatype.org/content/groups/public</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
+
+    <build>
+        <sourceDirectory>src/main/flex</sourceDirectory>
+        <testSourceDirectory>src/test/flex</testSourceDirectory>
+        <plugins>
+            <plugin>
+                <groupId>org.sonatype.flexmojos</groupId>
+                <artifactId>flexmojos-maven-plugin</artifactId>
+                <version>3.7.1</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <debug>true</debug>
+                    <sourceFile>com/stockholdergame/client/ClientApplication.mxml</sourceFile>
+                    <!--<descriptorTemplate>${basedir}/src/main/flex/application-descriptor.xml</descriptorTemplate>-->
+                    <skipTests>true</skipTests>
+                    <configurationReport>true</configurationReport>
+                    <!--<testRunner>
+                        <launcher>
+                            <flashplayerCommand>${flashPlayer.command}</flashplayerCommand>
+                        </launcher>
+                    </testRunner>-->
+                    <resourceBundlePath>${basedir}/src/main/resources/locale/{locale}</resourceBundlePath>
+                    <compiledLocales>
+                        <locale>en_US</locale>
+                        <locale>ru_RU</locale>
+                    </compiledLocales>
+                    <allowSourcePathOverlap>true</allowSourcePathOverlap>
+                    <storepass/>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.adobe.flex</groupId>
+                        <artifactId>compiler</artifactId>
+                        <version>${flex.version}</version>
+                        <type>pom</type>
+                    </dependency>
+                    <dependency>
+                        <groupId>com.adobe.flex.compiler</groupId>
+                        <artifactId>mxmlc</artifactId>
+                        <version>${flex.version}</version>
+                        <scope>compile</scope>
+                    </dependency>
+                </dependencies>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>com.adobe.flex.framework</groupId>
+            <artifactId>flex-framework</artifactId>
+            <version>${flex.version}</version>
+            <type>pom</type>
+        </dependency>
+
+        <dependency>
+            <groupId>com.adobe.flexunit</groupId>
+            <artifactId>flexunit</artifactId>
+            <version>${flexunit.version}</version>
+            <type>swc</type>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.puremvc</groupId>
+            <artifactId>puremvc-as3-standard</artifactId>
+            <version>2.0.4</version>
+            <type>swc</type>
+        </dependency>
+
+        <!--<dependency>
+            <groupId>org.as3commons</groupId>
+            <artifactId>as3commons-lang</artifactId>
+            <version>0.2.1</version>
+            <type>swc</type>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.adobe.flex.framework</groupId>
+                    <artifactId>playerglobal</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.as3commons</groupId>
+            <artifactId>as3commons-logging</artifactId>
+            <version>1.1.1</version>
+            <type>swc</type>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.adobe.flexunit</groupId>
+                    <artifactId>flexunit</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+-->
+    </dependencies>
+
+    <profiles>
+        <profile>
+            <id>develop</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <game.server>127.0.0.1:8080</game.server>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>production</id>
+            <properties>
+                <game.server>79.125.104.56:8080</game.server>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>test-under-windows</id>
+            <activation>
+                <os>
+                    <family>Windows</family>
+                </os>
+            </activation>
+            <properties>
+                <flashPlayer.command>d:\work\flex\runtimes\player\10\win\FlashPlayer.exe</flashPlayer.command>
+            </properties>
+        </profile>
+        <profile>
+            <id>test-under-linux</id>
+            <activation>
+                <os>
+                    <family>unix</family>
+                </os>
+            </activation>
+            <properties>
+                <flashPlayer.command>/usr/local/flexsdk/runtimes/player/lnx/flashplayer</flashPlayer.command>
+            </properties>
+        </profile>
+    </profiles>
+</project>

@@ -1,0 +1,9 @@
+update.game.status.failed = Update game status failed. Game state not found. Id = {0}
+game.id.does.not.match = Update game status failed. Move result game ID does not match with game state game ID. MoveResult Id = {0}, GameState Id = {1}
+move.not.ended.properly = Move is not ended properly. Step after prices of shares change is absent.
+mail.messages.count = Found {0} messages.
+mail.message.removed = Message {0} wasn't send and removed from outbox.
+mail.message.send.failed = Message {0} sending failed. Attempt {1}.
+user.logged.in = User {0} logged in.
+session.not.exist = HTTP or Flex session doesn't exist.
+user.session.data.not.exist = User session data doesn't exist.

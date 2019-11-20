@@ -1,0 +1,146 @@
+<?xml version="1.0"?>
+<list:BaseListItemRenderer xmlns:mx="http://www.adobe.com/2006/mxml"
+                           xmlns:c="com.stockholdergame.client.ui.components.*"
+                           creationComplete="onCreationCompete()"
+                           xmlns:list="com.stockholdergame.client.ui.components.list.renderers.*">
+
+    <mx:Metadata>
+        [Event(name="initiateGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="joinToGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="cancelGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="changeInvitationStatus", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showInviteUserDialog", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.GameDto;
+        import com.stockholdergame.client.model.dto.game.GameInitiationDto;
+        import com.stockholdergame.client.model.dto.game.lite.GameLiteDto;
+        import com.stockholdergame.client.model.session.SessionManager;
+        import com.stockholdergame.client.ui.components.list.listClasses.GameVariantListItemData;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+
+        private function onNewGameBtnClick(isOffer:Boolean, switchMoveOrder:Boolean):void {
+            if (isOffer) {
+                var gameInitiationDto:GameInitiationDto = new GameInitiationDto(data.gameVariant.id, true);
+                gameInitiationDto.switchMoveOrder = switchMoveOrder;
+                dispatchEvent(new BusinessEvent(BusinessActions.INITIATE_GAME, gameInitiationDto, true, true));
+            } else {
+                var game:GameLiteDto = new GameLiteDto();
+                game.gameVariantId = data.gameVariant.id;
+                game.gameVariantName = data.gameVariant.name;
+                game.movesQuantity = data.gameVariant.movesQuantity;
+                game.switchMoveOrder = switchMoveOrder;
+                dispatchEvent(new BusinessEvent(BusinessActions.SHOW_INVITE_USER_DIALOG, game, true, true));
+            }
+        }
+
+        private function onCreationCompete():void {
+            gameList.addEventListener(BusinessActions.JOIN_TO_GAME, redispatchEvent);
+            gameList.addEventListener(BusinessActions.CHANGE_INVITATION_STATUS, redispatchEvent);
+            gameList.addEventListener(BusinessActions.CANCEL_GAME, redispatchEvent);
+            gameList.addEventListener(BusinessActions.SHOW_INVITE_USER_DIALOG, redispatchEvent);
+        }
+
+        private function redispatchEvent(event:Event):void {
+            event.stopImmediatePropagation();
+            dispatchEvent(new BusinessEvent(event.type, BusinessEvent(event).data, true, true));
+        }
+        ]]></mx:Script>
+
+    <mx:VBox width="348" height="100%" styleName="gameVariantsListItem">
+        <mx:Grid width="100%" height="110">
+            <mx:GridRow width="100%">
+                <mx:GridItem width="100%">
+                    <mx:Label
+                            text="{resourceManager.getString('common', 'moves.number.label', [data.gameVariant.movesQuantity])}"
+                            styleName="xLargeBoldFont"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem width="100%">
+                    <mx:Label text="{resourceManager.getString('common', data.gameVariant.name)}"
+                              styleName="largeBoldFont"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem>
+                    <mx:Label
+                            text="{resourceManager.getString('common', 'gamers.count.label', [data.gameVariant.maxGamersQuantity])}"
+                            styleName="bigBoldFont"/>
+                </mx:GridItem>
+            </mx:GridRow>
+            <mx:GridRow width="100%">
+                <mx:GridItem>
+                    <mx:Label text="{resourceManager.getString('common', 'cards.label')}" styleName="bigFont"/>
+                    <mx:Spacer width="10"/>
+                    <mx:Repeater id="cardGroupsRep" dataProvider="{data.gameVariant.cardGroups}">
+                        <mx:HBox horizontalGap="0">
+                            <mx:Label text="{resourceManager.getString('common', 'card.group.label',
+                            [resourceManager.getString('common', cardGroupsRep.currentItem.groupName), cardGroupsRep.currentItem.gamerCardQuantity])}"
+                                      styleName="bigFont"/>
+                        </mx:HBox>
+                    </mx:Repeater>
+                </mx:GridItem>
+            </mx:GridRow>
+        </mx:Grid>
+
+        <mx:VBox width="100%" height="475" styleName="normalBox">
+            <mx:VBox width="100%" height="140" visible="{GameVariantListItemData(data).getPlayingUsers().length > 0}"
+                     includeInLayout="{GameVariantListItemData(data).getPlayingUsers().length > 0}"
+                     styleName="containerWithGaps">
+                <mx:Label text="{resourceManager.getString('common', 'now.playing.label')}" styleName="bigBoldFont"/>
+                <mx:HBox width="100%" styleName="containerWithGaps">
+                    <mx:Repeater id="playingUsersRep" dataProvider="{GameVariantListItemData(data).getPlayingUsers()}">
+                        <c:UserView user="{playingUsersRep.currentItem}" userNameLabelStyleName="{playingUsersRep.currentItem.bot ? 'botNameNormalFont' : 'userNameNormalFont'}"
+                                    styleName="light2Box" width="72"
+                                    height="76"/>
+                    </mx:Repeater>
+                </mx:HBox>
+                <mx:Label
+                        text="{resourceManager.getString('common', 'and.other.users.label', [data.getNotShownGamersCount(true)])}"
+                        styleName="bigBoldFont"
+                        visible="{GameVariantListItemData(data).getGamersCount(true) > GameVariantListItemData(data).getPlayingUsers().length}"
+                        includeInLayout="{GameVariantListItemData(data).getGamersCount(true) > GameVariantListItemData(data).getPlayingUsers().length}"/>
+            </mx:VBox>
+            <mx:VBox width="100%" height="320" styleName="containerWithGaps">
+                <mx:VBox width="100%"
+                         visible="{!SessionManager.instance.isRemoved() &amp;&amp; data.openGames.length == 0}"
+                         includeInLayout="{!SessionManager.instance.isRemoved() &amp;&amp; data.openGames.length == 0}">
+                    <mx:Label text="{resourceManager.getString('common', 'offer.game.label')}" styleName="largeBoldFont"/>
+                    <c:StkLinkButton label="{resourceManager.getString('common', 'single.game.label')}"
+                                     styleName="normalFont" click="onNewGameBtnClick(true, false)"/>
+                    <mx:HBox width="100%">
+                        <mx:Image source="@Embed('/images/switch.png')"/>
+                        <c:StkLinkButton label="{resourceManager.getString('common', 'switch.move.order.label')}"
+                                         styleName="normalFont" click="onNewGameBtnClick(true, true)"/>
+                    </mx:HBox>
+                </mx:VBox>
+                <mx:Label text="{resourceManager.getString('common', 'want.to.play.label')}" styleName="bigBoldFont"
+                          visible="{data.openGames.length > 0}" includeInLayout="{data.openGames.length > 0}"/>
+                <mx:TileList id="gameList" dataProvider="{data.openGames}" width="100%" height="200" columnCount="2"
+                             itemRenderer="com.stockholdergame.client.ui.components.list.renderers.GameInitiationListItemRenderer"
+                             selectable="false" styleName="normalBox"
+                             includeInLayout="{data.openGames.length > 0}"
+                             visible="{data.openGames.length > 0}"/>
+                <mx:VBox width="100%">
+                    <mx:Label text="{resourceManager.getString('common', 'invite.users.label')}" styleName="xLargeBoldFont"/>
+                    <!--<c:StkLinkButton label="{resourceManager.getString('common', 'invite.users.label')}"
+                                   styleName="largeBoldFont"
+                                   visible="{!SessionManager.instance.isRemoved()}"
+                                   includeInLayout="{!SessionManager.instance.isRemoved()}"
+                                   click="onNewGameBtnClick(false, false)"/>-->
+                    <c:StkLinkButton label="{resourceManager.getString('common', 'single.game.label')}"
+                                     styleName="normalFont" click="onNewGameBtnClick(false, false)"/>
+                    <mx:HBox width="100%">
+                        <mx:Image source="@Embed('/images/switch.png')"/>
+                        <c:StkLinkButton label="{resourceManager.getString('common', 'switch.move.order.label')}"
+                                         styleName="normalFont" click="onNewGameBtnClick(false, true)"/>
+                    </mx:HBox>
+                </mx:VBox>
+            </mx:VBox>
+        </mx:VBox>
+    </mx:VBox>
+</list:BaseListItemRenderer>

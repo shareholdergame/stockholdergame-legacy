@@ -1,0 +1,116 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:c="com.stockholdergame.client.ui.components.*"
+         rollOver="handleMouseOver(event)" rollOut="handleRollOut(event)" show="handleShow(event)"
+         creationComplete="handleCreationComplete()" width="400" height="150"
+         styleName="errorPanel"
+         creationCompleteEffect="{moveIn}" removedEffect="{moveOut}">
+
+    <mx:Metadata>
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Move id="moveIn" xFrom="320" yFrom="-120" xTo="320" yTo="20"/>
+    <mx:Move id="moveOut" xFrom="320" yFrom="20" xTo="320" yTo="-120"/>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+        import com.stockholdergame.client.ui.message.Message;
+        import com.stockholdergame.client.util.ImageLoader;
+
+        import mx.controls.Text;
+        import mx.events.FlexEvent;
+        import mx.managers.PopUpManager;
+
+        private var timer:Timer;
+
+        private var intervalId:uint;
+        private var _delay:uint = 5;
+        private var _maxWidth:uint = 400;
+        private var _maxHeight:uint = 300;
+
+        [Bindable]
+        private var _message:Message;
+
+        public function get message():Message {
+            return _message;
+        }
+
+        public function set message(value:Message):void {
+            _message = value;
+            this.styleName = _message.messageSeverity.styleName;
+            if (_message.icon != null) {
+                ImageLoader.getInstance().loadImage(_message.icon, function (bitmap:Bitmap):void {
+                    img.addChild(bitmap);
+                });
+            } else {
+                img.source = _message.imageSource;
+            }
+        }
+
+        public function get hideDelay():uint {
+            return _delay;
+        }
+
+        public function set hideDelay(value:uint):void {
+            _delay = value;
+        }
+
+        private function handleCreationComplete():void {
+            timer = new Timer(_delay * 1000);
+            timer.addEventListener(TimerEvent.TIMER, hidePopup);
+            timerOn();
+        }
+
+        private function handleMouseOver(event:MouseEvent):void {
+            timerOff();
+        }
+
+        private function handleShow(event:FlexEvent):void {
+            timerOn();
+        }
+
+        private function hidePopup(evt:TimerEvent):void {
+            PopUpManager.removePopUp(this);
+        }
+
+        private function handleRollOut(event:MouseEvent):void {
+            timerOn();
+        }
+
+        private function timerOn():void {
+            timer.start();
+        }
+
+        private function timerOff():void {
+            timer.stop();
+        }
+
+        private function getTextField():Text {
+            return this.getChildAt(0) as Text;
+        }
+
+        private function onCloseButtonClick(event:MouseEvent):void {
+            if (timer.running) {
+                timerOff();
+            }
+            PopUpManager.removePopUp(this);
+        }
+
+        private function onShowChatButtonClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_SEND_MESSAGE_DIALOG));
+        }
+
+        ]]></mx:Script>
+
+    <mx:HBox width="100%" height="100%" verticalAlign="top" horizontalGap="5">
+        <mx:VBox styleName="containerWithGaps">
+            <mx:Image id="img" height="48" width="48"/>
+            <mx:Label text="{_message.userName}" textAlign="center" truncateToFit="true" width="72" styleName="userNameBigFont"/>
+        </mx:VBox>
+        <mx:Text id="messageTextField" width="100%" styleName="{_message.styleName}" height="100%" textAlign="center"
+                 htmlText="{resourceManager.getString('common', _message.messageKey, _message.args)}"/>
+    </mx:HBox>
+    <c:StkButton id="closeButton" click="onCloseButtonClick(event)" styleName="closeButton"
+                 toolTip="{resourceManager.getString('common', 'popup.box.close')}"/>
+</mx:VBox>

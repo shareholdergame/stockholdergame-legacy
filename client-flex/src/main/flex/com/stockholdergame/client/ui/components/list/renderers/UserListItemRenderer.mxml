@@ -1,0 +1,146 @@
+<?xml version="1.0"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:c="com.stockholdergame.client.ui.components.*"
+         implements="mx.controls.listClasses.IListItemRenderer, mx.controls.listClasses.IDropInListItemRenderer"
+         horizontalScrollPolicy="off"
+         styleName="listItem">
+
+    <mx:Metadata>
+        [Event(name="userSelected", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.CountryResource;
+        import com.stockholdergame.client.model.dto.ProfileDto;
+        import com.stockholdergame.client.model.dto.account.UserDto;
+        import com.stockholdergame.client.model.dto.account.UserViewDto;
+        import com.stockholdergame.client.model.dto.view.UserSelectionDto;
+        import com.stockholdergame.client.model.session.SessionManager;
+        import com.stockholdergame.client.ui.IconResources;
+        import com.stockholdergame.client.ui.components.list.UserList;
+        import com.stockholdergame.client.ui.components.list.listClasses.UserListAction;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+
+        import mx.controls.Button;
+
+        import mx.controls.listClasses.BaseListData;
+        import mx.controls.listClasses.ListBase;
+        import mx.controls.listClasses.ListBaseContentHolder;
+
+        [Bindable]
+        private var showFriendFunctionButtons:Boolean;
+
+        [Bindable]
+        private var showInvitationButton:Boolean;
+
+        [Bindable]
+        private var showCancelInvitationButton:Boolean;
+
+        private var _listData:BaseListData;
+
+        public function get listData():BaseListData {
+            return _listData;
+        }
+
+        public function set listData(value:BaseListData):void {
+            this._listData = value;
+            var userList:UserList = UserList(_listData.owner);
+            showFriendFunctionButtons = userList.showFriendFunctionButtons;
+            showInvitationButton = userList.showInvitationButton;
+            showCancelInvitationButton = userList.showCancelInvitationButton;
+        }
+
+        override public function set styleName(value:Object):void {
+            if (!super.styleName || (!(value is ListBaseContentHolder) && !(value is ListBase))) {
+                super.styleName = value;
+            }
+        }
+
+        private function onItemBtnClick(event:MouseEvent):void {
+            var action:UserListAction = defineAction(Button(event.currentTarget));
+            if (action != null) {
+                dispatchEvent(new BusinessEvent(BusinessActions.USER_SELECTED, new UserSelectionDto(UserViewDto(data), action), true, true));
+            }
+        }
+
+        private static function defineAction(currentTarget:Button):UserListAction {
+            if (currentTarget.id == "inviteBtn") {
+                return UserListAction.INVITE_ACTION;
+            } else if (currentTarget.id == "cancelInvitationBtn") {
+                return UserListAction.CANCEL_INVITATION_ACTION;
+            } else if (currentTarget.id == "sendMsgBtn") {
+                return UserListAction.SEND_MESSAGE_ACTION;
+            } else if (currentTarget.id == "addFriendBtn") {
+                return UserListAction.ADD_FRIEND_ACTION;
+            } else if (currentTarget.id == "acceptFriendBtn") {
+                return UserListAction.ACCEPT_FRIEND_ACTION;
+            } else if (currentTarget.id == "rejectFriendBtn") {
+                return UserListAction.REJECT_FRIEND_ACTION;
+            } else if (currentTarget.id == "cancelFriendBtn") {
+                return UserListAction.CANCEL_FRIEND_REQUEST_ACTION;
+            } else {
+                return null;
+            }
+        }
+        ]]></mx:Script>
+
+    <mx:VBox width="100%" height="100%" styleName="listItemContentBox">
+        <mx:HBox width="100%" height="100%">
+            <c:Avatar avatar="{UserDto(data).profile != null ? UserDto(data).profile.avatar : null}"/>
+            <mx:Spacer width="5"/>
+            <mx:VBox width="100%">
+                <mx:HBox height="50%" width="100%" styleName="leftAlignedContainer">
+                    <mx:Image id="sexImg" source="{data.profile != null  &amp;&amp; data.profile.sex == ProfileDto.FEMALE
+                                    ? IconResources.USER_FEMALE_IMG : data.profile != null  &amp;&amp; data.profile.sex == ProfileDto.MALE
+                                    ? IconResources.USER_MALE_IMG : IconResources.TRANSPARENT_IMG}"/>
+                    <c:OnlineMark online="{data.online}"/>
+                    <mx:Label text="{data.userName}" styleName="userNameBigFont"/>
+                </mx:HBox>
+                <mx:HBox height="50%" width="100%" styleName="leftAlignedContainer">
+                    <mx:Image source="{CountryResource.instance.getFlag(UserDto(data).profile.country)}"
+                              includeInLayout="{UserDto(data).profile != null}"
+                              visible="{UserDto(data).profile != null}"/>
+                    <mx:Spacer width="3"/>
+                    <mx:Label id="countryCityLbl" text="{data.profile.countryCity}"/>
+                </mx:HBox>
+            </mx:VBox>
+        </mx:HBox>
+        <mx:Spacer height="100%"/>
+        <mx:HBox height="36" styleName="listItemControlBar">
+            <c:StkButton id="sendMsgBtn" styleName="chatButton"
+                         toolTip="{resourceManager.getString('common', 'send.message.button')}"
+                         click="onItemBtnClick(event)"/>
+            <c:StkButton id="inviteBtn" styleName="invitationButton"
+                         toolTip="{resourceManager.getString('common', 'invite.user.button')}"
+                         click="onItemBtnClick(event)"
+                         visible="{showInvitationButton &amp;&amp; !SessionManager.instance.isRemoved()}"
+                         includeInLayout="{showInvitationButton &amp;&amp; !SessionManager.instance.isRemoved()}"/>
+            <c:StkButton id="cancelInvitationBtn" styleName="cancelInvitationButton"
+                         toolTip="{resourceManager.getString('common', 'cancel.invitation.button')}"
+                         click="onItemBtnClick(event)"
+                         visible="{showCancelInvitationButton &amp;&amp; !SessionManager.instance.isRemoved()}"
+                         includeInLayout="{showCancelInvitationButton &amp;&amp; !SessionManager.instance.isRemoved()}"/>
+            <c:StkButton id="addFriendBtn" styleName="addFriendButton"
+                         toolTip="{resourceManager.getString('common', 'add.friend.button')}"
+                         click="onItemBtnClick(event)"
+                         visible="{showFriendFunctionButtons &amp;&amp; !data.friend &amp;&amp; !(data.friendRequestee || data.friendRequestor) &amp;&amp; !SessionManager.instance.isRemoved()}"
+                         includeInLayout="{showFriendFunctionButtons &amp;&amp; !data.friend &amp;&amp; !(data.friendRequestee || data.friendRequestor) &amp;&amp; !SessionManager.instance.isRemoved()}"/>
+            <c:StkButton id="acceptFriendBtn" styleName="acceptFriendButton"
+                         toolTip="{resourceManager.getString('common', 'accept.friend.button')}"
+                         click="onItemBtnClick(event)"
+                         visible="{showFriendFunctionButtons &amp;&amp; !data.friend &amp;&amp; data.friendRequestor &amp;&amp; !SessionManager.instance.isRemoved()}"
+                         includeInLayout="{showFriendFunctionButtons &amp;&amp; !data.friend &amp;&amp; data.friendRequestor &amp;&amp; !SessionManager.instance.isRemoved()}"/>
+            <c:StkButton id="rejectFriendBtn" styleName="rejectFriendButton"
+                         toolTip="{resourceManager.getString('common', 'reject.friend.button')}"
+                         click="onItemBtnClick(event)"
+                         visible="{showFriendFunctionButtons &amp;&amp; !data.friend &amp;&amp; data.friendRequestor &amp;&amp; !SessionManager.instance.isRemoved()}"
+                         includeInLayout="{showFriendFunctionButtons &amp;&amp; !data.friend &amp;&amp; data.friendRequestor &amp;&amp; !SessionManager.instance.isRemoved()}"/>
+            <!--<c:StkButton id="cancelFriendBtn" styleName="cancelFriendButton"
+                         toolTip="{resourceManager.getString('common', 'cancel.friend.button')}"
+                         click="onItemBtnClick(event)"
+                         visible="{showFriendFunctionButtons &amp;&amp; !data.friend &amp;&amp; data.friendRequestee}"
+                         includeInLayout="{showFriendFunctionButtons &amp;&amp; !data.friend &amp;&amp; data.friendRequestee}"/>-->
+        </mx:HBox>
+    </mx:VBox>
+</mx:HBox>

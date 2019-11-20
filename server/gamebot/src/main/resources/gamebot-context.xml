@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:integration="http://www.springframework.org/schema/integration"
+       xmlns:task="http://www.springframework.org/schema/task"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.2.xsd
+           http://www.springframework.org/schema/integration http://www.springframework.org/schema/integration/spring-integration.xsd
+           http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task.xsd">
+
+    <context:component-scan base-package="com.stockholdergame.server.gamebot"/>
+
+    <bean id="gameOffersCheckJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject" ref="gameOffersChecker"/>
+        <property name="targetMethod" value="check"/>
+        <property name="concurrent" value="false"/>
+    </bean>
+
+    <bean id="gameOffersCheckTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
+        <property name="jobDetail" ref="gameOffersCheckJob"/>
+        <property name="startDelay" value="120000"/>
+        <property name="repeatInterval" value="120000"/>
+    </bean>
+
+    <bean id="botsWakeUpJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject" ref="botManager"/>
+        <property name="targetMethod" value="wakeUp"/>
+        <property name="concurrent" value="false"/>
+    </bean>
+
+    <bean id="botsWakeUpTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
+        <property name="jobDetail" ref="botsWakeUpJob"/>
+        <property name="startDelay" value="60000"/>
+        <property name="repeatInterval" value="0"/>
+        <property name="repeatCount" value="0"/>
+    </bean>
+
+    <bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+        <property name="triggers">
+            <list>
+                <ref bean="gameOffersCheckTrigger"/>
+                <ref bean="botsWakeUpTrigger"/>
+            </list>
+        </property>
+    </bean>
+
+</beans>

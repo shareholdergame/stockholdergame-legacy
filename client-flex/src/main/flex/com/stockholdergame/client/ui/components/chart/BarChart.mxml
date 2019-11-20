@@ -1,0 +1,117 @@
+<?xml version="1.0"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml"
+           verticalScrollPolicy="off" horizontalScrollPolicy="off"
+           creationComplete="onCreationComplete()">
+
+    <mx:Metadata>
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.ui.components.chart.chartClasses.ChartPointData;
+
+        import mx.collections.ArrayCollection;
+        import mx.controls.Label;
+
+        [Bindable]
+        public var chartData:ArrayCollection;
+
+        public var padding:int = 30;
+
+        public var columnWidth:int = 40;
+
+        public var textGap:int = 0;
+
+        private function onCreationComplete():void {
+            drawStacks();
+        }
+
+        private function drawStacks():void {
+            this.graphics.clear();
+
+            var componentHeight:int = this.height;
+            var componentWidth:int = this.width;
+            var actualHeigth:Number = componentHeight - (2 * padding);
+            var actualWidth:Number = componentWidth - (2 * padding);
+
+            this.graphics.beginFill(StyleManager.getColorName("white"));
+            this.graphics.drawRect(0, 0, componentWidth, componentHeight);
+            this.graphics.endFill();
+
+            if (chartData == null || chartData.length == 0) {
+                return;
+            }
+
+            var stackWidth:Number = actualWidth / chartData.length;
+            var maxTotalValue:Number = getMaxValue(chartData);
+            var minTotalValue:Number = getMinValue(chartData);
+            var verticalScale:Number = actualHeigth / (maxTotalValue - minTotalValue);
+
+            // axis
+            this.graphics.lineStyle(2, StyleManager.getColorName("black"));
+            this.graphics.moveTo(padding, padding);
+            this.graphics.lineTo(padding, actualHeigth + padding);
+
+            this.graphics.moveTo(padding, (maxTotalValue * verticalScale) + padding);
+            this.graphics.lineTo(actualWidth + padding, (maxTotalValue * verticalScale) + padding);
+
+            var count:int = 0;
+            for each (var chartStackData:ChartPointData in chartData) {
+                var total:Number = chartStackData.values[chartStackData.values.length - 1];
+                var stackHeight:Number = Math.abs(total * verticalScale);
+                this.graphics.lineStyle(0);
+                this.graphics.beginFill(0xaaaaaa);
+                this.graphics.drawRect((count * stackWidth) + (stackWidth / 2) - (columnWidth / 2) + padding,
+                        (maxTotalValue * verticalScale) - (total > 0 ? stackHeight : 0) + padding, columnWidth, stackHeight);
+                this.graphics.endFill();
+
+                var label:Label = new Label();
+                label.text = chartStackData.stackName;
+                label.regenerateStyleCache(false);
+                label.setStyle("color", StyleManager.getColorName("blue"));
+                var measure:TextLineMetrics = label.measureText(label.text);
+                label.x = (count * stackWidth) + (stackWidth / 2) - (measure.width / 2) + padding;
+                label.y = (maxTotalValue * verticalScale) + (total > 0 ? textGap : -1 * (textGap + measure.height)) + padding;
+                addChild(label);
+
+                this.setChildIndex(label, 0);
+
+                var label1:Label = new Label();
+                label1.text = "" + total;
+                label1.regenerateStyleCache(false);
+                label1.setStyle("color", StyleManager.getColorName("blue"));
+                var measure1:TextLineMetrics = label1.measureText(label1.text);
+                label1.x = (count * stackWidth) + (stackWidth / 2) - (measure1.width / 2) + padding;
+                label1.y = (maxTotalValue * verticalScale) - (total > 0 ? stackHeight : 0) + ((textGap + measure1.height) * (total > 0 ? -1 : -2)) + padding;
+                addChild(label1);
+
+                this.setChildIndex(label1, 0);
+
+                count++;
+            }
+        }
+
+        private function getMinValue(chartData:ArrayCollection):Number {
+            var min:Number = 0;
+            for each (var chartStackData:ChartPointData in chartData) {
+                var total:Number = chartStackData.values[chartStackData.values.length - 1];
+                if (total <= min) {
+                    min = total;
+                }
+            }
+            return min;
+        }
+
+        private function getMaxValue(chartData:ArrayCollection):Number {
+            var max:Number = 0;
+            for each (var chartStackData:ChartPointData in chartData) {
+                var total:Number = chartStackData.values[chartStackData.values.length - 1];
+                if (total >= max) {
+                    max = total;
+                }
+            }
+            return max;
+        }
+        ]]></mx:Script>
+
+</mx:Canvas>

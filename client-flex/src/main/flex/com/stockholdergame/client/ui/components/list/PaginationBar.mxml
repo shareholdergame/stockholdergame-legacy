@@ -1,0 +1,188 @@
+<?xml version="1.0"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml"
+         horizontalGap="2">
+
+    <mx:Metadata>
+        [Event(name="pageChanged", type="com.stockholdergame.client.ui.components.list.events.PaginationEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.ui.components.list.events.PaginationEvent;
+        import com.stockholdergame.client.ui.components.list.listClasses.PaginationData;
+
+        import mx.containers.Box;
+
+        import mx.containers.VBox;
+        import mx.controls.Alert;
+
+        import mx.controls.Label;
+        import mx.controls.Spacer;
+
+        private var _itemsPerPage:int = DEFAULT_IPP;
+
+        private var _pagesInBlock:int = DEFAULT_PAGES_IN_BLOCK;
+
+        [Bindable]
+        private var _totalItems:int = 0;
+
+        private var _totalPages:int = 0;
+
+        private var _currentPage:int = 0;
+
+        public static const DEFAULT_IPP:int = 6;
+
+        public static const DEFAULT_PAGINATION_DATA:PaginationData = new PaginationData(DEFAULT_IPP, 0);
+
+        public static const DEFAULT_PAGES_IN_BLOCK:int = 10;
+
+        public function get totalItems():int {
+            return _totalItems;
+        }
+
+        public function set totalItems(value:int):void {
+            var _oldTotalItems:int = _totalItems;
+            _totalItems = value;
+            calculatePaginationParameters();
+            if (_oldTotalItems != _totalItems) {
+                drawPagination();
+            }
+        }
+
+        public function get itemsPerPage():int {
+            return _itemsPerPage;
+        }
+
+        public function set itemsPerPage(value:int):void {
+            var oldItemsPerPage:int = _itemsPerPage;
+            _itemsPerPage = value;
+            if (oldItemsPerPage != _itemsPerPage) {
+                drawPagination();
+            }
+        }
+
+        public function get pagesInBlock():int {
+            return _pagesInBlock;
+        }
+
+        public function set pagesInBlock(value:int):void {
+            _pagesInBlock = value;
+        }
+
+        public function get totalPages():int {
+            return _totalPages;
+        }
+
+        public function get currentPage():int {
+            return _currentPage;
+        }
+
+        public function get paginationData():PaginationData {
+            return new PaginationData(_itemsPerPage, (_currentPage - 1) * _itemsPerPage);
+        }
+
+        public function reset():void {
+            _totalItems = 0;
+            _totalPages = 0;
+            _currentPage = 0;
+        }
+
+        private function calculatePaginationParameters():void {
+            _totalPages = Math.floor(_totalItems / _itemsPerPage) + (_totalItems % _itemsPerPage > 0 ? 1 : 0);
+            _currentPage = _currentPage == 0 ? 1 : _currentPage > _totalPages ? _totalPages : _currentPage;
+        }
+
+        private function drawPagination():void {
+            this.removeAllChildren();
+            if (_totalItems == 0) {
+                return;
+            }
+            var blocks:int = Math.floor(_totalPages / _pagesInBlock) + (_totalPages % _pagesInBlock > 0 ? 1 : 0);
+            var currentBlock:int = Math.floor(_currentPage / _pagesInBlock) + (_currentPage % _pagesInBlock > 0 ? 1 : 0);
+            var firstPage:int = ((currentBlock - 1) * _pagesInBlock) + 1;
+            var lastPage:int = blocks == 1 || currentBlock == blocks ? _totalPages : currentBlock * _pagesInBlock;
+            if (currentBlock > 1) {
+                var labelText:String = "<< " + (((currentBlock - 2) * _pagesInBlock) + 1) + " - " + ((currentBlock - 1) * _pagesInBlock);
+                var blockButton:VBox = new VBox();
+                blockButton.height = 24;
+                blockButton.styleName = "pageButton";
+                blockButton.label = "" + (currentBlock - 1);
+                blockButton.toolTip = labelText;
+                blockButton.buttonMode = true;
+                blockButton.addEventListener(MouseEvent.CLICK, onBlockButtonClick);
+                var blockLabel:Label = new Label();
+                blockLabel.styleName = "pageButtonLabel";
+                blockLabel.text = labelText;
+                blockButton.addChild(blockLabel);
+                this.addChild(blockButton);
+            }
+            for (var i:int = firstPage; i <= lastPage; i++) {
+                var pageButton:VBox = new VBox();
+                pageButton.width = 24;
+                pageButton.height = 24;
+                pageButton.styleName = i == _currentPage ? "selectedPageButton" : "pageButton";
+                pageButton.label = "" + i;
+                pageButton.toolTip = "" + i;
+                pageButton.buttonMode = i != _currentPage;
+                pageButton.addEventListener(MouseEvent.CLICK, onPageNumberClick);
+                var pageLabel:Label = new Label();
+                pageLabel.styleName = i == _currentPage ? "selectedPageButtonLabel" : "pageButtonLabel";
+                pageLabel.text = "" + i;
+                pageButton.addChild(pageLabel);
+                this.addChild(pageButton);
+            }
+            if (blocks > 1 && currentBlock < blocks) {
+                var labelText2:String = "" + ((currentBlock * _pagesInBlock) + 1) + " - " + ((currentBlock + 1) * _pagesInBlock) + " >>";
+                var blockButton2:VBox = new VBox();
+                blockButton2.height = 24;
+                blockButton2.styleName = "pageButton";
+                blockButton2.label = "" + (currentBlock + 1);
+                blockButton2.toolTip = labelText2;
+                blockButton2.buttonMode = true;
+                blockButton2.addEventListener(MouseEvent.CLICK, onBlockButtonClick);
+                var blockLabel2:Label = new Label();
+                blockLabel2.styleName = "pageButtonLabel";
+                blockLabel2.text = labelText2;
+                blockButton2.addChild(blockLabel2);
+                this.addChild(blockButton2);
+            }
+            var spacer:Spacer = new Spacer();
+            spacer.width = 20;
+            this.addChild(spacer);
+            var totalLabel:Label = new Label();
+            totalLabel.styleName = "bigFont";
+            totalLabel.text = resourceManager.getString('common', 'total.items', [_totalItems]);
+            this.addChild(totalLabel);
+        }
+
+        private function onBlockButtonClick(event:MouseEvent):void {
+            var nextBlock:int = event.currentTarget.label;
+            _currentPage = (nextBlock - 1) * _pagesInBlock + 1;
+            dispatchEvent(new PaginationEvent(paginationData));
+            drawPagination();
+        }
+
+        private function onPageNumberClick(event:MouseEvent):void {
+            var _oldCurrentPage:int = _currentPage;
+            _currentPage = event.currentTarget.label;
+            dispatchEvent(new PaginationEvent(paginationData));
+            var children:Array = this.getChildren();
+            for each (var displayObject:DisplayObject in children) {
+                if (displayObject is Box) {
+                    var pageButton:Box = Box(displayObject);
+                    var pageLabel:Label = Label(pageButton.getChildAt(0));
+                    if (pageButton.label == "" + _currentPage) {
+                        pageButton.styleName = "selectedPageButton";
+                        pageButton.buttonMode = true;
+                        pageLabel.styleName = "selectedPageButtonLabel";
+                    } else if (pageButton.label == "" + _oldCurrentPage) {
+                        pageButton.styleName = "pageButton";
+                        pageButton.buttonMode = false;
+                        pageLabel.styleName = "pageButtonLabel";
+                    }
+                }
+            }
+        }
+        ]]></mx:Script>
+
+</mx:HBox>

@@ -1,0 +1,137 @@
+<?xml version="1.0"?>
+<mx:Grid xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:c="com.stockholdergame.client.ui.components.*"
+         styleName="light2BoxWithGapsAndPaddings" initialize="onInitialize()">
+
+    <mx:Metadata>
+        [Event(name="filterApplied", type="com.stockholdergame.client.ui.events.GameFilterEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.variant.GameVariantDto;
+        import com.stockholdergame.client.model.session.SessionManager;
+        import com.stockholdergame.client.ui.components.classes.GameFilterData;
+        import com.stockholdergame.client.ui.events.GameFilterEvent;
+
+        import mx.collections.ArrayCollection;
+        import mx.events.FlexMouseEvent;
+        import mx.events.ListEvent;
+        import mx.managers.PopUpManager;
+
+        [Bindable]
+        public var filterByGameVariant:Boolean;
+
+        private function fireFilterEvent():void {
+            var gameFilter:GameFilterData = createGameFilterData();
+            dispatchEvent(new GameFilterEvent(gameFilter));
+        }
+
+        private function createGameFilterData():GameFilterData {
+            var gameFilter:GameFilterData = new GameFilterData();
+
+            if (gameVariantsComboBox != null && gameVariantsComboBox.selectedItem != null
+                    && !isNaN(gameVariantsComboBox.selectedItem.data) && gameVariantsComboBox.selectedItem.data != 0) {
+                gameFilter.gameVariantId = gameVariantsComboBox.selectedItem.data;
+                gameFilter.gameVariantName = gameVariantsComboBox.selectedLabel;
+            }
+            if (userNameTxt != null && userNameTxt.length > 0) {
+                gameFilter.userName = userNameTxt.text;
+            }
+            return gameFilter;
+        }
+
+        override protected function resourcesChanged():void {
+            super.resourcesChanged();
+            fillGameVariantsComboBox();
+        }
+
+        private function onShow():void {
+            fillGameVariantsComboBox();
+        }
+
+        private function fillGameVariantsComboBox():void {
+            if (gameVariantsComboBox == null) {
+                return;
+            }
+
+            var gameVariants:ArrayCollection = SessionManager.instance.getGameVariants();
+            var gameVariantLabels:ArrayCollection = new ArrayCollection();
+            gameVariantLabels.addItem({label: resourceManager.getString('common', 'all.variants.label'), data: null});
+            for each (var gameVariantDto:GameVariantDto in gameVariants) {
+                gameVariantLabels.addItem({
+                    label: (resourceManager.getString('common', gameVariantDto.name)
+                    + ' ' + resourceManager.getString('common', 'moves.number.label', [gameVariantDto.movesQuantity])), data: gameVariantDto.id
+                });
+            }
+            gameVariantsComboBox.dataProvider = gameVariantLabels;
+        }
+
+        public function get filterData():GameFilterData {
+            return createGameFilterData();
+        }
+
+        private function onChangeGameVariant(event:ListEvent):void {
+            fireFilterEvent();
+        }
+
+        private function onChangeUserName(event:Event):void {
+            if (userNameTxt.text.length > 2) {
+                fireFilterEvent();
+            }
+        }
+
+        public function get defaultValues():Boolean {
+            return gameVariantsComboBox.selectedIndex == 0 && userNameTxt.text == "";
+        }
+
+        public function resetFilter():void {
+            if (gameVariantsComboBox.selectedIndex != 0 || userNameTxt.text.length > 0) {
+                gameVariantsComboBox.selectedIndex = 0;
+                userNameTxt.text = "";
+                var gameFilter:GameFilterData = createGameFilterData();
+                dispatchEvent(new GameFilterEvent(gameFilter));
+            }
+        }
+
+        private function onCloseForm(event:MouseEvent):void {
+            if (this.isPopUp) {
+                PopUpManager.removePopUp(this);
+            }
+        }
+
+        private function onTextInput(event:Event):void {
+            if (userNameTxt.text.length > 2) {
+                fireFilterEvent();
+            }
+        }
+
+        private function onInitialize():void {
+            this.addEventListener(FlexMouseEvent.MOUSE_DOWN_OUTSIDE, onCloseForm);
+        }
+        ]]></mx:Script>
+
+    <mx:GridRow width="100%">
+        <mx:GridItem styleName="rightAlignedContainer">
+            <mx:Label text="{resourceManager.getString('common', 'user.name.label')}"/>
+        </mx:GridItem>
+        <mx:GridItem width="250">
+            <mx:VBox width="100%">
+                <mx:TextInput id="userNameTxt" width="100%" maxChars="24" enter="onChangeUserName(event)" change="onTextInput(event)"/>
+                <mx:Text text="{resourceManager.getString('common', 'user.name.advice.label')}" truncateToFit="true"/>
+            </mx:VBox>
+        </mx:GridItem>
+    </mx:GridRow>
+    <mx:GridRow width="100%" visible="{filterByGameVariant}" includeInLayout="{filterByGameVariant}">
+        <mx:GridItem styleName="rightAlignedContainer">
+            <mx:Label text="{resourceManager.getString('common', 'game.variant.label')}"/>
+        </mx:GridItem>
+        <mx:GridItem>
+            <mx:ComboBox id="gameVariantsComboBox" width="100%" creationComplete="onShow()" change="onChangeGameVariant(event)"/>
+        </mx:GridItem>
+    </mx:GridRow>
+    <mx:GridRow width="100%">
+        <mx:GridItem colSpan="2" width="100%">
+            <c:StkButton id="closeButton" click="onCloseForm(event)" styleName="closeButton"/>
+        </mx:GridItem>
+    </mx:GridRow>
+</mx:Grid>

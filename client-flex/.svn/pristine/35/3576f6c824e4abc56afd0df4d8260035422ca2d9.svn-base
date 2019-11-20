@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<mx:Box xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:c="com.stockholdergame.client.ui.components.*"
+        direction="{viewDirection}" styleName="containerWithGaps">
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.account.UserViewDto;
+
+        import mx.containers.BoxDirection;
+
+        import mx.events.ToolTipEvent;
+
+        [Bindable]
+        public var viewDirection:String = BoxDirection.VERTICAL;
+
+        [Bindable]
+        public var noAvatar:Boolean;
+
+        [Bindable]
+        public var showLanguage:Boolean;
+
+        [Bindable]
+        public var user:UserViewDto;
+
+        [Bindable]
+        public var userNameLabelStyleName:String;
+
+        private function createToolTip(event:ToolTipEvent):void {
+            if (noAvatar) {
+                var userToolTip:UserToolTip = new UserToolTip();
+                userToolTip.user = user;
+                event.toolTip = userToolTip;
+            }
+        }
+        ]]></mx:Script>
+
+    <c:Avatar id="avatar" avatar="{user.avatar}" includeInLayout="{!noAvatar}" visible="{!noAvatar}"/>
+    <mx:VBox width="100%">
+        <mx:Label text="{user.userName}" maxWidth="{this.width - 2}" truncateToFit="true"
+                  styleName="{userNameLabelStyleName}" toolTipCreate="createToolTip(event)"
+                  toolTip="{user.bot ? resourceManager.getString('common', 'not.real.user', [user.userName]) : user.userName}"/>
+        <mx:HBox styleName="leftAlignedContainer" width="100%" includeInLayout="{showLanguage &amp;&amp; !user.bot}" visible="{showLanguage &amp;&amp; !user.bot}">
+            <mx:Image source="{resourceManager.getObject('common', ('flag.' + user.locale))}"
+                      toolTip="{resourceManager.getObject('common', ('user.lang.' + user.locale))}"/>
+        </mx:HBox>
+    </mx:VBox>
+</mx:Box>

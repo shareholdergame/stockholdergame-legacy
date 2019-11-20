@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+         xmlns:list="com.stockholdergame.client.ui.components.list.*"
+         xmlns:items="com.stockholdergame.client.ui.components.list.items.*"
+         currentState="{EMPTY_STATE}">
+
+    <mx:Metadata>
+        [Event(name="pageChanged", type="com.stockholdergame.client.ui.components.list.events.PaginationEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.lite.GameLiteDto;
+        import com.stockholdergame.client.ui.components.list.listClasses.PaginationData;
+
+        import mx.collections.ArrayCollection;
+
+        private const EMPTY_STATE:String = "emptyState";
+        private const NOT_EMPTY_STATE:String = "notEmptyState";
+
+        [Bindable]
+        private var _totalItems:int = 0;
+
+        [Bindable]
+        public var items:ArrayCollection;
+
+        [Bindable]
+        public var variableRowHeight:Boolean = false;
+
+        [Bindable]
+        public var itemsPerPage:int = PaginationBar.DEFAULT_IPP;
+
+        public function get totalItems():int {
+            return _totalItems;
+        }
+
+        public function set totalItems(value:int):void {
+            _totalItems = value;
+            currentState = _totalItems == 0 ? EMPTY_STATE : NOT_EMPTY_STATE;
+        }
+
+        public function get paginationData():PaginationData {
+            return paginationBar != null ? paginationBar.paginationData : PaginationBar.DEFAULT_PAGINATION_DATA;
+        }
+
+        ]]></mx:Script>
+
+    <mx:states>
+        <mx:State name="{EMPTY_STATE}">
+            <mx:AddChild position="firstChild">
+                <mx:HBox width="100%" height="100%">
+                    <mx:Label text="{resourceManager.getString('common', 'no.items.label')}" styleName="largeFont"/>
+                </mx:HBox>
+            </mx:AddChild>
+        </mx:State>
+        <mx:State name="{NOT_EMPTY_STATE}">
+            <mx:AddChild position="firstChild">
+                <mx:Tile height="100%" width="100%" styleName="containerWithGaps">
+                    <mx:Repeater id="itemsRep" dataProvider="{items}">
+                        <items:GameListItem game="{GameLiteDto(itemsRep.currentItem)}" width="556"/>
+                    </mx:Repeater>
+                </mx:Tile>
+            </mx:AddChild>
+        </mx:State>
+    </mx:states>
+
+    <list:PaginationBar id="paginationBar" width="100%" height="32" totalItems="{_totalItems}" pageChanged="dispatchEvent(event)"
+                        itemsPerPage="{itemsPerPage}" styleName="normalBox"/>
+
+</mx:VBox>

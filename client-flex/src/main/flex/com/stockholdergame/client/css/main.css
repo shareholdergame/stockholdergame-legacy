@@ -1,0 +1,687 @@
+/* cascade style sheets for application */
+
+/*
+
+*** Primary color:
+
+   shade 0 = #F0EEDC = rgb(238,235,209) = rgba(238,235,209,1)
+   shade 1 = #FEFCF8 = rgb(255,254,247) = rgba(255,254,247,1)
+   shade 2 = #FFFEF3 = rgb(255,253,237) = rgba(255,253,237,1)
+   shade 3 = #E3E2D3 = rgb(209,205,171) = rgba(209,205,171,1)
+   shade 4 = #C5C3AE = rgb(182,177,136) = rgba(182,177,136,1)
+
+*** Complement color:
+
+   shade 0 = #978FA2 = rgb(151,143,162) = rgba(151,143,162,1)
+   shade 1 = #D6D4DA = rgb(214,212,218) = rgba(214,212,218,1)
+   shade 2 = #B4AFBB = rgb(180,175,187) = rgba(180,175,187,1)
+   shade 3 = #80768E = rgb(128,118,142) = rgba(128,118,142,1)
+   shade 4 = #6B5F7B = rgb(107, 95,123) = rgba(107, 95,123,1)
+
+*/
+
+/* ------------- Background colors ------------ */
+
+Application, .listItemContentBox, .selectedPageButton, .light2Box, .customToolTipBox, ToolTip, .whiteBoxWithBorder, .light2BoxWithGapsAndPaddings {
+    backgroundColor: #FEFCF8;
+}
+
+.dashboardPageContentBox, .pageContentBox, TileList, List, HorizontalList, .lightBox {
+    backgroundColor: #FFFEF3;
+}
+
+TitleWindow, Alert, Panel, .normalBox {
+    backgroundColor: #F0EEDC;
+}
+
+.gameVariantsListItem, .dashboardItemBox, .dashboardList, .darkBox, .leftAlignedDarkHeader, .descriptionTextArea, .listItem {
+    backgroundColor: #E3E2D3;
+}
+
+.page, .dark2Box, .pageButton {
+    backgroundColor: #C5C3AE;
+}
+
+.winnerBox {
+    backgroundColor: #ffefa3;
+}
+
+.transparentBox {
+    backgroundColor: undefined;
+}
+
+Panel {
+    headerColors: #E3E2D3, #C5C3AE;
+}
+
+.zebra {
+    alternatingItemColors: #FFFEF3, #FEFCF8;
+}
+
+/* -------------- Controls colors ------------- */
+
+Button, RadioButton, CheckBox, TextInput, LinkButton, TextArea, TileList, HorizontalList, List, NumericStepper, PopUpMenuButton {
+    themeColor: #ABB6F6;
+}
+
+TileList, List, HorizontalList {
+    textRollOverColor: #F6F2FF;
+    rollOverColor: #ABB6F6;
+    textSelectedColor: #F6F2FF;
+    selectionColor: #6F7AB6;
+    color: #495B9C;
+    disabledColor: #C5C5C5;
+}
+
+LinkButton {
+    textRollOverColor: #F6F2FF;
+    rollOverColor: #6F7AB6;
+    textSelectedColor: #F6F2FF;
+    selectionColor: #ABB6F6;
+    color: #495B9C;
+    disabledColor: #C5C5C5;
+}
+
+Button,  PopUpMenuButton, ComboBox {
+    textRollOverColor: #495B9C;
+    textSelectedColor: #495B9C;
+    rollOverColor: #6F7AB6;
+    color: #F6F2FF;
+}
+
+RadioButton, CheckBox {
+    color: #495B9C;
+}
+
+VRule {
+    strokeColor: #6F7AB6;
+}
+
+/* ------------- Text colors --------------------- */
+
+.lightFont, .lightSmallFont, .lightBoldFont, .lightBigFont, .lightBoldBigFont, .lightLargeBoldFont, .lightXLargeBoldFont, .panelTitleStyle {
+    color: #FEFCF8;
+}
+
+.dark2Text, Label, Alert, TextInput, TextArea {
+    color: #7E7A53;
+}
+
+.greenFont, .greenBigBoldFont, .largeBoldGreenFont, .smallGreenFont {
+    color: #067b06;
+}
+
+.competitorOutFont {
+    color: #C3C3C3;
+}
+
+.selectedPageButtonLabel, .userNameBigFont, .userNameNormalFont, .userNameLargeFont {
+    color: #495B9C;
+}
+
+.pageButtonLabel {
+    color: #F6F2FF;
+}
+
+.botNameNormalFont, .botNameBigFont, .botNameLargeFont {
+    color: #9400d3;
+}
+
+.normalAttentionFont, .largeBoldAttentionFont, .smallRedFont, .redBigBoldFont {
+    color: #a20808;
+}
+
+/* ----------------- Borders ------------- */
+
+.page, .dashboardPageContentBox, .dashboardItemBox, .listItem, .listItemContentBox, .gameVariantsListItem, .pageContentBox, .selectedPageButton,
+.pageButton, List, TileList, HorizontalList, .light2Box, .lightBox, .headerBox, .dark2Box, .darkBox, .normalBox, .customToolTipBox, ToolTip, .initiatorBox,
+.whiteBoxWithBorder, .light2BoxWithGapsAndPaddings, .winnerBox {
+    borderStyle: solid;
+    borderThickness: 1px;
+}
+
+.listItemContentBox, .light2Box, .selectedPageButton {
+    borderColor: #FEFCF8;
+}
+
+List, TileList, HorizontalList, .lightBox {
+    borderColor: #FFFEF3;
+}
+
+Alert, .pageContentBox, .dashboardPageContentBox, .normalBox {
+    borderColor: #F0EEDC;
+}
+
+.gameVariantsListItem, .dashboardItemBox, .dashboardList, .darkBox, .listItem {
+    borderColor: #E3E2D3;
+}
+
+.page, .pageButton, Panel, .dark2Box, .customToolTipBox, ToolTip, .whiteBoxWithBorder, .light2BoxWithGapsAndPaddings {
+    borderColor: #C5C3AE;
+}
+
+.winnerBox {
+    borderColor: #FFEFA3;
+}
+
+.initiatorBox {
+    borderColor: #067b06;
+}
+
+/* ------------------- Fonts ------------- */
+
+@font-face {
+    src: local("Arial");
+    fontFamily: ArialEmbedded;
+}
+
+@font-face {
+    src: local("Arial");
+    fontFamily: ArialEmbedded;
+    fontWeight: bold;
+}
+
+@font-face {
+    src: local("Arial");
+    fontFamily: ArialEmbedded;
+    font-style: italic;
+}
+
+.smallFont, .lightSmallFont, .boldSmallFont, .smallGreenFont, .smallRedFont {
+    fontSize: 10pt;
+}
+
+.normalFont, Label, TextInput, TextArea, Text, LinkButton, Alert, Button, PopUpMenuButton, ComboBox, ToolTip, .userNameNormalFont, .normalAttentionFont, .botNameNormalFont, .greenFont {
+    fontSize: 12pt;
+    fontFamily: ArialEmbedded;
+}
+
+.bigFont, .bigBoldFont, .lightBigFont, .lightBoldBigFont, .panelTitleStyle, .userNameBigFont, .greenBigBoldFont, .botNameBigFont, .redBigBoldFont {
+    fontSize: 14pt;
+}
+
+.largeFont, .largeBoldFont, .lightLargeBoldFont, .userNameLargeFont, .botNameLargeFont, .largeBoldAttentionFont, .largeBoldGreenFont {
+    fontSize: 18pt;
+}
+
+.xLargeFont, .xLargeBoldFont, .lightXLargeBoldFont {
+    fontSize: 20pt;
+}
+
+.boldFont, .bigBoldFont, .largeBoldFont, .panelTitleStyle, .lightBoldFont, .lightBoldBigFont, .lightLargeBoldFont, .xLargeBoldFont,
+.lightXLargeBoldFont, .competitorOutFont, .userNameBigFont, .userNameNormalFont, .pageButtonLabel, .userNameLargeFont, .normalAttentionFont, .greenBigBoldFont,
+.botNameNormalFont, .botNameBigFont, .botNameLargeFont, .largeBoldAttentionFont, .largeBoldGreenFont, .boldSmallFont, .redBigBoldFont {
+    fontWeight: bold;
+}
+
+.selectedPageButtonLabel, .pageButtonLabel, .userNameBigFont, .userNameNormalFont, .botNameBigFont, .botNameNormalFont {
+    textAlign: center;
+}
+
+/* -------------- Round corners ----------- */
+
+.page, .dashboardPageContentBox, .selectedPageButton, .pageButton {
+    cornerRadius: 10px;
+}
+
+.dashboardItemBox, .pageContentBox, Panel  {
+    cornerRadius: 8px;
+}
+
+TextInput, TextArea, TileList, List, HorizontalList, .listItem, .gameVariantsListItem, .listItemContentBox,
+.dark2Box, .darkBox, .normalBox, .lightBox, .light2Box, .customToolTipBox, ToolTip, .initiatorBox, .light2BoxWithGapsAndPaddings, .winnerBox {
+    cornerRadius: 6px;
+}
+
+/* ------------ Paddings and gaps for containers ---------- */
+
+Box, Grid, GridRow, GridItem, Panel, Tile {
+    paddingLeft: 0;
+    paddingRight: 0;
+    paddingTop: 0;
+    paddingBottom: 0;
+    horizontalGap: 0;
+    verticalGap: 0;
+    horizontalAlign: center;
+    verticalAlign: middle;
+}
+
+.leftAlignedContainer, .standardContainer, .leftBottomAlignedContainer, .leftTopAlignedContainer, .leftAlignedDarkHeader {
+    horizontalAlign: left;
+}
+
+.leftBottomAlignedContainer {
+    verticalAlign: bottom;
+}
+
+.leftTopAlignedContainer {
+    verticalAlign: top;
+}
+
+.rightAlignedContainer {
+    horizontalAlign: right;
+}
+
+.topAlignedContainer {
+    verticalAlign: top;
+}
+
+.bottomAlignedContainer {
+    verticalAlign: bottom;
+}
+
+.standardContainer, .listItem, .gameVariantsListItem {
+    paddingLeft: 2px;
+    paddingRight: 2px;
+    paddingTop: 2px;
+    paddingBottom: 2px;
+}
+
+.containerWithGaps, .pageContentBox, .gameVariantsListItem, .light2BoxWithGapsAndPaddings {
+    horizontalGap: 5px;
+    verticalGap: 5px;
+}
+
+.customToolTipBox, ToolTip {
+    paddingLeft: 8px;
+    paddingRight: 8px;
+    paddingTop: 8px;
+    paddingBottom: 8px;
+    verticalGap: 2px;
+}
+
+/* ------------ Other ----------- */
+
+.pageContainer {
+    paddingRight: 5px;
+    paddingLeft: 5px;
+    paddingBottom: 5px;
+}
+
+.page {
+    paddingRight: 5px;
+    paddingLeft: 5px;
+    paddingBottom: 5px;
+}
+
+.pageContentBox, .light2BoxWithGapsAndPaddings {
+    paddingTop: 5px;
+    paddingBottom: 5px;
+    paddingLeft: 5px;
+    paddingRight: 5px;
+}
+
+.dashboardPageContentBox {
+    paddingBottom: 15px;
+    paddingLeft: 15px;
+    paddingRight: 15px;
+    paddingTop: 15px;
+    horizontalGap: 15px;
+    verticalGap: 15px;
+}
+
+.dashboardItemBox {
+    verticalAlign: top;
+    paddingBottom: 5px;
+    paddingTop: 5px;
+    paddingLeft: 5px;
+    paddingRight: 5px;
+    verticalGap: 5px;
+}
+
+Application {
+    backgroundImage: Embed('/images/splash-1152x768.png');
+}
+
+Panel {
+    headerHeight: 28px;
+    highlightAlphas: 0.29, 0;
+    dropShadowEnabled: false;
+    borderAlpha: 1;
+    borderThicknessTop: 0;
+    borderThicknessLeft: 5px;
+    borderThicknessRight: 5px;
+    borderThicknessBottom: 5px;
+    roundedBottomCorners: true;
+    controlBarStyleName: controlBarStyle;
+    titleStyleName: panelTitleStyle;
+}
+
+TitleWindow {
+    dropShadowEnabled: true;
+    shadowDistance: 10px;
+    shadowDirection: right;
+    dropShadowColor: #292821;
+    controlBarStyleName: controlBarStyle;
+    backgroundAlpha: 1;
+}
+
+.controlBarStyle {
+    paddingTop: 3px;
+    paddingBottom: 7px;
+    horizontalGap: 5px;
+}
+
+.pageHeaderBox {
+    paddingLeft: 10px;
+    paddingRight: 10px;
+    horizontalAlign: left;
+    horizontalGap: 10px;
+}
+
+.descriptionTextArea {
+    borderStyle: none;
+}
+
+LinkButton {
+    focusThickness: 1px;
+    textDecoration: underline;
+}
+
+TextInput, TextArea {
+    focusThickness: 1px;
+    textAlign: left;
+}
+
+Alert {
+    backgroundAlpha: 0.8;
+    paddingBottom: 10px;
+}
+
+.baseListItemRenderer {
+    paddingRight: 2px;
+    paddingLeft: 2px;
+    paddingBottom: 2px;
+    paddingTop: 2px;
+}
+
+.listItemContentBox {
+    paddingLeft: 2px;
+    paddingRight: 2px;
+    paddingTop: 1px;
+    paddingBottom: 1px;
+}
+
+.listItemControlBar {
+    paddingTop: 2px;
+    paddingBottom: 2px;
+    horizontalGap: 10px;
+}
+
+.loginPageTopBox {
+    paddingRight: 10px;
+    paddingLeft: 10px;
+    horizontalGap: 5px;
+}
+
+/* ---------------------- Buttons ------------------------- */
+
+.editButton {
+    upSkin: Embed('/images/edit.png');
+    downSkin: Embed('/images/edit-down.png');
+    overSkin: Embed('/images/edit-over.png');
+}
+
+.okButton {
+    upSkin: Embed('/images/accept.png');
+    downSkin: Embed('/images/accept-down.png');
+    overSkin: Embed('/images/accept-over.png');
+}
+
+.cancelButton {
+    upSkin: Embed('/images/cancel.png');
+    downSkin: Embed('/images/cancel-down.png');
+    overSkin: Embed('/images/cancel-over.png');
+}
+
+.chatButton {
+    upSkin: Embed('/images/chat.png');
+    downSkin: Embed('/images/chat-down.png');
+    overSkin: Embed('/images/chat-over.png');
+}
+
+.searchFriendsButton {
+    upSkin: Embed('/images/search-friends.png');
+    downSkin: Embed('/images/search-friends-down.png');
+    overSkin: Embed('/images/search-friends-over.png');
+}
+
+.addFriendButton {
+    upSkin: Embed('/images/add-friend.png');
+    downSkin: Embed('/images/add-friend-down.png');
+    overSkin: Embed('/images/add-friend-over.png');
+}
+
+.acceptFriendButton {
+    upSkin: Embed('/images/accept-friend.png');
+    downSkin: Embed('/images/accept-friend-down.png');
+    overSkin: Embed('/images/accept-friend-over.png');
+}
+
+.acceptInvitationButton {
+    upSkin: Embed('/images/accept.png');
+    downSkin: Embed('/images/accept-down.png');
+    overSkin: Embed('/images/accept-over.png');
+}
+
+.rejectFriendButton {
+    upSkin: Embed('/images/reject-friend.png');
+    downSkin: Embed('/images/reject-friend-down.png');
+    overSkin: Embed('/images/reject-friend-over.png');
+}
+
+.rejectInvitationButton {
+    upSkin: Embed('/images/reject.png');
+    downSkin: Embed('/images/reject-down.png');
+    overSkin: Embed('/images/reject-over.png');
+}
+
+.cancelFriendButton {
+    upSkin: Embed('/images/cancel.png');
+    downSkin: Embed('/images/cancel-down.png');
+    overSkin: Embed('/images/cancel-over.png');
+}
+
+.invitationButton {
+    upSkin: Embed('/images/invitation-1.png');
+    downSkin: Embed('/images/invitation-down-1.png');
+    overSkin: Embed('/images/invitation-over-1.png');
+}
+
+.cancelInvitationButton {
+    upSkin: Embed('/images/cancel.png');
+    downSkin: Embed('/images/cancel-down.png');
+    overSkin: Embed('/images/cancel-over.png');
+}
+
+.playGameButton {
+    upSkin: Embed('/images/play-game.png');
+    downSkin: Embed('/images/play-game-down.png');
+    overSkin: Embed('/images/play-game-over.png');
+}
+
+.viewGameButton {
+    upSkin: Embed('/images/view-game.png');
+    downSkin: Embed('/images/view-game-down.png');
+    overSkin: Embed('/images/view-game-over.png');
+}
+
+.cancelButton {
+    upSkin: Embed('/images/cancel.png');
+    downSkin: Embed('/images/cancel-down.png');
+    overSkin: Embed('/images/cancel-over.png');
+}
+
+.joinGameButton {
+    upSkin: Embed('/images/join.png');
+    downSkin: Embed('/images/join-down.png');
+    overSkin: Embed('/images/join-over.png');
+}
+
+.closeButton {
+    upSkin: Embed('/images/close.png');
+    downSkin: Embed('/images/close-down.png');
+    overSkin: Embed('/images/close-over.png');
+}
+
+.removeButton {
+    upSkin: Embed('/images/remove.png');
+    downSkin: Embed('/images/remove-down.png');
+    overSkin: Embed('/images/remove-over.png');
+}
+
+.passwdButton {
+    upSkin: Embed('/images/passwd.png');
+    downSkin: Embed('/images/passwd-down.png');
+    overSkin: Embed('/images/passwd-over.png');
+}
+
+.restoreButton {
+    upSkin: Embed('/images/restore.png');
+    downSkin: Embed('/images/restore-down.png');
+    overSkin: Embed('/images/restore-over.png');
+}
+
+.searchButton {
+    upSkin: Embed('/images/search.png');
+    downSkin: Embed('/images/search-down.png');
+    overSkin: Embed('/images/search-over.png');
+}
+
+.filterButton {
+    upSkin: Embed('/images/filter.png');
+    downSkin: Embed('/images/filter-down.png');
+    overSkin: Embed('/images/filter-over.png');
+}
+
+.clearFilterButton {
+    upSkin: Embed('/images/clear-filter.png');
+    downSkin: Embed('/images/clear-filter-down.png');
+    overSkin: Embed('/images/clear-filter-over.png');
+}
+
+.resetButton {
+    upSkin: Embed('/images/reset.png');
+    downSkin: Embed('/images/reset-down.png');
+    overSkin: Embed('/images/reset-over.png');
+}
+
+.removeAvatarButton {
+    upSkin: Embed('/images/remove-avatar.png');
+    downSkin: Embed('/images/remove-avatar-down.png');
+    overSkin: Embed('/images/remove-avatar-over.png');
+}
+
+.sellAllButton {
+    upSkin: Embed('/images/sell-all.png');
+    downSkin: Embed('/images/sell-all-down.png');
+    overSkin: Embed('/images/sell-all-over.png');
+}
+
+Button, PopUpMenuButton {
+    skin: ClassReference("com.stockholdergame.client.ui.skins.ButtonSkin");
+}
+
+ComboBox {
+    skin: ClassReference("com.stockholdergame.client.ui.skins.ComboBoxArrowSkin");
+    dropdownStyleName: dropDownStyle;
+}
+
+.playButton {
+    fontWeight: bold;
+    fontSize: 28pt;
+    skin: ClassReference("com.stockholdergame.client.ui.skins.PlayButtonSkin");
+}
+
+.dropDownStyle {
+    backgroundAlpha: 1.0;
+    fontWeight: normal;
+}
+
+/* ============================================================== */
+
+/* -------------------------- old CSS --------------------------- */
+
+
+.panelWithShadow {
+    dropShadowEnabled: true;
+    shadowDistance: 10px;
+    shadowDirection: right;
+    dropShadowColor: #292821;
+}
+
+TileList, List {
+    paddingLeft: 1px;
+    paddingRight: 1px;
+    paddingTop: 1px;
+    paddingBottom: 1px;
+}
+
+.errorPanel, .warnPanel, .infoPanel, .messagePanel {
+    borderStyle: solid;
+    borderThickness:1px;
+    backgroundColor: #FFFEF3;
+    cornerRadius:8px;
+    /*backgroundAlpha: 0.8;*/
+    paddingTop: 5px;
+    paddingRight: 10px;
+    paddingBottom: 5px;
+    paddingLeft: 10px;
+    verticalGap: 5px;
+    horizontalGap: 5px;
+    fontSize: 14px;
+    fontWeight: bold;
+}
+
+.errorPanel {
+    borderColor: red;
+    color: #a20808;
+}
+
+.warnPanel {
+    borderColor: #888000;
+    color: #5E5A3A;
+}
+
+.infoPanel {
+    borderColor: #067b06;
+    color: #074b04;
+}
+
+.messagePanel {
+    borderColor: #D2CFAD;
+    color: #726e46;
+}
+
+ScrollBar {
+    trackColors: #D2CFAD, #FFFEF3;
+}
+
+.messagesCounterStyle {
+    fontWeight: bold;
+    backgroundColor: #ff4500;
+    color: white;
+}
+
+.attentionLabel {
+    fontSize: 18pt;
+}
+
+.attentionLabel {
+    fontWeight: bold;
+}
+
+.attentionLabel {
+    color: #a20808;
+}
+
+
+
+.boxAsCircle {
+    cornerRadius: 14px;
+    backgroundColor: #ff4500;
+    borderColor: white;
+    borderStyle: solid;
+    borderThickness: 1px;
+}
+

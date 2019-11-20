@@ -1,0 +1,127 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+         xmlns:dialog="com.stockholdergame.client.ui.components.dialog.*"
+         xmlns:c="com.stockholdergame.client.ui.components.*"
+         currentState="signInState" paddingBottom="50">
+
+    <mx:Metadata>
+        [Event(name="signIn", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="signUp", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="restorePassword", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="checkUserNameExistence", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="checkEmailUsage", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="getCaptcha", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showRulesPage", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="setUnauthLanguage", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Move id="moveIn" xFrom="1160" yFrom="180" xTo="351" yTo="180" duration="500"/>
+    <mx:Move id="moveOut" xFrom="312" yFrom="180" xTo="-460" yTo="180" duration="500"/>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.configuration.ApplicationConfiguration;
+        import com.stockholdergame.client.model.Locales;
+        import com.stockholdergame.client.model.dto.ServerStatisticsDto;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+        import com.stockholdergame.client.util.StringUtil;
+        import com.stockholdergame.client.util.cookies.CookiesUtil;
+
+        import mx.controls.Alert;
+
+        import mx.events.DropdownEvent;
+
+        public static const SIGN_UP_STATE:String = "signUpState";
+        public static const SIGN_IN_STATE:String = "signInState";
+        public static const RESTORE_PWD_STATE:String = "restorePwdState";
+
+        private static const LANG_COOKIE:String = "unauth_lang";
+
+        private function onClose(event:DropdownEvent):void {
+            var selectedLang:String = ComboBox(event.target).selectedItem.data;
+            resourceManager.localeChain = [selectedLang];
+            if (ApplicationConfiguration.instance.activeEnvironment.cookiesEnabled) {
+                CookiesUtil.setCookie(LANG_COOKIE, selectedLang, 3650);
+                dispatchEvent(new BusinessEvent(BusinessActions.SET_UNAUTH_LANGUAGE, selectedLang));
+            }
+        }
+
+        private function onSignUpState():void {
+            signUpPage.resetForm();
+        }
+
+        public function resetInterfaceLanguage():void {
+            var language:String;
+            if (ApplicationConfiguration.instance.activeEnvironment.cookiesEnabled) {
+                var cookie:Object = CookiesUtil.getCookie(LANG_COOKIE);
+                language = cookie != null ? cookie.toString() : null;
+            }
+            if (StringUtil.isBlank(language)) {
+                language = "en_US";
+            }
+            dispatchEvent(new BusinessEvent(BusinessActions.SET_UNAUTH_LANGUAGE, language));
+            var locale:Object = Locales.instance.getLocaleItem(language);
+            if (locale != null) {
+                languagesCombo.selectedItem = locale;
+                resourceManager.localeChain = [language];
+            }
+        }
+
+        private function onGameRulesBtnClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_RULES_PAGE));
+        }
+
+        ]]></mx:Script>
+
+    <mx:states>
+        <mx:State name="{SIGN_IN_STATE}">
+            <mx:AddChild relativeTo="{dialogContainer}">
+                <dialog:SignInDialog id="signInPage" addedEffect="{moveIn}" styleName="panelWithShadow"
+                                   removedEffect="{moveOut}"
+                                   signIn="dispatchEvent(event)"
+                                   showSignUpPage="currentState = 'signUpState'"
+                                   showRestorePasswordPage="currentState = RESTORE_PWD_STATE"/>
+            </mx:AddChild>
+        </mx:State>
+        <mx:State name="{RESTORE_PWD_STATE}">
+            <mx:AddChild relativeTo="{dialogContainer}">
+                <dialog:ResetPasswordDialog id="restorePasswordPage" addedEffect="{moveIn}" styleName="panelWithShadow"
+                                            removedEffect="{moveOut}"
+                                            restorePassword="dispatchEvent(event)"
+                                            showSignInPage="currentState = SIGN_IN_STATE"/>
+            </mx:AddChild>
+        </mx:State>
+        <mx:State name="{SIGN_UP_STATE}" enterState="onSignUpState()">
+            <mx:AddChild relativeTo="{dialogContainer}">
+                <dialog:SignUpDialog id="signUpPage" addedEffect="{moveIn}" styleName="panelWithShadow"
+                                   removedEffect="{moveOut}"
+                                   signUp="dispatchEvent(event)"
+                                   checkUserNameExistence="dispatchEvent(event)"
+                                   checkEmailUsage="dispatchEvent(event)"
+                                   showSignInPage="currentState = SIGN_IN_STATE"
+                                   getCaptcha="dispatchEvent(event)"/>
+            </mx:AddChild>
+        </mx:State>
+    </mx:states>
+
+    <mx:HBox height="40" width="100%" styleName="loginPageTopBox">
+        <mx:Spacer width="100%"/>
+        <mx:Label text="{resourceManager.getString('common', 'select.language.label')}"/>
+        <mx:ComboBox id="languagesCombo" width="150" close="onClose(event)" dataProvider="{Locales.instance.locales}"/>
+        <mx:Image source="{resourceManager.getObject('common', 'locale.flag')}"/>
+    </mx:HBox>
+    <mx:Canvas id="dialogContainer" height="100%" width="100%" horizontalScrollPolicy="off"/>
+    <mx:HBox height="50" width="100%">
+        <mx:Spacer width="50%"/>
+        <mx:HBox height="48" width="160" styleName="lightBox">
+            <c:StkLinkButton id="gamesRulesBtn" label="{resourceManager.getString('common', 'game.rules.button.label')}"
+                             styleName="largeBoldFont" click="onGameRulesBtnClick(event)"/>
+        </mx:HBox>
+        <mx:HBox width="50%" styleName="rightAlignedContainer">
+            <!--<mx:Image source="@Embed('/images/comodo_secure.png')" alpha="0.6"
+                      toolTip="{resourceManager.getString('common', 'connection.secured.tooltip')}"/>-->
+            <mx:Spacer width="50"/>
+        </mx:HBox>
+    </mx:HBox>
+</mx:VBox>

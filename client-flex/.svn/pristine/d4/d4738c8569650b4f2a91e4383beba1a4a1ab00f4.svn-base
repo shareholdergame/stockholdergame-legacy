@@ -1,0 +1,124 @@
+<?xml version="1.0"?>
+<mx:Grid xmlns:mx="http://www.adobe.com/2006/mxml"
+         xmlns:c="com.stockholdergame.client.ui.components.*"
+         implements="mx.controls.listClasses.IListItemRenderer, mx.controls.listClasses.IDropInListItemRenderer"
+         width="480" verticalGap="1" horizontalScrollPolicy="off" paddingLeft="4" paddingRight="2">
+
+    <mx:Metadata>
+        [Event(name="showSendMessageDialog", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.CountryResource;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+
+        import mx.collections.ArrayCollection;
+
+        import mx.controls.listClasses.BaseListData;
+
+        private var _listData:BaseListData;
+
+        public function get listData():BaseListData {
+            return _listData;
+        }
+
+        public function set listData(value:BaseListData):void {
+            this._listData = value;
+        }
+
+        private function onChatBtnClick(event:MouseEvent):void {
+            var chatParticipants:ArrayCollection = new ArrayCollection();
+            chatParticipants.addItem(data.user);
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_SEND_MESSAGE_DIALOG, chatParticipants, true, true));
+        }
+
+        ]]></mx:Script>
+
+    <mx:GridRow width="100%">
+        <mx:GridItem width="230">
+            <c:Avatar avatar="{data.user.profile.avatar}"/>
+            <mx:Spacer width="5"/>
+            <mx:VBox width="100%" styleName="leftAlignedContainer">
+                <mx:HBox width="100%" styleName="leftAlignedContainer">
+                    <c:OnlineMark online="{data.user.online}"/>
+                    <mx:Label text="{data.user.userName}" styleName="{data.user.bot ? 'botNameBigFont' : 'userNameBigFont'}"/>
+                </mx:HBox>
+                <mx:HBox width="100%" styleName="leftAlignedContainer" visible="{!data.user.bot}">
+                    <mx:Image source="{CountryResource.instance.getFlag(data.user.profile.country)}"
+                              includeInLayout="{data.user.profile != null}"
+                              visible="{data.user.profile != null}"/>
+                    <mx:Label id="countryCityLbl" text="{data.user.profile.countryCity}"/>
+                </mx:HBox>
+            </mx:VBox>
+        </mx:GridItem>
+        <mx:GridItem width="50">
+            <c:StkButton id="sendMsgBtn" styleName="chatButton"
+                         toolTip="{resourceManager.getString('common', 'send.message.button')}"
+                         click="onChatBtnClick(event)"/>
+        </mx:GridItem>
+        <mx:GridItem width="70" paddingRight="3" styleName="rightAlignedContainer">
+            <mx:Label text="{data.totalPlayed}"/>
+        </mx:GridItem>
+        <mx:GridItem width="70" paddingRight="3" styleName="rightAlignedContainer">
+            <mx:Label text="{data.totalWinningsCount}"/>
+        </mx:GridItem>
+        <mx:GridItem width="100" paddingRight="7" styleName="rightAlignedContainer">
+            <mx:Label text="{data.totalDefeatsCount} ({data.totalBankruptsCount})"/>
+        </mx:GridItem>
+    </mx:GridRow>
+
+    <!--<mx:GridRow width="100%">
+        <mx:GridItem width="240" colSpan="2">
+            <mx:Label text="{data.userName}" styleName="userNameLabelStyle"/>
+        </mx:GridItem>
+        <mx:GridItem width="40" styleName="cellWithBottomBorder">
+            <mx:Label text="{data.totalPlayed}"/>
+        </mx:GridItem>
+        <mx:GridItem width="40" styleName="cellWithBottomBorder">
+            <mx:Label text="{data.totalWinningsCount}"/>
+        </mx:GridItem>
+        <mx:GridItem width="60" styleName="cellWithBottomBorder">
+            <mx:Label text="{data.totalDefeatsCount} ({data.totalBankruptsCount})"/>
+        </mx:GridItem>
+    </mx:GridRow>
+    <mx:Repeater id="gameVariantsRep" dataProvider="{data.scoreGroupedByGameVariant}">
+        <mx:GridRow width="100%">
+            <mx:GridItem width="100">
+                <c:Avatar avatar="{data.avatar}" includeInLayout="{gameVariantsRep.currentIndex == 0}" visible="{gameVariantsRep.currentIndex == 0}"/>
+            </mx:GridItem>
+            <mx:GridItem width="140">
+                <mx:VBox width="100%" height="100%" verticalGap="0">
+                    <mx:Label text="{resourceManager.getString('common', gameVariantsRep.currentItem.gameVariantName)}" truncateToFit="true"/>
+                    <mx:Label
+                            text="{resourceManager.getString('common', 'score.moves.number.label', [gameVariantsRep.currentItem.movesQuantity])}"/>
+                </mx:VBox>
+            </mx:GridItem>
+            <mx:GridItem width="40" verticalAlign="bottom">
+                <mx:Label text="{gameVariantsRep.currentItem.totalPlayed}"/>
+            </mx:GridItem>
+            <mx:GridItem width="40" verticalAlign="bottom">
+                <mx:Label text="{gameVariantsRep.currentItem.totalWinningsCount}"/>
+            </mx:GridItem>
+            <mx:GridItem width="60" verticalAlign="bottom">
+                <mx:Label text="{gameVariantsRep.currentItem.totalDefeatsCount} ({gameVariantsRep.currentItem.totalBankruptsCount})"/>
+            </mx:GridItem>
+        </mx:GridRow>
+        <mx:Repeater id="moveOrderRep" dataProvider="{gameVariantsRep.currentItem.scoreGroupedByMoveOrder}">
+            <mx:GridRow width="100%">
+                <mx:GridItem width="40%"/>
+                <mx:GridItem width="25%"/>
+                <mx:GridItem width="10%">
+                    <mx:Label text="{moveOrderRep.currentItem.moveOrder}"/>
+                </mx:GridItem>
+                <mx:GridItem width="10%" verticalAlign="bottom">
+                    <mx:Label text="{moveOrderRep.currentItem.winningsCount}"/>
+                </mx:GridItem>
+                <mx:GridItem width="15%" verticalAlign="bottom">
+                    <mx:Label text="{moveOrderRep.currentItem.defeatsCount} ({moveOrderRep.currentItem.bankruptsCount})"/>
+                </mx:GridItem>
+            </mx:GridRow>
+        </mx:Repeater>
+    </mx:Repeater>-->
+</mx:Grid>

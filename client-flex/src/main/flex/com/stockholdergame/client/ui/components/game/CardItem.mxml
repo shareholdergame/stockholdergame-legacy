@@ -1,0 +1,134 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml"
+         xmlns:game="com.stockholdergame.client.ui.components.game.*"
+         width="{card.card.groupName == 'card.group.big' ? 75 : 65}"
+         height="{card.card.groupName == 'card.group.big' ? 115 : 100}"
+         verticalAlign="top" verticalGap="0" styleName="whiteBoxWithBorder">
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.CompetitorCardDto;
+        import com.stockholdergame.client.model.dto.game.SharePriceDto;
+        import com.stockholdergame.client.model.dto.game.variant.CardOperationDto;
+        import com.stockholdergame.client.model.dto.view.CardOperationItemSelectionDto;
+        import com.stockholdergame.client.ui.components.*;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+
+        import mx.collections.ArrayCollection;
+        import mx.controls.Menu;
+        import mx.events.MenuEvent;
+
+        [Bindable]
+        private var card:CompetitorCardDto;
+
+        [Bindable]
+        private var _cardOperations:ArrayCollection;
+
+        private var menu:Menu;
+
+        private var point1:Point = new Point();
+
+        [Bindable]
+        private var shares:ArrayCollection;
+
+        private var selectedPriceOperationId:Number;
+
+        private var _readyToApply:Boolean = false;
+
+        public function get dataProvider():Object {
+            return {card: card, shares: shares};
+        }
+
+        public function set dataProvider(value:Object):void {
+            card = value.card;
+            _cardOperations = card.card.cardOperations;
+            shares = value.shares;
+        }
+
+        public function get cardOperations():ArrayCollection {
+            return _cardOperations;
+        }
+
+        public function get readyToApply():Boolean {
+            return _readyToApply;
+        }
+
+        public function get isApplied():Boolean {
+            return card.applied;
+        }
+
+        public function set isApplied(value:Boolean):void {
+            card.applied = value;
+        }
+
+        public function get moveNumber():int {
+            return card.moveNumber;
+        }
+
+        public function set moveNumber(value:int):void {
+            card.moveNumber = value;
+        }
+
+        private function filterShares(shares:ArrayCollection, addEmptyItem:Boolean):ArrayCollection {
+            var filteredShares:ArrayCollection = new ArrayCollection();
+            for each (var share:SharePriceDto in shares) {
+                var isFound:Boolean = false;
+                for each (var cardOperation:CardOperationDto in _cardOperations) {
+                    if (share.id == cardOperation.shareId) {
+                        isFound = true;
+                    }
+                }
+                if (!isFound) {
+                    filteredShares.addItem(share);
+                }
+            }
+            if (addEmptyItem) {
+                filteredShares.addItem(createUndefinedShare());
+            }
+            return filteredShares;
+        }
+
+        private static function createUndefinedShare():SharePriceDto {
+            var sharePrice:SharePriceDto = new SharePriceDto();
+            sharePrice.id = 0;
+            sharePrice.color = "white";
+            return sharePrice;
+        }
+
+        private function handleClick(event:BusinessEvent):void {
+            var cardoperationItemSelection:CardOperationItemSelectionDto = CardOperationItemSelectionDto(event.data);
+            selectedPriceOperationId = cardoperationItemSelection.priceOperationId;
+            if (shares != null) {
+                menu = Menu.createMenu(this, filterShares(shares, cardoperationItemSelection.shareId != 0), false);
+                menu.width = 70;
+                menu.itemRenderer = new ClassFactory(ShareMenuRenderer);
+                menu.addEventListener(MenuEvent.ITEM_CLICK, handleMenuItemClick);
+                point1.x = event.currentTarget.x;
+                point1.y = event.currentTarget.y;
+                point1 = this.contentToGlobal(point1);
+                menu.show(point1.x + 5, point1.y + 5);
+            }
+        }
+
+        private function handleMenuItemClick(event:MenuEvent):void {
+            var share:SharePriceDto = SharePriceDto(event.itemRenderer.data);
+            var foundUnassignedOperation:Boolean = false;
+            for each (var cardOperation:CardOperationDto in _cardOperations) {
+                if (cardOperation.priceOperationId == selectedPriceOperationId) {
+                    cardOperation.shareId = share.id;
+                    cardOperation.shareColor = share.color;
+                }
+                if (cardOperation.shareId == 0) {
+                    foundUnassignedOperation = true;
+                }
+            }
+            operationRep.dataProvider = _cardOperations;
+            _readyToApply = !foundUnassignedOperation;
+        }
+        ]]></mx:Script>
+
+    <mx:Repeater id="operationRep" dataProvider="{_cardOperations}">
+        <game:CardOperationItem cardOperation="{operationRep.currentItem}" clickOperationItem="handleClick(event)"
+                             height="24" width="100%"/>
+    </mx:Repeater>
+    <mx:Spacer height="100%"/>
+</mx:VBox>

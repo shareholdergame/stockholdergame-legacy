@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC
+    "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+    "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+
+<hibernate-mapping>
+    <query name="Score.findBySecondGamerIds">
+        select s from Score s where s.id.firstGamerId = ?1 and s.id.secondGamerId in (?2) and s.id.rulesVersion in (?3)
+    </query>
+    <query name="Score.findByFirstGamerId">
+        select s.id.secondGamerId, ga.userName from Score s, GamerAccount ga
+        where s.id.secondGamerId = ga.id and s.id.firstGamerId = ?1 and ga.userName like ?2 and s.id.rulesVersion in (?3)
+        group by s.id.secondGamerId order by 2
+    </query>
+    <sql-query name="Score.countScorers">
+        <return-scalar column="score_count" type="long"/>
+        select count(*) score_count from (select s.second_gamer_id from fg_scores s, a_gamer_accounts a
+        where s.second_gamer_id = a.gamer_id and s.first_gamer_id = ?1 and a.user_name like ?2 and s.rules_version in (?3) group by 1) sc;
+    </sql-query>
+    <query name="Score.countTotalScore">
+        select new com.stockholdergame.server.model.game.TotalScoreProjection((sum(s.winningsCount) + sum(s.defeatsCount)),
+            sum(s.winningsCount), sum(s.defeatsCount), sum(s.bankruptsCount)) from Score s
+        where s.id.firstGamerId = ?1 and s.id.rulesVersion in (?2)
+        group by s.id.firstGamerId
+    </query>
+</hibernate-mapping>

@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<mx:Grid xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:c="com.stockholdergame.client.ui.components.*"
+         styleName="{competitor != null &amp;&amp; (showTotal &amp;&amp; competitor.winner) ? 'winnerBox'
+         : (competitor.moveOrder == 0 &amp;&amp; competitor.initiator) ? 'initiatorBox' : 'transparentBox'}"
+         toolTip="{competitor.moveOrder == 0 &amp;&amp; competitor.initiator ? resourceManager.getString('common', 'initiator.label') : ''}"
+         verticalGap="2">
+
+    <mx:Metadata>
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.InvitationDto;
+        import com.stockholdergame.client.model.dto.game.lite.CompetitorLiteDto;
+
+        [Bindable]
+        public var competitor:CompetitorLiteDto;
+
+        [Bindable]
+        public var smallSize:Boolean;
+
+        [Bindable]
+        public var noAvatar:Boolean;
+
+        [Bindable]
+        public var showTotal:Boolean;
+        ]]></mx:Script>
+
+    <mx:GridRow width="100%" visible="{competitor.moveOrder > 0 || showTotal}" includeInLayout="{competitor.moveOrder > 0 || showTotal}"
+                height="{smallSize ? 14 : 18}">
+        <mx:GridItem width="100%" height="100%">
+            <mx:Image source="@Embed(source='/images/curr-user-pointer.png')" visible="{competitor.currentMove &amp;&amp; !smallSize}"
+                      includeInLayout="{competitor.currentMove &amp;&amp; !smallSize}"/>
+            <mx:Image source="@Embed(source='/images/curr-user-pointer-small.png')" visible="{competitor.currentMove &amp;&amp; smallSize}"
+                      includeInLayout="{competitor.currentMove &amp;&amp; smallSize}"/>
+            <mx:Label text="{competitor.totalFunds}" styleName="{competitor.winner ? 'boldFont' : 'normalFont'}"
+                      visible="{!smallSize &amp;&amp; showTotal}" includeInLayout="{!smallSize &amp;&amp; showTotal}"/>
+        </mx:GridItem>
+    </mx:GridRow>
+    <mx:GridRow width="100%" visible="{competitor.moveOrder == 0 &amp;&amp; !showTotal}"
+                includeInLayout="{competitor.moveOrder == 0 &amp;&amp; !showTotal}" height="20">
+        <mx:GridItem width="100%" height="100%">
+            <mx:Image source="@Embed(source='/images/accept-small.png')"
+                      visible="{competitor.invitationStatus == InvitationDto.ACCEPTED &amp;&amp; !competitor.initiator}"
+                      includeInLayout="{competitor.invitationStatus == InvitationDto.ACCEPTED &amp;&amp; !competitor.initiator}"
+                      toolTip="{resourceManager.getString('common', 'invitation.accepted')}"/>
+            <mx:Image source="@Embed(source='/images/reject-small.png')"
+                      visible="{competitor.invitationStatus == InvitationDto.REJECTED &amp;&amp; !competitor.initiator}"
+                      includeInLayout="{competitor.invitationStatus == InvitationDto.REJECTED &amp;&amp; !competitor.initiator}"
+                      toolTip="{resourceManager.getString('common', 'invitation.rejected')}"/>
+        </mx:GridItem>
+    </mx:GridRow>
+    <mx:GridRow width="100%">
+        <mx:GridItem width="100%" height="100%">
+            <c:UserView user="{competitor}" width="{smallSize ? 42 : 64}" noAvatar="{noAvatar}"
+                        userNameLabelStyleName="{competitor.out ? 'competitorOutFont' : smallSize ? (competitor.bot ? 'botNameNormalFont' : 'userNameNormalFont') : (competitor.bot ? 'botNameBigFont' : 'userNameBigFont')}"/>
+        </mx:GridItem>
+    </mx:GridRow>
+</mx:Grid>

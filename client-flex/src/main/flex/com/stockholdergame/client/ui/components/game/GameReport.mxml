@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:list="com.stockholdergame.client.ui.components.list.*">
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.GameDto;
+
+        private static const REPORT_VIEW:String = "report-view";
+
+        [Bindable]
+        public var game:GameDto;
+
+        [Bindable]
+        public var zyrianovStyle:Boolean = false;
+
+        ]]></mx:Script>
+
+    <!--<mx:HBox width="100%" height="20" styleName="dark2Box">
+        <mx:Label width="33%" textAlign="center" text="{resourceManager.getString('common', 'sell.buy.step.label')}" styleName="lightBoldFont"/>
+        <mx:Label width="34%" textAlign="center" text="{resourceManager.getString('common', 'share.price.change.step.label')}"
+                  styleName="lightBoldFont"/>
+        <mx:Label width="33%" textAlign="center" text="{resourceManager.getString('common', 'buy.sell.step.label')}" styleName="lightBoldFont"/>
+    </mx:HBox>
+    <mx:Spacer height="3"/>-->
+    <mx:VBox width="100%" height="100%" styleName="dark2Box">
+        <mx:HBox width="100%" height="20" styleName="leftAlignedContainer">
+            <mx:HBox width="72">
+                <mx:Label text="{resourceManager.getString('common', 'move.label')}"
+                          styleName="lightBoldFont" width="68" truncateToFit="true" textAlign="center"/>
+            </mx:HBox>
+            <mx:Repeater id="shareRep" dataProvider="{game.currentSharePrices}">
+                <mx:VBox backgroundColor="{StyleManager.getColorName(shareRep.currentItem.color)}"
+                         width="63" height="100%"/>
+            </mx:Repeater>
+            <mx:HBox width="63">
+                <mx:Label text="{resourceManager.getString('common', 'cash.label')}"
+                          styleName="lightBoldFont" width="58" truncateToFit="true" textAlign="center"/>
+            </mx:HBox>
+            <mx:HBox width="68">
+                <mx:Label text="{resourceManager.getString('common', 'cards.label')}"
+                          styleName="lightBoldFont" width="58" truncateToFit="true" textAlign="center"/>
+            </mx:HBox>
+            <mx:Repeater id="shareRep1" dataProvider="{game.currentSharePrices}">
+                <mx:VBox backgroundColor="{StyleManager.getColorName(shareRep1.currentItem.color)}"
+                         width="63"
+                         height="100%"/>
+            </mx:Repeater>
+            <mx:HBox width="68">
+                <mx:Label text="{resourceManager.getString('common', 'cash.label')}"
+                          styleName="lightBoldFont" width="58" truncateToFit="true" textAlign="center"/>
+            </mx:HBox>
+            <mx:Repeater id="shareRep2" dataProvider="{game.currentSharePrices}">
+                <mx:VBox backgroundColor="{StyleManager.getColorName(shareRep2.currentItem.color)}"
+                         width="63"
+                         height="100%"/>
+            </mx:Repeater>
+            <mx:HBox width="62">
+                <mx:Label text="{resourceManager.getString('common', 'cash.label')}"
+                          styleName="lightBoldFont" width="58" truncateToFit="true" textAlign="center"/>
+            </mx:HBox>
+        </mx:HBox>
+        <list:MoveList id="movesList" width="100%" height="100%" dataProvider="{game.movesWithoutZero}" zyrianovStyle="{zyrianovStyle}"/>
+    </mx:VBox>
+</mx:VBox>

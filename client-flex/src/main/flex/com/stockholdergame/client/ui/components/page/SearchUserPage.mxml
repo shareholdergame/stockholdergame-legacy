@@ -1,0 +1,404 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:list="com.stockholdergame.client.ui.components.list.*"
+         xmlns:c="com.stockholdergame.client.ui.components.*"
+         styleName="page" currentState="{SEARCH_STATE}"
+         implements="com.stockholdergame.client.ui.components.page.IRefreshablePage"
+         creationComplete="onCreationComplete()" show="onShow()">
+
+    <mx:Metadata>
+        [Event(name="filterUsers", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="sendFriendRequest", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="changeFriendRequestStatus", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="initiateGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="editInvitations", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="cancelGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showInvitationsPage", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showSendMessageDialog", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.ProfileDto;
+        import com.stockholdergame.client.model.dto.account.CreateFriendRequestDto;
+        import com.stockholdergame.client.model.dto.account.FriendRequestStatusDto;
+        import com.stockholdergame.client.model.dto.account.UserDto;
+        import com.stockholdergame.client.model.dto.account.UserFilterDto;
+        import com.stockholdergame.client.model.dto.account.UserViewDto;
+        import com.stockholdergame.client.model.dto.game.ChangeInvitationStatusDto;
+        import com.stockholdergame.client.model.dto.game.CreateInvitationDto;
+        import com.stockholdergame.client.model.dto.game.EditInvitationsDto;
+        import com.stockholdergame.client.model.dto.game.GameDto;
+        import com.stockholdergame.client.model.dto.game.GameInitiationDto;
+        import com.stockholdergame.client.model.dto.game.InvitationDto;
+        import com.stockholdergame.client.model.dto.game.lite.CompetitorLiteDto;
+        import com.stockholdergame.client.model.dto.game.variant.GameVariantDto;
+        import com.stockholdergame.client.model.dto.view.UserSelectionDto;
+        import com.stockholdergame.client.model.session.SessionManager;
+        import com.stockholdergame.client.ui.components.list.events.PaginationEvent;
+        import com.stockholdergame.client.ui.components.list.listClasses.UserListAction;
+        import com.stockholdergame.client.ui.components.page.pageClasses.SearchUserPageData;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+        import com.stockholdergame.client.ui.events.UserFilterEvent;
+
+        import mx.collections.ArrayCollection;
+        import mx.controls.Alert;
+
+        public static const SEARCH_STATE:String = "searchState";
+        public static const INVITE_STATE:String = "inviteState";
+
+        [Bindable]
+        private var _pageData:SearchUserPageData;
+
+        [Bindable]
+        private var invitedUsers:ArrayCollection;
+
+        private var savedFilters:Dictionary = new Dictionary();
+
+        private var showFirstTime:Dictionary = new Dictionary();
+
+        public function get pageData():SearchUserPageData {
+            return _pageData;
+        }
+
+        public function set pageData(value:SearchUserPageData):void {
+            _pageData = value;
+            if (_pageData != null) {
+                currentState = _pageData.state;
+                if (_pageData.game != null) {
+                    invitedUsers = _pageData.game.invitedUsers;
+                }
+            } else {
+                currentState = SEARCH_STATE;
+            }
+        }
+
+        private function onShow():void {
+            var filter:UserFilterDto;
+            if (savedFilters[currentState] == null) {
+                filter = new UserFilterDto();
+                if (currentState == SEARCH_STATE) {
+                    filter.friendFilters = [UserFilterDto.OTHER];
+                } else {
+                    filter.friendFilters = null;
+                }
+                savedFilters[currentState] = filter;
+            } else {
+                filter = savedFilters[currentState];
+            }
+            usersFilter.filter = filter;
+            refreshData();
+        }
+
+        public function refreshData():void {
+            usersFilter.filter.maxResults = paginationBar.paginationData.limit;
+            usersFilter.filter.offset = paginationBar.paginationData.offset;
+            var filter:UserFilterDto = usersFilter.filter;
+            dispatchEvent(new BusinessEvent(BusinessActions.FILTER_USERS, mergeFilter(filter), true, true));
+        }
+
+        private function mergeFilter(filter:UserFilterDto):UserFilterDto {
+            if (currentState == INVITE_STATE) {
+                var mergedFilter:UserFilterDto = new UserFilterDto();
+                mergedFilter.maxResults = filter.maxResults;
+                mergedFilter.offset = filter.offset;
+                mergedFilter.userName = filter.userName;
+                mergedFilter.city = filter.city;
+                mergedFilter.country = filter.country;
+                mergedFilter.friendFilters = filter.friendFilters;
+                mergedFilter.gameId = filter.gameId;
+                mergedFilter.locale = filter.locale;
+                mergedFilter.sex = filter.sex;
+                mergedFilter.showRemoved = filter.showRemoved;
+                mergedFilter.userNames = filter.userNames;
+
+                var selectedUsers:ArrayCollection = invitedUsers;
+                var excludedUserNames:ArrayCollection = new ArrayCollection();
+                for each (var userViewDto:UserViewDto in selectedUsers) {
+                    excludedUserNames.addItem(userViewDto.userName);
+                }
+                mergedFilter.excludedUserNames = excludedUserNames.toArray();
+
+                return mergedFilter;
+            } else {
+                return filter;
+            }
+        }
+
+        private function onCreationComplete():void {
+            usersList.addEventListener(BusinessActions.USER_SELECTED, onUserSelected);
+        }
+
+        private function onUserSelected(event:BusinessEvent):void {
+            event.stopImmediatePropagation();
+
+            var userSelection:UserSelectionDto = UserSelectionDto(event.data);
+            var action:UserListAction = userSelection.action;
+
+            if (UserListAction.ACCEPT_FRIEND_ACTION == action || UserListAction.REJECT_FRIEND_ACTION == action) {
+                var friendRequestStatus:FriendRequestStatusDto = new FriendRequestStatusDto();
+                friendRequestStatus.requestorName = userSelection.user.userName;
+                friendRequestStatus.status = action == UserListAction.REJECT_FRIEND_ACTION
+                        ? FriendRequestStatusDto.REJECTED : FriendRequestStatusDto.CONFIRMED;
+                dispatchEvent(new BusinessEvent(BusinessActions.CHANGE_FRIEND_REQUEST_STATUS, friendRequestStatus));
+            } else if (UserListAction.ADD_FRIEND_ACTION == action) {
+                var createFrientRequest:CreateFriendRequestDto = new CreateFriendRequestDto();
+                createFrientRequest.userName = userSelection.user.userName;
+                dispatchEvent(new BusinessEvent(BusinessActions.SEND_FRIEND_REQUEST, createFrientRequest));
+            } else if (UserListAction.CANCEL_FRIEND_REQUEST_ACTION == action) {
+                dispatchEvent(new BusinessEvent(BusinessActions.CANCEL_FRIEND_REQUEST, userSelection.user.userName));
+            } else if (UserListAction.SEND_MESSAGE_ACTION == action) {
+                var chatParticipants:ArrayCollection = new ArrayCollection();
+                chatParticipants.addItem(userSelection.user);
+                dispatchEvent(new BusinessEvent(BusinessActions.SHOW_SEND_MESSAGE_DIALOG, chatParticipants));
+            } else if (UserListAction.INVITE_ACTION == action) {
+                var gameVariant:GameVariantDto = SessionManager.instance.getGameVariantHolder(_pageData.game.gameVariantId).gameVariant;
+                if ((gameVariant.maxGamersQuantity - 1) - invitedUsers.length > 0) {
+                    invitedUsers.addItem(convertToCompetitor(userSelection.user));
+                    refreshData();
+                }
+            } else if (UserListAction.CANCEL_INVITATION_ACTION == action) {
+                invitedUsers.removeItemAt(invitedUsers.getItemIndex(userSelection.user));
+                refreshData();
+            }
+        }
+
+        private static function convertToCompetitor(user:UserViewDto):CompetitorLiteDto {
+            var competitor:CompetitorLiteDto = new CompetitorLiteDto();
+            competitor.userName = user.userName;
+            competitor.avatar = user.avatar;
+            competitor.invitationStatus = InvitationDto.CREATED;
+            return competitor;
+        }
+
+        private static function addUserToList(usersList:UserList, user:UserDto):void {
+            var users:ArrayCollection = ArrayCollection(usersList.dataProvider);
+            if (users == null) {
+                users = new ArrayCollection();
+            }
+            users.addItem(user);
+            usersList.dataProvider = users;
+        }
+
+        private static function removeUserFromList(usersList:UserList, user:UserDto):void {
+            var users:ArrayCollection = ArrayCollection(usersList.dataProvider);
+            if (users == null) {
+                return;
+            }
+            users.removeItemAt(users.getItemIndex(user));
+        }
+
+        public function markUserAsFriendRequestee(userName:String):void {
+            var users:ArrayCollection = ArrayCollection(usersList.dataProvider);
+            for (var i:int = 0; i < users.length; i++) {
+                var user:UserDto = users[i];
+                if (user.userName == userName) {
+                    if (currentState == SEARCH_STATE) {
+                        user.friendRequestee = true;
+                    }
+                }
+            }
+        }
+
+        private function onStartNewGameBtnClick(event:MouseEvent):void {
+            var selectedUsers:ArrayCollection = invitedUsers;
+            if (_pageData.game.id != 0 && !isNaN(_pageData.game.id)) {
+                var invitationDto:CreateInvitationDto;
+                var inviteeNames:ArrayCollection = new ArrayCollection();
+                for each (var userDto:UserViewDto in selectedUsers) {
+                    if (!isContainsUser(ArrayCollection(_pageData.game.invitedUsers), userDto.userName)) {
+                        inviteeNames.addItem(userDto.userName);
+                    }
+                }
+                if (inviteeNames.length > 0) {
+                    invitationDto = new CreateInvitationDto();
+                    invitationDto.gameId = _pageData.game.id;
+                    invitationDto.inviteeNames = inviteeNames.toArray();
+                }
+
+                var cancelledInvitationUserNames:ArrayCollection = new ArrayCollection();
+                for each (var competitor:CompetitorLiteDto in _pageData.game.invitedUsers) {
+                    var isFound:Boolean = false;
+                    for each (var userDto2:UserViewDto in selectedUsers) {
+                        if (competitor.userName == userDto2.userName) {
+                            isFound = true;
+                            break;
+                        }
+                    }
+                    if (!isFound) {
+                        cancelledInvitationUserNames.addItem(competitor.userName);
+                    }
+                }
+                var changeInvitationDto:ChangeInvitationStatusDto;
+                if (cancelledInvitationUserNames.length > 0) {
+                    changeInvitationDto = new ChangeInvitationStatusDto();
+                    changeInvitationDto.gameId = _pageData.game.id;
+                    changeInvitationDto.inviteeNames = cancelledInvitationUserNames.toArray();
+                    changeInvitationDto.status = InvitationDto.CANCELLED;
+                }
+
+                if (invitationDto != null || changeInvitationDto != null) {
+                    dispatchEvent(new BusinessEvent(BusinessActions.EDIT_INVITATIONS, new EditInvitationsDto(changeInvitationDto, invitationDto)));
+                } else {
+                    dispatchEvent(new BusinessEvent(BusinessActions.SHOW_INVITATIONS_PAGE));
+                }
+            } else {
+                var gameInitiationDto:GameInitiationDto = new GameInitiationDto(_pageData.game.gameVariantId, false);
+                gameInitiationDto.switchMoveOrder = switchMoveOrderToggleBtn.flag;
+                //gameInitiationDto.rounding = roundingToggleBtn.flag ? GameDto.ROUND_DOWN : GameDto.ROUND_UP;
+                for each (var userDto1:UserViewDto in selectedUsers) {
+                    gameInitiationDto.invitedUsers.addItem(userDto1.userName);
+                }
+                dispatchEvent(new BusinessEvent(BusinessActions.INITIATE_GAME, gameInitiationDto));
+            }
+        }
+
+        private static function isContainsUser(invitedUsers:ArrayCollection, userName:String):Boolean {
+            for each (var competitorLiteDto:CompetitorLiteDto in invitedUsers) {
+                if (competitorLiteDto.userName == userName) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private function onEnterInviteState():void {
+            paginationBar.reset();
+            resetInviteeList();
+        }
+
+        private function onResetBtnClick(event:MouseEvent):void {
+            resetInviteeList();
+            refreshData();
+        }
+
+        private static function convertCompetitorToUser(userView:UserViewDto):UserDto {
+            var userDto:UserDto = new UserDto();
+            userDto.userName = userView.userName;
+            userDto.profile = new ProfileDto();
+            userDto.profile.avatar = userView.avatar;
+            return userDto;
+        }
+
+        private function resetInviteeList():void {
+            if (invitedUsers != null) {
+                invitedUsers.removeAll();
+            }
+            invitedUsers = _pageData.game.invitedUsers;
+        }
+
+        private function onFilterApplied(event:UserFilterEvent):void {
+            savedFilters[currentState] = event.userFilter;
+            refreshData();
+        }
+
+        private function onPageChanged(event:PaginationEvent):void {
+            refreshData();
+        }
+
+        private function onInvitationSelected(event:BusinessEvent):void {
+            event.stopImmediatePropagation();
+
+            var userSelection:UserSelectionDto = UserSelectionDto(event.data);
+            var action:UserListAction = userSelection.action;
+
+            if (UserListAction.CANCEL_INVITATION_ACTION == action) {
+                invitedUsers.removeItemAt(invitedUsers.getItemIndex(userSelection.user));
+                refreshData();
+            } else if (UserListAction.SEND_MESSAGE_ACTION == action) {
+                var chatParticipants:ArrayCollection = new ArrayCollection();
+                chatParticipants.addItem(convertCompetitorToUser(userSelection.user));
+                dispatchEvent(new BusinessEvent(BusinessActions.SHOW_SEND_MESSAGE_DIALOG, chatParticipants));
+            }
+        }
+
+        /*private function onCancelGameButtonClick(event:MouseEvent):void {
+         dispatchEvent(new BusinessEvent(BusinessActions.CANCEL_GAME, _pageData.game.id, true, true));
+         }*/
+        private function onExitState():void {
+            savedFilters[currentState] = usersFilter.filter;
+        }
+
+        private function onEnterSearchState():void {
+            paginationBar.reset();
+        }
+
+        public function clearData():void {
+        }
+        ]]></mx:Script>
+
+    <mx:states>
+        <mx:State name="{SEARCH_STATE}" enterState="onEnterSearchState()" exitState="onExitState()">
+            <mx:SetProperty target="{searchPageTitleLabel}" name="text" value="{resourceManager.getString('common', 'search.user.title')}"/>
+        </mx:State>
+        <mx:State name="{INVITE_STATE}" enterState="onEnterInviteState()" exitState="onExitState()">
+            <mx:SetProperty target="{searchPageTitleLabel}" name="text" value="{resourceManager.getString('common', 'invite.user.title')}"/>
+            <mx:AddChild position="firstChild" relativeTo="{contentBox}">
+                <mx:Grid width="100%" styleName="listItem" height="220">
+                    <mx:GridRow height="36" width="100%">
+                        <mx:GridItem width="100%" horizontalAlign="center" verticalAlign="middle" paddingLeft="0" paddingRight="0">
+                            <mx:Label id="gameVariantNameLabel"
+                                      text="{resourceManager.getString('common', _pageData.game.gameVariantName)}" styleName="largeBoldFont"/>
+                            <mx:Label text="{resourceManager.getString('common', 'moves.number.label', [_pageData.game.movesQuantity])}"
+                                      styleName="largeBoldFont"/>
+                            <mx:Spacer width="10"/>
+                            <!--<c:LinkToggleButton id="roundingToggleBtn" falseIcon="@Embed('/images/rounding-up.png')"
+                                                trueIcon="@Embed('/images/rounding-down.png')"
+                                                falseLabel="{resourceManager.getString('common', 'rounding.nohtml.label', [resourceManager.getString('common', GameDto.ROUND_UP)])}"
+                                                trueLabel="{resourceManager.getString('common', 'rounding.nohtml.label', [resourceManager.getString('common', GameDto.ROUND_DOWN)])}"
+                                                btnEnabled="{!(_pageData.game.id != 0 &amp;&amp; !isNaN(_pageData.game.id))}"
+                                                width="180"/>-->
+                            <mx:Spacer width="5"/>
+                            <c:LinkToggleButton id="switchMoveOrderToggleBtn" falseIcon="@Embed('/images/transparent.png')"
+                                                trueIcon="@Embed('/images/switch.png')"
+                                                flag="{_pageData.game.switchMoveOrder}"
+                                                falseLabel="{resourceManager.getString('common', 'single.game.label')}"
+                                                trueLabel="{resourceManager.getString('common', 'switch.move.order.label')}"
+                                                btnEnabled="{!(_pageData.game.id != 0 &amp;&amp; !isNaN(_pageData.game.id))}"
+                                                width="240"/>
+                            <mx:Label text=" - " styleName="largeBoldFont"/>
+                            <mx:Label text="{resourceManager.getString('common', 'invited.users.label')}" styleName="largeBoldFont"/>
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow height="100%" width="100%">
+                        <mx:GridItem width="100%" height="100%" styleName="containerWithGaps">
+                            <mx:Repeater id="inviteesRep" dataProvider="{invitedUsers}">
+                                <c:UserInvitation width="96" competitor="{inviteesRep.currentItem}" userSelected="{onInvitationSelected(event)}"
+                                                  styleName="light2Box"/>
+                            </mx:Repeater>
+                        </mx:GridItem>
+                    </mx:GridRow>
+                    <mx:GridRow width="100%">
+                        <mx:GridItem width="100%" height="36" styleName="listItemControlBar">
+                            <c:StkButton id="startGameBtn" label="{resourceManager.getString('common', 'start.game.title')}"
+                                         click="onStartNewGameBtnClick(event)" enabled="{invitedUsers.length > 0}"/>
+                            <c:StkButton id="resetBtn" label="{resourceManager.getString('common', 'reset.button.label')}"
+                                         click="onResetBtnClick(event)" enabled="{invitedUsers.length > 0}"/>
+                            <!--<mx:Button id="cancelGameBtn" label="{resourceManager.getString('common', 'cancel.game.label')}"
+                                       visible="{!(_pageData.game.id != 0 &amp;&amp; !isNaN(_pageData.game.id))}"
+                                       includeInLayout="{!(_pageData.game.id != 0 &amp;&amp; !isNaN(_pageData.game.id))}"
+                                       click="onCancelGameButtonClick(event)"/>-->
+                        </mx:GridItem>
+                    </mx:GridRow>
+                </mx:Grid>
+            </mx:AddChild>
+        </mx:State>
+    </mx:states>
+
+    <mx:HBox width="100%" height="36" styleName="pageHeaderBox">
+        <mx:Label id="searchPageTitleLabel" styleName="lightLargeBoldFont"/>
+    </mx:HBox>
+    <mx:VBox id="contentBox" width="100%" height="100%" styleName="pageContentBox" verticalGap="5">
+        <mx:HBox width="100%" height="100%">
+            <c:UserFilter height="100%" width="20%" id="usersFilter" friendFilterDisabled="{currentState == SEARCH_STATE}"
+                          filterApplied="onFilterApplied(event)"/>
+            <mx:VBox width="80%" height="100%">
+                <list:UserList width="100%" height="100%" id="usersList" styleName="darkBox"
+                               showInvitationButton="{currentState == INVITE_STATE}"
+                               showFriendFunctionButtons="{currentState == SEARCH_STATE}" columnCount="3"/>
+                <list:PaginationBar id="paginationBar" width="100%" height="32" pageChanged="onPageChanged(event)"
+                                    itemsPerPage="{currentState == SEARCH_STATE ? 18 : 12}"/>
+            </mx:VBox>
+        </mx:HBox>
+    </mx:VBox>
+</mx:VBox>

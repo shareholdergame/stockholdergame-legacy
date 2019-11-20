@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<r:BaseListItemRenderer xmlns:mx="http://www.adobe.com/2006/mxml"
+                        xmlns:r="com.stockholdergame.client.ui.components.list.renderers.*"
+                        xmlns:list="com.stockholdergame.client.ui.components.list.items.*">
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.lite.GameLiteDto;
+        ]]></mx:Script>
+
+    <list:GameListItem game="{GameLiteDto(data)}"/>
+
+</r:BaseListItemRenderer>

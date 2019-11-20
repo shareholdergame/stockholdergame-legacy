@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml"
+         xmlns:c="com.stockholdergame.client.ui.components.*">
+
+    <mx:Metadata>
+        [Event(name="buySellShare", type="com.stockholdergame.client.ui.events.BuySellShareEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.BuySellOperation;
+        import com.stockholdergame.client.model.dto.game.BuySellStep;
+
+        import com.stockholdergame.client.ui.events.BuySellShareEvent;
+
+        import mx.collections.ArrayCollection;
+        import mx.utils.ObjectUtil;
+
+        [Bindable]
+        private var _buySellStep:BuySellStep;
+
+        private var _defaultBuySellStep:BuySellStep;
+
+        public function get buySellStep():BuySellStep {
+            return _buySellStep;
+        }
+
+        public function set buySellStep(value:BuySellStep):void {
+            _buySellStep = value;
+            _defaultBuySellStep = createStepCopy(value);
+        }
+
+        private function handleBuySell(event:BuySellShareEvent):void {
+            resetButton.visible = true;
+            _buySellStep.cash += (event.value * event.buySellOperation.price);
+            for each (var buySellOperation:BuySellOperation in _buySellStep.operations) {
+                buySellOperation.canBuyQuantity = _buySellStep.cash > 0 ? int(_buySellStep.cash / buySellOperation.price) : 0;
+            }
+            buySellRep.dataProvider = _buySellStep.operations;
+            dispatchEvent(event);
+        }
+
+        private function handleResetButton(event:MouseEvent):void {
+            resetButton.visible = false;
+            _buySellStep.cash = _defaultBuySellStep.cash;
+            var operations:ArrayCollection = _buySellStep.operations;
+            var defOperations:ArrayCollection = _defaultBuySellStep.operations;
+            for each (var buySellOperation:BuySellOperation in operations) {
+                for each (var defBuySellOperation:BuySellOperation in defOperations) {
+                    if (buySellOperation.shareId == defBuySellOperation.shareId) {
+                        buySellOperation.quantity = defBuySellOperation.quantity;
+                        buySellOperation.canBuyQuantity = defBuySellOperation.canBuyQuantity;
+                        buySellOperation.buySellQuantity = defBuySellOperation.buySellQuantity;
+                        buySellOperation.lockedQuantity = defBuySellOperation.lockedQuantity;
+                    }
+                }
+            }
+            buySellRep.dataProvider = _buySellStep.operations;
+            dispatchEvent(new BuySellShareEvent(BuySellShareEvent.BUY_SELL_SHARE, 0, null));
+        }
+
+        private static function createStepCopy(value:BuySellStep):BuySellStep {
+            registerClassAlias("com.stockholdergame.client.model.dto.game.BuySellStep", BuySellStep);
+            registerClassAlias("com.stockholdergame.client.model.dto.game.BuySellOperation", BuySellOperation);
+            return BuySellStep(ObjectUtil.copy(value));
+        }
+
+        public function reset():void {
+            handleResetButton(null);
+        }
+        ]]></mx:Script>
+
+    <mx:Repeater id="buySellRep" dataProvider="{_buySellStep.operations}">
+        <c:CustomNumericStepper width="120" height="100%"
+                                buySellShare="{handleBuySell(event)}"
+                                buySellOperation="{buySellRep.currentItem}"/>
+    </mx:Repeater>
+    <mx:VBox width="110" height="100%">
+        <mx:Label text="{_buySellStep.cash}" styleName="{_buySellStep.cash &lt; 0 ? 'normalAttentionFont' : 'normalFont'}"
+                  toolTip="{_buySellStep.cash &lt; 0 ? resourceManager.getString('common', 'pay.fine.warning') : ''}"/>
+        <c:StkLinkButton id="resetButton" label="{resourceManager.getString('common', 'reset.button.label')}" click="handleResetButton(event)" visible="false"/>
+    </mx:VBox>
+
+</mx:HBox>

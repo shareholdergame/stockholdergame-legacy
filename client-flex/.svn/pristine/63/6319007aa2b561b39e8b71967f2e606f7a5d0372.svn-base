@@ -1,0 +1,103 @@
+<?xml version="1.0"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:c="com.stockholdergame.client.ui.components.*"
+         horizontalGap="2" styleName="leftAlignedContainer">
+
+    <mx:Metadata>
+        [Event(name="inlineEditValueCommitted", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="inlineEditValueChanged", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+
+        [Bindable]
+        public var editButtonToolTip:String;
+
+        [Bindable]
+        public var okButtonToolTip:String;
+
+        [Bindable]
+        public var cancelButtonToolTip:String;
+
+        [Bindable]
+        public var value:String;
+
+        [Bindable]
+        public var readOnly:Boolean;
+
+        [Bindable]
+        private var editState:Boolean;
+
+        [Bindable]
+        public var switchEditStateOnOk:Boolean = true;
+
+        [Bindable]
+        public var labelStyleName:String;
+
+        [Bindable]
+        public var maxChars:int = 0;
+
+        private var oldValue:String;
+
+        private function onEditRtnClick(event:MouseEvent):void {
+            editState = true;
+            focusManager.setFocus(valueTextInput);
+            oldValue = value;
+        }
+
+        private function onOkRtnClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.INLINE_EDIT_VALUE_COMMITTED, value));
+            if (switchEditStateOnOk) {
+                editState = false;
+                oldValue = value;
+            }
+        }
+
+        private function onCancelRtnClick(event:MouseEvent):void {
+            editState = false;
+            value = oldValue;
+        }
+
+        private function onChangeValue(event:Event):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.INLINE_EDIT_VALUE_CHANGED, valueTextInput.text));
+        }
+
+        public function markContentAsWrong(isWrong:Boolean):void {
+            if (editState) {
+                valueTextInput.setStyle("color", StyleManager.getColorName(isWrong ? "red" : "green"));
+            }
+        }
+
+        public function commitValue():void {
+            if (editState) {
+                editState = false;
+                oldValue = value;
+            }
+        }
+
+        private function onKeyDown(event:KeyboardEvent):void {
+            if ((event.keyCode == Keyboard.ENTER || event.keyCode == Keyboard.NUMPAD_ENTER) && !event.altKey && !event.ctrlKey && !event.shiftKey) {
+                onOkRtnClick(null);
+            }
+        }
+        ]]></mx:Script>
+
+    <mx:Binding destination="value" source="valueTextInput.text"/>
+
+    <mx:Label id="valueLabel" text="{value}" styleName="{labelStyleName}"
+              visible="{!editState}" includeInLayout="{!editState}"/>
+    <c:StkButton id="editBtn" styleName="editButton" click="onEditRtnClick(event)"
+                 visible="{!readOnly &amp;&amp; !editState}" includeInLayout="{!readOnly &amp;&amp; !editState}"
+                 toolTip="{editButtonToolTip}"/>
+    <mx:TextInput id="valueTextInput" width="100%" text="{value}" maxChars="{maxChars}"
+                  visible="{!readOnly &amp;&amp; editState}" includeInLayout="{!readOnly &amp;&amp; editState}"
+                  change="onChangeValue(event)" keyDown="onKeyDown(event)"/>
+    <c:StkButton id="okBtn" styleName="okButton" click="onOkRtnClick(event)"
+                 visible="{!readOnly &amp;&amp; editState}" includeInLayout="{!readOnly &amp;&amp; editState}"
+                 toolTip="{okButtonToolTip}"/>
+    <c:StkButton id="cancelBtn" styleName="cancelButton" click="onCancelRtnClick(event)"
+                 visible="{!readOnly &amp;&amp; editState}" includeInLayout="{!readOnly &amp;&amp; editState}"
+                 toolTip="{cancelButtonToolTip}"/>
+
+</mx:HBox>

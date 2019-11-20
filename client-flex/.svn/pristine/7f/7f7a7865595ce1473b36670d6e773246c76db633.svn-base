@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<mx:List xmlns:mx="http://www.adobe.com/2006/mxml"
+         selectable="false" variableRowHeight="true"
+         itemRenderer="com.stockholdergame.client.ui.components.list.renderers.FinishedMoveListItemRenderer">
+
+    <mx:Script><![CDATA[
+        private var _zyrianovStyle:Boolean;
+
+        [Bindable]
+        public function get zyrianovStyle():Boolean {
+            return _zyrianovStyle;
+        }
+
+        public function set zyrianovStyle(value:Boolean):void {
+            var oldStyle:Boolean = _zyrianovStyle;
+            _zyrianovStyle = value;
+            if (oldStyle != _zyrianovStyle) {
+                this.invalidateList();
+            }
+        }
+        ]]></mx:Script>
+</mx:List>

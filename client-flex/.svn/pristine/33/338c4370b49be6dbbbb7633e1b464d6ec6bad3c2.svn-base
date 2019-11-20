@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<list:BaseListItemRenderer xmlns:mx="http://www.adobe.com/2006/mxml"
+                           xmlns:list="com.stockholdergame.client.ui.components.list.renderers.*"
+                           styleName="leftAlignedContainer"
+                           updateComplete="updateTextColor()">
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.ui.components.dialog.dialogClasses.UserChat;
+
+        import mx.controls.List;
+
+        protected function updateTextColor():void {
+            var highlighted:Boolean = List(this.owner).isItemHighlighted(this.data);
+            var selected:Boolean = List(this.owner).isItemSelected(this.data);
+            chatNameLabel.styleName = selected || highlighted ? 'lightBoldFont' : 'boldFont';
+        }
+        ]]></mx:Script>
+
+    <mx:Text id="chatNameLabel" text="{UserChat(data).chatName}" truncateToFit="true" width="130"/>
+    <mx:Label id="newMessagesCountLabel" text="{UserChat(data).newMessagesCount > 0 ? '' + UserChat(data).newMessagesCount : ''}"
+              styleName="normalAttentionFont" width="10" textAlign="left"/>
+</list:BaseListItemRenderer>

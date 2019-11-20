@@ -1,0 +1,20 @@
+server.domain.name = StockholderGame.com
+
+mail.registration.confirmation = Подтверждение регистрации
+mail.password.reset = Пароль переустановлен
+mail.remove.account.confirmation = Операция удаления аккаунта инициирована
+mail.restore.account.confirmation = Операция восстановления аккаунта инициирована
+mail.new.email.confirmation = Подтверждение нового E-Mail
+mail.new.invitation = Вам пришло приглашение на партию
+mail.move.done = Ход сделан
+mail.game.interrupted = Партия прервана
+mail.user.joined = Пользователь присоединился к партии
+mail.game.started = Игра началась
+mail.invitation.rejected = Приглашение на партию было отклонено
+mail.invitation.cancelled = Приглашение на партию было отменено
+mail.game.cancelled = Партия была отменена
+mail.application.exception = Произошла ошибка
+mail.unread.chat.messages = Новые сообщения в чате
+
+internal.server.error = Внутренняя ошибка сервера
+flex.session.not.available = Couldn't initialize session for user {0}. Flex session is not available

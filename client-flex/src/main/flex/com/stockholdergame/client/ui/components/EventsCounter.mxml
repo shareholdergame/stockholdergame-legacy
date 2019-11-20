@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml">
+
+    <mx:Metadata>
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        [Bindable]
+        public var value:int = 0;
+
+        ]]></mx:Script>
+
+    <mx:Label id="newMessagesCountLabel" text="{resourceManager.getString('common', 'new.messages.count', [value])}"
+              styleName="messagesCounterStyle"/>
+</mx:HBox>

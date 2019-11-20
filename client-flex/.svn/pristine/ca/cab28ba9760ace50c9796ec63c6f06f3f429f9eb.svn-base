@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:c="com.stockholdergame.client.ui.components.*"
+         styleName="containerWithGaps" currentState="{DEFAULT_FILTER}">
+
+    <mx:Metadata>
+        [Event(name="filterApplied", type="com.stockholdergame.client.ui.events.GameFilterEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.ui.components.classes.GameFilterData;
+        import com.stockholdergame.client.ui.events.GameFilterEvent;
+
+        import mx.managers.PopUpManager;
+
+        [Bindable]
+        public var labelStyleName:String;
+
+        [Bindable]
+        private var gameFilterForm:GameFilterForm;
+
+        [Bindable]
+        public var filterByGameVariant:Boolean = true;
+
+        private const DEFAULT_FILTER:String = "defaultFilter";
+        private const FILTER_APPLIED:String = "filterApplied";
+
+        public function get filterData():GameFilterData {
+            return gameFilterForm != null ? gameFilterForm.filterData : new GameFilterData();
+        }
+
+        private function onFilterBtnClick(event:MouseEvent):void {
+            if (gameFilterForm != null && gameFilterForm.isPopUp) {
+                PopUpManager.removePopUp(gameFilterForm);
+            } else {
+                if (gameFilterForm == null) {
+                    gameFilterForm = GameFilterForm(PopUpManager.createPopUp(this, GameFilterForm));
+                    gameFilterForm.filterByGameVariant = filterByGameVariant;
+                    gameFilterForm.addEventListener(GameFilterEvent.FILTER_APPLIED, onGameFilterApplied);
+                } else {
+                    PopUpManager.addPopUp(gameFilterForm, this);
+                }
+                var p:Point = this.localToGlobal(new Point(0, 0));
+                gameFilterForm.x = p.x + this.width - gameFilterForm.width;
+                gameFilterForm.y = p.y + this.height;
+                PopUpManager.bringToFront(gameFilterForm);
+            }
+        }
+
+        private function onGameFilterApplied(event:GameFilterEvent):void {
+            currentState = isDefaultFilter(event.filterData) ? DEFAULT_FILTER : FILTER_APPLIED;
+            userNameLabel.text = event.filterData.userName;
+            gameVariantLabel.text = event.filterData.gameVariantName;
+            dispatchEvent(new GameFilterEvent(event.filterData));
+        }
+
+        private static function isDefaultFilter(filterData:GameFilterData):Boolean {
+            return (filterData.gameVariantId == 0 || isNaN(filterData.gameVariantId))
+                    && (filterData.userName == null || filterData.userName.length == 0);
+        }
+
+        ]]></mx:Script>
+
+    <mx:states>
+        <mx:State name="{DEFAULT_FILTER}">
+        </mx:State>
+        <mx:State name="{FILTER_APPLIED}">
+            <mx:AddChild position="firstChild">
+                <c:StkButton id="resetFilterBtn" styleName="clearFilterButton" toolTip="{resourceManager.getString('common', 'reset.button')}"
+                             click="gameFilterForm.resetFilter()"/>
+            </mx:AddChild>
+            <mx:AddChild position="firstChild">
+                <mx:VBox height="100%">
+                    <mx:Label id="userNameLabel" styleName="{labelStyleName}"/>
+                    <mx:Label id="gameVariantLabel" styleName="{labelStyleName}"
+                              includeInLayout="{filterByGameVariant}" visible="{filterByGameVariant}"/>
+                </mx:VBox>
+            </mx:AddChild>
+        </mx:State>
+    </mx:states>
+
+    <c:StkButton id="filterBtn" styleName="filterButton" toolTip="{resourceManager.getString('common', 'filter.button')}"
+                 click="onFilterBtnClick(event)"/>
+</mx:HBox>

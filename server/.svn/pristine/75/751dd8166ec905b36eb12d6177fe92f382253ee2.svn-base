@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="
+           http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd">
+
+    <bean id="mailJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject" ref="mailService"/>
+        <property name="targetMethod" value="send"/>
+        <property name="concurrent" value="false"/>
+    </bean>
+
+    <bean id="mailTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
+        <property name="jobDetail" ref="mailJob"/>
+        <property name="startDelay" value="10000"/>
+        <property name="repeatInterval" value="${send.mail.repeat.interval}"/>
+    </bean>
+
+    <bean id="failedMailJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject" ref="mailService"/>
+        <property name="targetMethod" value="sendFailedMessages"/>
+        <property name="concurrent" value="false"/>
+    </bean>
+
+    <bean id="failedMailTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
+        <property name="jobDetail" ref="failedMailJob"/>
+        <property name="startDelay" value="20000"/>
+        <property name="repeatInterval" value="${failed.mail.repeat.interval}"/>
+    </bean>
+
+    <bean id="removeAccountJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject" ref="accountAdministrationService"/>
+        <property name="targetMethod" value="transferRemovedToRemovedCompletely"/>
+        <property name="concurrent" value="false"/>
+    </bean>
+
+    <bean id="removeAccountTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="removeAccountJob"/>
+        <property name="cronExpression" value="${remove.account.cron.exp}" />
+    </bean>
+
+    <bean id="accountOpeartionJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject" ref="accountAdministrationService"/>
+        <property name="targetMethod" value="cancelOperationsWithExpiredTerm"/>
+        <property name="concurrent" value="false"/>
+    </bean>
+
+    <bean id="accountOpeartionTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="accountOpeartionJob"/>
+        <property name="cronExpression" value="${account.operation.cron.exp}" />
+    </bean>
+
+    <bean id="gameArchiverJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject" ref="finishedGamesArchiverService"/>
+        <property name="targetMethod" value="archiveFinishedGames"/>
+        <property name="concurrent" value="false"/>
+    </bean>
+
+    <bean id="gameArchiverTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="gameArchiverJob"/>
+        <property name="cronExpression" value="${game.archiver.cron.exp}" />
+    </bean>
+
+    <bean id="statisticsJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject" ref="statisticsService"/>
+        <property name="targetMethod" value="collectServerStatistics"/>
+        <property name="concurrent" value="false"/>
+    </bean>
+
+    <bean id="statisticsTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
+        <property name="jobDetail" ref="statisticsJob"/>
+        <property name="startDelay" value="5000"/>
+        <property name="repeatInterval" value="${statistics.repeat.interval}"/>
+    </bean>
+
+    <bean id="chatNotificationJob"
+          class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject" ref="chatService"/>
+        <property name="targetMethod" value="notifyByEmail"/>
+        <property name="concurrent" value="false"/>
+    </bean>
+
+    <bean id="chatNotificationTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="chatNotificationJob"/>
+        <property name="cronExpression" value="${chat.notification.cron.exp}" />
+    </bean>
+
+    <bean id="invitationExpirationJob"
+          class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject" ref="invitationService"/>
+        <property name="targetMethod" value="dropExpiredInvitations"/>
+        <property name="concurrent" value="false"/>
+    </bean>
+
+    <bean id="invitationExpirationTrigger"
+          class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="invitationExpirationJob"/>
+        <property name="cronExpression" value="${invitation.expiration.cron.exp}" />
+    </bean>
+
+    <bean id="gameOfferExpirationJob"
+          class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject" ref="gameService"/>
+        <property name="targetMethod" value="dropExpiredGameOffers"/>
+        <property name="concurrent" value="false"/>
+    </bean>
+
+    <bean id="gameOfferExpirationTrigger"
+          class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="gameOfferExpirationJob"/>
+        <property name="cronExpression" value="${game.offer.expiration.cron.exp}" />
+    </bean>
+
+    <bean id="gameInterruptionJob"
+          class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject" ref="gameService"/>
+        <property name="targetMethod" value="interruptGames"/>
+        <property name="concurrent" value="false"/>
+    </bean>
+
+    <bean id="gameInterruptionTrigger"
+          class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="gameInterruptionJob"/>
+        <property name="cronExpression" value="${game.interruption.cron.exp}" />
+    </bean>
+
+    <bean id="cleanGamesJob"
+          class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject" ref="finishedGamesArchiverService"/>
+        <property name="targetMethod" value="cleanGames"/>
+        <property name="concurrent" value="false"/>
+    </bean>
+
+    <bean id="cleanGamesTrigger"
+          class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="cleanGamesJob"/>
+        <property name="cronExpression" value="${clean.games.cron.exp}" />
+    </bean>
+
+    <bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+        <property name="triggers">
+            <list>
+                <ref bean="mailTrigger"/>
+                <ref bean="failedMailTrigger"/>
+                <ref bean="removeAccountTrigger"/>
+                <ref bean="accountOpeartionTrigger"/>
+                <ref bean="gameArchiverTrigger"/>
+                <ref bean="statisticsTrigger"/>
+                <ref bean="invitationExpirationTrigger"/>
+                <ref bean="gameOfferExpirationTrigger"/>
+                <ref bean="gameInterruptionTrigger"/>
+                <ref bean="cleanGamesTrigger"/>
+                <ref bean="chatNotificationTrigger"/>
+            </list>
+        </property>
+    </bean>
+</beans>

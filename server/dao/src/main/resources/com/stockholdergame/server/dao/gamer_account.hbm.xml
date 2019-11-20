@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC
+    "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+    "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+
+<hibernate-mapping>
+    <query name="GamerAccount.findByUniqueParams">
+        select ga from GamerAccount ga where lower(ga.userName) = lower(?) or ga.email = ?
+    </query>
+    <query name="GamerAccount.findByUserName">
+        select ga from GamerAccount ga where lower(ga.userName) = lower(?)
+    </query>
+    <query name="GamerAccount.findByEmail">
+        select ga from GamerAccount ga where ga.email = ?
+    </query>
+    <query name="GamerAccount.findRemovedGamerIdsWithExpiredTerm">
+        <![CDATA[
+        select ga.id from GamerAccount ga where ga.status = com.stockholdergame.server.model.account.AccountStatus.REMOVED
+        and ga.removalDate < ?
+        ]]>
+    </query>
+    <query name="GamerAccount.findBots">
+        select ga from GamerAccount ga where ga.isBot = true
+    </query>
+</hibernate-mapping>

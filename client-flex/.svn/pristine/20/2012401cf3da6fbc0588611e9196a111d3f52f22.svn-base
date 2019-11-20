@@ -1,0 +1,78 @@
+<?xml version="1.0"?>
+<list:BaseListItemRenderer xmlns:mx="http://www.adobe.com/2006/mxml"
+                           xmlns:c="com.stockholdergame.client.ui.components.*"
+                           xmlns:list="com.stockholdergame.client.ui.components.list.renderers.*">
+
+    <mx:Metadata>
+        [Event(name="joinToGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="changeInvitationStatus", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="cancelGame", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="showInviteUserDialog", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.ChangeInvitationStatusDto;
+        import com.stockholdergame.client.model.dto.game.GameDto;
+        import com.stockholdergame.client.model.dto.game.InvitationDto;
+        import com.stockholdergame.client.model.dto.game.lite.CompetitorLiteDto;
+        import com.stockholdergame.client.model.dto.game.lite.GameLiteDto;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+        import com.stockholdergame.client.util.StringUtil;
+
+        private function handleJoinToGameButtonClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.JOIN_TO_GAME, data.id, true, true));
+        }
+
+        private function handleCancelGameButtonClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.CANCEL_GAME, data.id, true, true));
+        }
+
+        private function onInviteUserButtonClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.SHOW_INVITE_USER_DIALOG, data, true, true));
+        }
+
+        private function onAcceptInvitation(event:BusinessEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.JOIN_TO_GAME, data.id, true, true));
+        }
+
+        private function onRejectInvitation(event:BusinessEvent):void {
+            redispatchInvitationEvent(InvitationDto.REJECTED, null);
+        }
+
+        private function redispatchInvitationEvent(newStatus:String, inviteeName:String = null):void {
+            var invitationStatus:ChangeInvitationStatusDto = new ChangeInvitationStatusDto();
+            invitationStatus.gameId = data.id;
+            invitationStatus.inviteeNames = [inviteeName];
+            invitationStatus.status = newStatus;
+            dispatchEvent(new BusinessEvent(BusinessActions.CHANGE_INVITATION_STATUS, invitationStatus, true, true));
+        }
+        ]]></mx:Script>
+
+    <mx:VBox styleName="listItemContentBox" height="148">
+        <mx:HBox width="100%" height="24">
+            <!--<mx:Image source="@Embed('/images/rounding-up-16.png')" visible="{data.rounding == GameDto.ROUND_UP}" includeInLayout="{data.rounding == GameDto.ROUND_UP}"
+                      toolTip="{resourceManager.getString('common', 'rounding.label', [resourceManager.getString('common', data.rounding)])}"/>
+            <mx:Image source="@Embed('/images/rounding-down-16.png')" visible="{data.rounding == GameDto.ROUND_DOWN}" includeInLayout="{data.rounding == GameDto.ROUND_DOWN}"
+                      toolTip="{resourceManager.getString('common', 'rounding.label', [resourceManager.getString('common', data.rounding)])}"/>-->
+            <mx:Image source="@Embed('/images/switch-16.png')" visible="{data.switchMoveOrder}" includeInLayout="{data.switchMoveOrder}"
+                      toolTip="{resourceManager.getString('common', 'switch.move.order.label')}"/>
+        </mx:HBox>
+        <c:UserView user="{GameLiteDto(data).initiator}" width="96" userNameLabelStyleName="{GameLiteDto(data).initiator.bot ? 'botNameBigFont' : 'userNameBigFont'}"/>
+        <mx:HBox width="100%" height="36">
+            <c:StkButton styleName="joinGameButton" toolTip="{resourceManager.getString('common', 'join.to.game.label')}"
+                         visible="{!data.currentUserInitiator &amp;&amp; data.initiationMethod == GameDto.GAME_OFFER}"
+                         includeInLayout="{!data.currentUserInitiator &amp;&amp; data.initiationMethod == GameDto.GAME_OFFER}"
+                         click="handleJoinToGameButtonClick(event)"/>
+            <c:StkButton id="inviteUserBtn" styleName="invitationButton" toolTip="{resourceManager.getString('common', 'invite.users.label')}"
+                         visible="{data.currentUserInitiator &amp;&amp; data.initiationMethod == GameDto.INVITATION}"
+                         includeInLayout="{data.currentUserInitiator &amp;&amp; data.initiationMethod == GameDto.INVITATION}"
+                         click="onInviteUserButtonClick(event)"/>
+            <c:StkButton id="cancelGameBtn" styleName="cancelButton" toolTip="{resourceManager.getString('common', 'cancel.game.label')}"
+                         visible="{data.currentUserInitiator}"
+                         includeInLayout="{data.currentUserInitiator}"
+                         click="handleCancelGameButtonClick(event)"/>
+        </mx:HBox>
+    </mx:VBox>
+</list:BaseListItemRenderer>

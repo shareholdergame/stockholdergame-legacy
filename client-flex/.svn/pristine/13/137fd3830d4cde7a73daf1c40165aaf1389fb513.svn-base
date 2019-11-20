@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:c="com.stockholdergame.client.ui.components.*" verticalGap="0" verticalAlign="middle"
+         horizontalAlign="center"
+         horizontalScrollPolicy="off" verticalScrollPolicy="off">
+
+    <mx:Metadata>
+        [Event(name="buySellShare", type="com.stockholdergame.client.ui.events.BuySellShareEvent")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.BuySellOperation;
+        import com.stockholdergame.client.ui.events.BuySellShareEvent;
+
+        import mx.events.NumericStepperEvent;
+
+        [Bindable]
+        private var _buySellOperation:BuySellOperation;
+
+        [Bindable]
+        private var remaining:int;
+
+        [Bindable]
+        private var minimum:int;
+
+        [Bindable]
+        private var maximum:int;
+
+        public function get buySellOperation():BuySellOperation {
+            return _buySellOperation;
+        }
+
+        public function set buySellOperation(value:BuySellOperation):void {
+            _buySellOperation = value;
+            minimum = -(_buySellOperation.quantity - _buySellOperation.lockedQuantity);
+            maximum = _buySellOperation.buySellQuantity + _buySellOperation.canBuyQuantity;
+            remaining = _buySellOperation.quantity + _buySellOperation.buySellQuantity;
+        }
+
+        private function handleChange(event:NumericStepperEvent):void {
+            var value:int = event.value;
+            buySellShare(value);
+        }
+
+        private function buySellShare(value:int):void {
+            var amount:int = _buySellOperation.buySellQuantity - value;
+            _buySellOperation.buySellQuantity = value;
+            remaining = _buySellOperation.quantity + _buySellOperation.buySellQuantity;
+            dispatchEvent(new BuySellShareEvent(BuySellShareEvent.BUY_SELL_SHARE, amount, _buySellOperation));
+        }
+
+        private function onSellAllBtnClick(event:MouseEvent):void {
+            buySellShare(-(_buySellOperation.quantity - _buySellOperation.lockedQuantity));
+        }
+        ]]></mx:Script>
+
+    <mx:HBox width="100%">
+        <mx:Label id="quantityLabel" text="{remaining + (_buySellOperation.lockedQuantity > 0 ? ' (' + _buySellOperation.lockedQuantity + ')' : '')}"/>
+        <c:StkButton id="sellAllBtn" click="onSellAllBtnClick(event)" styleName="sellAllButton"
+                   toolTip="{resourceManager.getString('common', 'sell.all.button.tooltip')}"
+                   visible="{remaining > 0}" includeInLayout="{remaining > 0}"/>
+    </mx:HBox>
+    <mx:HBox width="100%" horizontalGap="0">
+        <mx:Label id="maxLabel" text="{'+' + _buySellOperation.canBuyQuantity}" visible="{_buySellOperation.canBuyQuantity > 0}"/>
+        <mx:NumericStepper id="buySellStepper" minimum="{minimum}" maximum="{maximum}" change="handleChange(event)" value="{_buySellOperation.buySellQuantity}"
+                           width="65"/>
+    </mx:HBox>
+</mx:VBox>

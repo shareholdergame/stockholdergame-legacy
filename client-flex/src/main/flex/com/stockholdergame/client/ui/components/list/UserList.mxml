@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<mx:TileList xmlns:mx="http://www.adobe.com/2006/mxml"
+             selectable="false"
+             itemRenderer="com.stockholdergame.client.ui.components.list.renderers.UserListItemRenderer">
+
+    <mx:Script><![CDATA[
+        public var showFriendFunctionButtons:Boolean;
+        public var showInvitationButton:Boolean;
+        public var showCancelInvitationButton:Boolean;
+        ]]></mx:Script>
+
+</mx:TileList>

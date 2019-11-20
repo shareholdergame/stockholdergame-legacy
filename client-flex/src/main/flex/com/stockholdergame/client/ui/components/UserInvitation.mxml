@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:c="com.stockholdergame.client.ui.components.*"
+         xmlns:game="com.stockholdergame.client.ui.components.game.*">
+
+    <mx:Metadata>
+        [Event(name="userSelected", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.game.InvitationDto;
+        import com.stockholdergame.client.model.dto.game.lite.CompetitorLiteDto;
+        import com.stockholdergame.client.model.dto.view.UserSelectionDto;
+        import com.stockholdergame.client.model.session.SessionManager;
+        import com.stockholdergame.client.ui.components.list.listClasses.UserListAction;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+
+        import mx.controls.Button;
+
+        [Bindable]
+        public var competitor:CompetitorLiteDto;
+
+        private function onItemBtnClick(event:MouseEvent):void {
+            var action:UserListAction = defineAction(Button(event.currentTarget));
+            if (action != null) {
+                dispatchEvent(new BusinessEvent(BusinessActions.USER_SELECTED, new UserSelectionDto(competitor, action), true, true));
+            }
+        }
+
+        private static function defineAction(currentTarget:Button):UserListAction {
+            if (currentTarget.id == "cancelInvitationBtn") {
+                return UserListAction.CANCEL_INVITATION_ACTION;
+            } else if (currentTarget.id == "sendMsgBtn") {
+                return UserListAction.SEND_MESSAGE_ACTION;
+            } else {
+                return null;
+            }
+        }
+
+        ]]></mx:Script>
+
+    <game:CompetitorView competitor="{competitor}" height="100%" width="100%"/>
+
+    <mx:HBox width="100%" height="36" styleName="listItemControlBar">
+        <c:StkButton id="sendMsgBtn" styleName="chatButton"
+                     toolTip="{resourceManager.getString('common', 'send.message.button')}"
+                     click="onItemBtnClick(event)"/>
+        <c:StkButton id="cancelInvitationBtn" styleName="cancelInvitationButton"
+                     toolTip="{resourceManager.getString('common', 'cancel.invitation.button')}"
+                     click="onItemBtnClick(event)"
+                     visible="{competitor.invitationStatus == InvitationDto.CREATED &amp;&amp; !SessionManager.instance.isRemoved()}"
+                     includeInLayout="{competitor.invitationStatus == InvitationDto.CREATED &amp;&amp; !SessionManager.instance.isRemoved()}"/>
+    </mx:HBox>
+
+</mx:VBox>

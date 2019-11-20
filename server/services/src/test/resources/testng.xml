@@ -1,0 +1,11 @@
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="servicesSuite">
+    <test name="servicePackages">
+        <packages>
+            <package name="com.stockholdergame.server.helpers"/>
+            <package name="com.stockholdergame.server.services"/>
+            <package name="com.stockholdergame.server.services.account.impl"/>
+            <package name="com.stockholdergame.server.services.game.impl"/>
+        </packages>
+    </test>
+</suite>

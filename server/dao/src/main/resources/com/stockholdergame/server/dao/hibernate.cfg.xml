@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE hibernate-configuration PUBLIC
+    "-//Hibernate/Hibernate Configuration DTD//EN"
+    "http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+
+<hibernate-configuration>
+    <session-factory>
+        <mapping resource="com/stockholdergame/server/dao/gamer_account.hbm.xml"/>
+        <mapping resource="com/stockholdergame/server/dao/account_operation.hbm.xml"/>
+        <mapping resource="com/stockholdergame/server/dao/message.hbm.xml"/>
+        <mapping resource="com/stockholdergame/server/dao/profile.hbm.xml"/>
+        <mapping resource="com/stockholdergame/server/dao/game_variant.hbm.xml"/>
+        <mapping resource="com/stockholdergame/server/dao/game.hbm.xml"/>
+        <mapping resource="com/stockholdergame/server/dao/finished_game.hbm.xml"/>
+        <mapping resource="com/stockholdergame/server/dao/invitation.hbm.xml"/>
+        <mapping resource="com/stockholdergame/server/dao/friend_request.hbm.xml"/>
+        <mapping resource="com/stockholdergame/server/dao/friend.hbm.xml"/>
+        <mapping resource="com/stockholdergame/server/dao/user_session_log.hbm.xml"/>
+        <mapping resource="com/stockholdergame/server/dao/chat_message.hbm.xml"/>
+        <mapping resource="com/stockholdergame/server/dao/game_event.hbm.xml"/>
+        <mapping resource="com/stockholdergame/server/dao/score.hbm.xml"/>
+        <mapping resource="com/stockholdergame/server/dao/game_series_result.hbm.xml"/>
+        <mapping resource="com/stockholdergame/server/dao/statistics.hbm.xml"/>
+    </session-factory>
+</hibernate-configuration>

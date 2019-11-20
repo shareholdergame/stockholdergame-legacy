@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:c="com.stockholdergame.client.ui.components.*"
+         styleName="{flag ? trueStyle : falseStyle}">
+
+  <mx:Script><![CDATA[
+    [Bindable]
+    public var flag:Boolean = false;
+
+    [Bindable]
+    public var falseIcon:Object;
+
+    [Bindable]
+    public var trueIcon:Object;
+
+    [Bindable]
+    public var falseLabel:String;
+
+    [Bindable]
+    public var trueLabel:String;
+
+    [Bindable]
+    public var trueStyle:String = "light2Box";
+
+    [Bindable]
+    public var falseStyle:String = "lightBox";
+
+    [Bindable]
+    public var btnEnabled:Boolean = true;
+
+    private function onClick(event:MouseEvent):void {
+        flag = !flag;
+    }
+
+    ]]></mx:Script>
+
+  <mx:Image source="{flag ? trueIcon : falseIcon}"/>
+  <c:StkLinkButton label="{flag ? trueLabel : falseLabel}" click="onClick(event)" id="linkBtn" enabled="{btnEnabled}"/>
+</mx:HBox>

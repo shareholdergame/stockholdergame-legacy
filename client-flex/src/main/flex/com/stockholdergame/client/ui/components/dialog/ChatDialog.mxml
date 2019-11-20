@@ -1,0 +1,277 @@
+<?xml version="1.0"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:c="com.stockholdergame.client.ui.components.*"
+                title="{resourceManager.getString('common', 'message.input.title')}"
+                width="750" verticalGap="0" height="600"
+                showCloseButton="true" close="closeDialog()" horizontalAlign="left" creationComplete="init()" move="onMove(event)">
+
+    <mx:Metadata>
+        [Event(name="sendMessage", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="getChatHistory", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [Event(name="clearChatHistory", type="com.stockholdergame.client.ui.events.BusinessEvent")]
+        [ResourceBundle("common")]
+    </mx:Metadata>
+
+    <mx:Script><![CDATA[
+        import com.stockholdergame.client.model.dto.account.ChatHistoryDto;
+        import com.stockholdergame.client.model.dto.account.ChatMessageDto;
+        import com.stockholdergame.client.model.dto.account.GetChatHistoryDto;
+        import com.stockholdergame.client.model.dto.account.SendMessageDto;
+        import com.stockholdergame.client.model.dto.account.UserDto;
+        import com.stockholdergame.client.model.dto.account.UserViewDto;
+        import com.stockholdergame.client.model.session.SessionManager;
+        import com.stockholdergame.client.ui.components.dialog.dialogClasses.ChatMessage;
+        import com.stockholdergame.client.ui.components.dialog.dialogClasses.UserChat;
+        import com.stockholdergame.client.ui.components.dialog.dialogClasses.UserChat;
+        import com.stockholdergame.client.ui.components.dialog.dialogClasses.UserChat;
+        import com.stockholdergame.client.ui.events.BusinessActions;
+        import com.stockholdergame.client.ui.events.BusinessEvent;
+        import com.stockholdergame.client.util.DateUtil;
+        import com.stockholdergame.client.util.collection.CollectionUtil;
+
+        import mx.charts.chartClasses.DateRangeUtilities;
+
+        import mx.collections.ArrayCollection;
+
+        import mx.collections.ArrayCollection;
+        import mx.controls.Alert;
+        import mx.core.Application;
+        import mx.events.ListEvent;
+        import mx.events.MenuEvent;
+        import mx.events.MoveEvent;
+
+        import mx.formatters.DateFormatter;
+
+        import mx.managers.PopUpManager;
+        import mx.utils.StringUtil;
+
+        private var _chatsDict:Dictionary = new Dictionary();
+
+        [Bindable]
+        private var _chats:ArrayCollection = new ArrayCollection();
+
+        [Bindable]
+        public var chatHistoryMenuData:Array = [
+            {label: "24 hours", data: "1"},
+            {label: "Last week", data: "7"},
+            {label: "Last month", data: "30"},
+            {label: "All", data: "10000"}
+        ];
+
+        [Bindable]
+        private var currentChat:UserChat;
+
+        private var sendFunctionEnabled:Boolean = true;
+
+        private var timer:Timer;
+
+        private function closeDialog():void {
+            PopUpManager.removePopUp(this);
+        }
+
+        private function onSendBtnClick(event:MouseEvent):void {
+            sendMessage();
+        }
+
+        private function onMessageAreaKeyDown(event:KeyboardEvent):void {
+            if (event.keyCode == 13 && (event.altKey || event.ctrlKey || event.shiftKey)) {
+                sendFunctionEnabled = false;
+            }
+        }
+
+        private function onMessageAreaKeyUp(event:KeyboardEvent):void {
+            if (event.keyCode == 13 && sendFunctionEnabled) {
+                sendMessage();
+            } else {
+                sendFunctionEnabled = true;
+            }
+        }
+
+        private function sendMessage():void {
+            var message:String = StringUtil.trim(messageArea.text);
+            messageArea.text = "";
+            if (message == "") {
+                return;
+            }
+            var sendMessageDto:SendMessageDto = new SendMessageDto();
+            sendMessageDto.recipientNames = currentChat.recipientNames;
+            sendMessageDto.message = message;
+            dispatchEvent(new BusinessEvent(BusinessActions.SEND_MESSAGE, sendMessageDto));
+            var chatMsg:String = currentChat.messagesStack;
+            currentChat.messagesStack = chatMsg + formatMessage(SessionManager.instance.getAccountInfo().userName,
+                    new Date(), sendMessageDto.message);
+        }
+
+        public function startChat(participants:ArrayCollection, isSelectChat:Boolean = true):void {
+            var chat:UserChat = createChat(participants);
+            if (isSelectChat) {
+                selectChat(chat);
+            }
+        }
+
+        private function createChat(participants:ArrayCollection):UserChat {
+            var userNames:Array = [];
+            for each (var user:UserDto in participants) {
+                userNames.push(user.userName);
+            }
+            var chatName:String = buildChatName(userNames);
+            var chat:UserChat;
+            if (_chatsDict[chatName] == null) {
+                chat = new UserChat(chatName, participants);
+                _chatsDict[chatName] = chat;
+                _chats.addItem(chat);
+            } else {
+                chat = _chatsDict[chatName];
+            }
+            return chat;
+        }
+
+        public function showIncomingMessage(chatMessage:ChatMessage):void {
+            var chat:UserChat = createChat(chatMessage.participants);
+            var chatMsg:String = chat.messagesStack;
+            chat.messagesStack = chatMsg + formatMessage(chatMessage.sender.userName, chatMessage.sent,
+                    chatMessage.message);
+            chat.newMessagesCount++;
+            if (currentChat == null) {
+                selectChat(chat);
+            }
+        }
+
+        public function showHistory(chatHistory:ChatHistoryDto, selectThisChat:Boolean = false):void {
+            var participants:ArrayCollection = new ArrayCollection();
+            for each (var name:String in chatHistory.recipientNames) {
+                var recipient:UserDto = new UserDto();
+                recipient.userName = name;
+                participants.addItem(recipient);
+            }
+            var chat:UserChat = createChat(participants);
+            var messages:ArrayCollection = chatHistory.chatMessages;
+            var prevMessages:String = "";
+            for each (var chatMessage:ChatMessageDto in messages) {
+                prevMessages = prevMessages + formatMessage(chatMessage.senderName, chatMessage.sent,
+                        chatMessage.message);
+            }
+            chat.messagesStack = prevMessages;
+            if (selectThisChat) {
+                selectChat(chat);
+            }
+        }
+
+        private static function buildChatName(recipientNames:Array):String {
+            recipientNames.sort();
+            var result:String = "";
+            for each (var name:String in recipientNames) {
+                if (result.length > 0) {
+                    result = result + ", ";
+                }
+                result = result + name;
+            }
+            return result;
+        }
+
+        private static function formatMessage(senderName:String, sent:Date, message:String):String {
+            var formatter:DateFormatter = new DateFormatter();
+            formatter.formatString = "J:NN:SS";
+            var dateFormatter:DateFormatter = new DateFormatter();
+            dateFormatter.formatString = "DD-MM-YYYY J:NN:SS";
+            if (message.lastIndexOf("\n") < 0) {
+                message = message + "\n";
+            }
+            return "[" + (DateUtil.isToday(sent) ? formatter.format(sent) : dateFormatter.format(sent)) + "] <font color=\"#FF0000\">" + senderName + ":</font> " + message;
+        }
+
+        private function onChange(event:ListEvent):void {
+            currentChat = UserChat(chatsList.selectedItem);
+        }
+
+        private function onItemClick(event:MenuEvent):void {
+            var getChatHistory:GetChatHistoryDto = new GetChatHistoryDto();
+            getChatHistory.daysCount = event.item.data;
+            getChatHistory.recipientNames = currentChat.recipientNames;
+            dispatchEvent(new BusinessEvent(BusinessActions.GET_CHAT_HISTORY, getChatHistory));
+        }
+
+        private function onClearHistoryBtnClick(event:MouseEvent):void {
+            dispatchEvent(new BusinessEvent(BusinessActions.CLEAR_CHAT_HISTORY, currentChat.recipientNames));
+        }
+
+        public function cleanCurrentChat():void {
+            currentChat.messagesStack = "";
+        }
+
+        private function selectChat(chat:UserChat):void {
+            chatsList.selectedItem = chat;
+            currentChat = chat;
+            if (this.isPopUp) {
+                timer.start();
+            }
+        }
+
+        public function selectLastChat():void {
+            if (currentChat == null && _chats.length > 0) {
+                selectChat(UserChat(_chats.getItemAt(0)));
+            }
+        }
+
+        private function init():void {
+            timer = new Timer(3000);
+            timer.addEventListener(TimerEvent.TIMER, refreshSelectedChatItem);
+        }
+
+        private function refreshSelectedChatItem(event:TimerEvent):void {
+            if (currentChat != null) {
+                currentChat.newMessagesCount = 0;
+            }
+        }
+
+        private function onMove(event:MoveEvent):void {
+            var appW:Number = Application.application.width;
+            var appH:Number = Application.application.height;
+            if (this.x + this.width > appW) {
+                this.x = appW - this.width;
+            }
+            if (this.x < 0) {
+                this.x = 0;
+            }
+            if (this.y + this.height > appH) {
+                this.y = appH - this.height;
+            }
+            if (this.y < 0) {
+                this.y = 0;
+            }
+        }
+
+        ]]></mx:Script>
+
+    <mx:Binding source="messageArea.text" destination="currentChat.newMessageText"/>
+
+    <mx:HBox width="100%" height="100%" styleName="containerWithGaps">
+        <mx:List id="chatsList" width="180" height="100%" change="onChange(event)" dataProvider="{_chats}"
+                 itemRenderer="com.stockholdergame.client.ui.components.list.renderers.ChatListItemRenderer"
+                 variableRowHeight="true" styleName="zebra"/>
+        <mx:VBox width="100%" height="100%" styleName="containerWithGaps">
+            <mx:HBox width="100%" styleName="containerWithGaps">
+                <mx:Repeater id="chatParticipantsRep" dataProvider="{currentChat.participants}">
+                    <c:UserView user="{UserViewDto(chatParticipantsRep.currentItem)}" userNameLabelStyleName="userNameBigFont" width="64"/>
+                </mx:Repeater>
+            </mx:HBox>
+            <mx:VDividedBox width="100%" height="100%">
+                <mx:TextArea id="chatText" width="100%" height="100%" htmlText="{currentChat.messagesStack}"
+                        editable="false" valueCommit="{chatText.verticalScrollPosition = chatText.maxVerticalScrollPosition}"/>
+                <mx:TextArea id="messageArea" text="{currentChat.newMessageText}" width="100%" height="120" keyDown="onMessageAreaKeyDown(event)"
+                         keyUp="onMessageAreaKeyUp(event)"/>
+            </mx:VDividedBox>
+        </mx:VBox>
+    </mx:HBox>
+
+    <mx:ControlBar width="100%">
+        <mx:Spacer width="100%"/>
+        <c:StkButton id="clearHistoryBtn" label="{resourceManager.getString('common', 'chat.history.clear.button.label')}"
+                     click="onClearHistoryBtnClick(event)"/>
+        <mx:PopUpMenuButton id="chatHistoryBtn" dataProvider="{chatHistoryMenuData}" showRoot="false"
+                            label="{resourceManager.getString('common', 'chat.history.button.label')}"
+                            itemClick="onItemClick(event)"/>
+        <c:StkButton id="okBtn" label="{resourceManager.getString('common', 'send.button')}"
+                     click="onSendBtnClick(event)"/>
+    </mx:ControlBar>
+
+</mx:TitleWindow>
