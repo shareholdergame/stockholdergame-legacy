@@ -14,9 +14,13 @@
     <context:annotation-config/>
     <context:component-scan base-package="com.stockholdergame.server.web.security"/>
 
+    <beans:bean id="oauthEntryPoint" class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
+        <beans:property name="typeName" value="Bearer"/>
+    </beans:bean>
+
     <beans:bean id="entryPoint" class="org.springframework.flex.security3.FlexAuthenticationEntryPoint"/>
 
-    <http entry-point-ref="entryPoint">
+    <http entry-point-ref="entryPoint" pattern="/messagebroker/**">
         <!--<remember-me key="STCKHLDRGAMESERVER"/>-->
         <anonymous granted-authority="ROLE_ANONYMOUS"/>
         <session-management session-fixation-protection="newSession">
