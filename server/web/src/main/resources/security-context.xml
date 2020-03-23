@@ -46,8 +46,8 @@
     </http>
 
     <http entry-point-ref="oauthEntryPoint" pattern="/**" use-expressions="true">
-        <intercept-url pattern="/**" access="permitAll()"/>
-        <intercept-url pattern="/api/**" access="ROLE_USER"/>
+        <!--<intercept-url pattern="/**" access="permitAll()"/>-->
+        <intercept-url pattern="/**" access="hasRole('ROLE_USER')"/>
         <session-management session-authentication-strategy-ref="sas"/>
     </http>
 
