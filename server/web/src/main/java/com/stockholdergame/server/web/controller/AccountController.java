@@ -23,7 +23,7 @@ public class AccountController {
         return "OK";
     }
 
-    @RequestMapping(value = "new", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(value = "/new", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
     public void registerNewUser(@RequestBody RegistrationDto registrationDto) {
         accountService.registerNewUser(registrationDto);
     }

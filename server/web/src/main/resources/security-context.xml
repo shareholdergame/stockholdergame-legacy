@@ -14,12 +14,12 @@
            http://www.springframework.org/schema/security/oauth2
            http://www.springframework.org/schema/security/spring-security-oauth2.xsd">
 
-    <beans:bean id="oauthEntryPoint" class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
+    <beans:bean id="apiEntryPoint" class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
         <beans:property name="realmName" value="user realm"/>
         <beans:property name="typeName" value="Bearer"/>
     </beans:bean>
 
-    <beans:bean id="clientEntryPoint" class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
+    <beans:bean id="authEntryPoint" class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
         <beans:property name="realmName" value="app realm"/>
         <beans:property name="typeName" value="Basic"/>
     </beans:bean>
@@ -36,8 +36,9 @@
     </beans:bean>
 
     <http pattern="/oauth/token" use-expressions="true">
+        <anonymous enabled="false"/>
         <intercept-url pattern="/oauth/token" access="isFullyAuthenticated()"/>
-        <http-basic entry-point-ref="clientEntryPoint"/>
+        <http-basic entry-point-ref="authEntryPoint"/>
     </http>
 
     <http entry-point-ref="entryPoint" pattern="/messagebroker/**">
@@ -45,9 +46,10 @@
         <session-management session-authentication-strategy-ref="sas"/>
     </http>
 
-    <http entry-point-ref="oauthEntryPoint" pattern="/**" use-expressions="true">
-        <!--<intercept-url pattern="/**" access="permitAll()"/>-->
-        <intercept-url pattern="/**" access="hasRole('ROLE_USER')"/>
+    <http pattern="/**" use-expressions="true" entry-point-ref="apiEntryPoint">
+        <anonymous enabled="false"/>
+        <intercept-url pattern="/**" access="isAuthenticated()"/>
+        <custom-filter ref="resourceServerFilter" before="PRE_AUTH_FILTER" />
         <session-management session-authentication-strategy-ref="sas"/>
     </http>
 
@@ -100,9 +102,7 @@
     </beans:bean>
 
     <beans:bean id="tokenStore"
-          class="org.springframework.security.oauth2.provider.token.store.JwtTokenStore">
-        <beans:constructor-arg ref="tokenConverter"/>
-    </beans:bean>
+          class="org.springframework.security.oauth2.provider.token.store.InMemoryTokenStore"/>
 
     <beans:bean id="clientDetailsService"
           class="org.springframework.security.oauth2.provider.client.ClientDetailsUserDetailsService">
@@ -113,7 +113,8 @@
           class="org.springframework.security.oauth2.provider.token.DefaultTokenServices">
         <beans:property name="tokenStore" ref="tokenStore" />
         <beans:property name="supportRefreshToken" value="true" />
-        <beans:property name="accessTokenValiditySeconds" value="86400" />
+        <beans:property name="accessTokenValiditySeconds" value="3600"/>
+        <beans:property name="refreshTokenValiditySeconds" value="84600"/>
         <beans:property name="clientDetailsService" ref="clientDetails"/>
         <beans:property name="tokenEnhancer" ref="tokenConverter"/>
     </beans:bean>
@@ -137,8 +138,8 @@
                 client-id="app"
                 secret="123"
                 authorized-grant-types="password,authorization_code,refresh_token"
-                access-token-validity="60"
-                refresh-token-validity="600"/>
+                access-token-validity="3600"
+                refresh-token-validity="84600"/>
     </oauth:client-details-service>
 
     <oauth:authorization-server client-details-service-ref="clientDetails" token-granter-ref="tokenGranter">

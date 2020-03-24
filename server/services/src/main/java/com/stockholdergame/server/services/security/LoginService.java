@@ -66,8 +66,8 @@ public class LoginService extends AbstractUserDetailsAuthenticationProvider {
         String password = (String) usernamePasswordAuthenticationToken.getCredentials();
 
         if (MD5Helper.checkMD5hash(password, userDetails.getPassword())) {
-            //UserSessionData userSessionData = UserSessionUtil.initUserSessionData(gamerAccount);
-            //userSessionTrackingService.logNewSession(userSessionData);
+            UserSessionData userSessionData = UserSessionUtil.initUserSessionData(gamerAccount);
+            userSessionTrackingService.logNewSession(userSessionData);
             LOGGER.info(getMessage(USER_LOGGED_IN, username));
         } else {
             throw new BadCredentialsException(username);

@@ -11,6 +11,12 @@ import com.stockholdergame.server.model.account.GamerAccount;
 import java.util.Locale;
 import flex.messaging.FlexContext;
 import flex.messaging.FlexSession;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 
 /**
  * @author Alexander Savin
@@ -26,11 +32,11 @@ public final class UserSessionUtil {
 
     public static UserSessionData initUserSessionData(GamerAccount ga)
         throws NullPointerException {
-        FlexSession session = getFlexSession();
+        SessionWrapper session = getSession();
         if (session != null) {
             UserSessionData userSessionData = (UserSessionData) session.getAttribute(USER_SESSION_DATA);
             if (userSessionData == null) {
-                userSessionData = new UserSessionData(FlexContext.getHttpRequest().getRemoteAddr(), session.getId());
+                userSessionData = new UserSessionData(getRemoteAddr(), session.getId());
                 session.setAttribute(USER_SESSION_DATA, userSessionData);
             }
             userSessionData.setUserInfo(createUserInfo(ga));
@@ -40,13 +46,17 @@ public final class UserSessionUtil {
         }
     }
 
-    public static String getHttpSessionId() {
-        FlexSession session = getFlexSession();
-        return session.getId();
+    private static String getRemoteAddr() {
+        HttpServletRequest request = FlexContext.getHttpRequest();
+        if (request == null) {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
+            request = attributes.getRequest();
+        }
+        return request.getRemoteAddr();
     }
 
     public static UserSessionData getCurrentSession() {
-        FlexSession session = getFlexSession();
+        SessionWrapper session = getSession();
         if (session == null) {
             throw new ApplicationException(getMessage(SESSION_NOT_EXIST));
         }
@@ -65,8 +75,8 @@ public final class UserSessionUtil {
         UserSessionData userSessionData = getCurrentSession();
         if (userSessionData != null) {
             return userSessionData.getUserInfo().getLocale();
-        } else if (getFlexSession() != null && getFlexSession().getAttribute(UNAUTH_LOCALE_ATTRIBUTE) != null) {
-            return (Locale) getFlexSession().getAttribute(UNAUTH_LOCALE_ATTRIBUTE);
+        } else if (getSession() != null && getSession().getAttribute(UNAUTH_LOCALE_ATTRIBUTE) != null) {
+            return (Locale) getSession().getAttribute(UNAUTH_LOCALE_ATTRIBUTE);
         } else {
             return LocaleRegistry.getDefaultLocale();
         }
@@ -77,14 +87,73 @@ public final class UserSessionUtil {
                 ga.getStatus(), ga.getSubtopicName());
     }
 
-    public static FlexSession getFlexSession() {
-        return FlexContext.getFlexSession();
+    public static SessionWrapper getSession() {
+        final FlexSession flexSession = FlexContext.getFlexSession();
+        if (flexSession != null) {
+            return new SessionWrapper() {
+
+                @Override
+                public String getId() {
+                    return flexSession.getId();
+                }
+
+                @Override
+                public Object getAttribute(String name) {
+                    return flexSession.getAttribute(name);
+                }
+
+                @Override
+                public void setAttribute(String name, Object value) {
+                    flexSession.setAttribute(name, value);
+                }
+
+                @Override
+                public void removeAttribute(String name) {
+                    flexSession.removeAttribute(name);
+                }
+            };
+        } else {
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
+            HttpServletRequest request = attributes.getRequest();
+            final HttpSession httpSession = request.getSession();
+            return new SessionWrapper() {
+                @Override
+                public String getId() {
+                    return httpSession.getId();
+                }
+
+                @Override
+                public Object getAttribute(String name) {
+                    return httpSession.getAttribute(name);
+                }
+
+                @Override
+                public void setAttribute(String name, Object value) {
+                    httpSession.setAttribute(name, value);
+                }
+
+                @Override
+                public void removeAttribute(String name) {
+                    httpSession.removeAttribute(name);
+                }
+            };
+        }
     }
 
     public static void clearSessionData() {
-        FlexSession session = getFlexSession();
+        SessionWrapper session = getSession();
         if (session != null) {
             session.removeAttribute(USER_SESSION_DATA);
         }
+    }
+
+    public interface SessionWrapper {
+        String getId();
+
+        Object getAttribute(String name);
+
+        void setAttribute(String name, Object value);
+
+        void removeAttribute(String name);
     }
 }

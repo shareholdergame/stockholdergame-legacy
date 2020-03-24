@@ -41,8 +41,8 @@ public class AccountFacadeImpl extends AbstractFacade implements AccountFacade {
 
     @Override
     public void setUnauthLanguage(String language) {
-        if (UserSessionUtil.getFlexSession() != null) {
-            UserSessionUtil.getFlexSession().setAttribute(UserSessionUtil.UNAUTH_LOCALE_ATTRIBUTE, LocaleRegistry.getLocale(language));
+        if (UserSessionUtil.getSession() != null) {
+            UserSessionUtil.getSession().setAttribute(UserSessionUtil.UNAUTH_LOCALE_ATTRIBUTE, LocaleRegistry.getLocale(language));
         }
     }
 
