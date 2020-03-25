@@ -7,7 +7,7 @@
     <groupId>com.stockholdergame.server</groupId>
     <artifactId>stockholdergame-server</artifactId>
     <packaging>pom</packaging>
-    <version>1.5</version>
+    <version>1.6</version>
     <name>StockholderGame Application :: Game Server - parent</name>
 
     <repositories>

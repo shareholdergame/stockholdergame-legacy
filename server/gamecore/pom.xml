@@ -7,7 +7,7 @@
     <parent>
         <artifactId>stockholdergame-server</artifactId>
         <groupId>com.stockholdergame.server</groupId>
-        <version>1.5</version>
+        <version>1.6</version>
     </parent>
 
     <artifactId>gamecore</artifactId>
