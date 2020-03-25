@@ -20,7 +20,12 @@ public class AccountController {
 
     @RequestMapping(value = "/ping", method = RequestMethod.GET)
     public @ResponseBody String ping() {
-        return "OK";
+        return "Ping - OK";
+    }
+
+    @RequestMapping(value = "/secureping", method = RequestMethod.GET)
+    public @ResponseBody String securePing() {
+        return "Secure ping - OK";
     }
 
     @RequestMapping(value = "/new", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)

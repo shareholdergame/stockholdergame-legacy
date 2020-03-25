@@ -47,9 +47,10 @@
     </http>
 
     <http pattern="/**" use-expressions="true" entry-point-ref="apiEntryPoint">
-        <anonymous enabled="false"/>
-        <intercept-url pattern="/**" access="isAuthenticated()"/>
-        <custom-filter ref="resourceServerFilter" before="PRE_AUTH_FILTER" />
+        <anonymous granted-authority="ROLE_ANONYMOUS"/>
+        <intercept-url pattern="/api/account/ping" access="hasAnyRole('ROLE_USER','ROLE_ANONYMOUS')"/>
+        <intercept-url pattern="/**" access="hasRole('ROLE_USER')"/>
+        <custom-filter ref="resourceServerFilter" before="PRE_AUTH_FILTER"/>
         <session-management session-authentication-strategy-ref="sas"/>
     </http>
 
@@ -125,7 +126,8 @@
 
     <oauth:resource-server id="resourceServerFilter" token-services-ref="tokenServices"/>
 
-    <beans:bean id="tokenGranter" class="com.stockholdergame.server.web.security.CustomTokenGranter">
+    <beans:bean id="tokenGranter"
+                class="org.springframework.security.oauth2.provider.password.ResourceOwnerPasswordTokenGranter">
         <beans:constructor-arg index="0" ref="authenticationManager"/>
         <beans:constructor-arg index="1" ref="tokenServices"/>
         <beans:constructor-arg index="2" ref="clientDetails"/>
