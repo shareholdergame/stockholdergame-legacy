@@ -35,10 +35,11 @@
         <beans:property name="exceptionIfMaximumExceeded" value="true"/>
     </beans:bean>
 
-    <http pattern="/oauth/token" use-expressions="true">
+    <http pattern="/oauth/token" use-expressions="true" create-session="always">
         <anonymous enabled="false"/>
         <intercept-url pattern="/oauth/token" access="isFullyAuthenticated()"/>
         <http-basic entry-point-ref="authEntryPoint"/>
+        <session-management session-authentication-strategy-ref="sas"/>
     </http>
 
     <http entry-point-ref="entryPoint" pattern="/messagebroker/**">
@@ -48,10 +49,9 @@
 
     <http pattern="/**" use-expressions="true" entry-point-ref="apiEntryPoint">
         <anonymous granted-authority="ROLE_ANONYMOUS"/>
-        <intercept-url pattern="/api/account/ping" access="hasAnyRole('ROLE_USER','ROLE_ANONYMOUS')"/>
+        <intercept-url pattern="/account/ping" access="hasAnyRole('ROLE_USER','ROLE_ANONYMOUS')"/>
         <intercept-url pattern="/**" access="hasRole('ROLE_USER')"/>
         <custom-filter ref="resourceServerFilter" before="PRE_AUTH_FILTER"/>
-        <session-management session-authentication-strategy-ref="sas"/>
     </http>
 
     <authentication-manager alias="authenticationManager" id="authenticationManager">

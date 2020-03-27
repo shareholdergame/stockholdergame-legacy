@@ -8,10 +8,16 @@ import com.stockholdergame.server.exceptions.ApplicationException;
 import com.stockholdergame.server.localization.LocaleRegistry;
 import com.stockholdergame.server.model.account.GamerAccount;
 
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
+
+import com.stockholdergame.server.services.security.CustomUser;
 import flex.messaging.FlexContext;
 import flex.messaging.FlexSession;
-import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -82,7 +88,7 @@ public final class UserSessionUtil {
         }
     }
 
-    private static UserInfo createUserInfo(GamerAccount ga) {
+    public static UserInfo createUserInfo(GamerAccount ga) {
         return new UserInfo(ga.getId(), ga.getUserName(), ga.getEmail(), ga.getLocale(),
                 ga.getStatus(), ga.getSubtopicName());
     }
@@ -115,28 +121,20 @@ public final class UserSessionUtil {
         } else {
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
             HttpServletRequest request = attributes.getRequest();
-            final HttpSession httpSession = request.getSession();
-            return new SessionWrapper() {
-                @Override
-                public String getId() {
-                    return httpSession.getId();
+            String remoteAddr = request.getRemoteAddr();
+            final HttpSession session = request.getSession();
+            SessionWrapper sessionWrapper = new HttpSessionWrapper(session);
+            if (session.getAttribute(USER_SESSION_DATA) == null) {
+                Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+                if (authentication instanceof OAuth2Authentication) {
+                    OAuth2Authentication oAuth2Authentication = (OAuth2Authentication) authentication;
+                    CustomUser customUser = (CustomUser) oAuth2Authentication.getUserAuthentication().getPrincipal();
+                    UserSessionData userSessionData = new UserSessionData(remoteAddr, session.getId());
+                    userSessionData.setUserInfo(customUser.getUserInfo());
+                    sessionWrapper.setAttribute(USER_SESSION_DATA, userSessionData);
                 }
-
-                @Override
-                public Object getAttribute(String name) {
-                    return httpSession.getAttribute(name);
-                }
-
-                @Override
-                public void setAttribute(String name, Object value) {
-                    httpSession.setAttribute(name, value);
-                }
-
-                @Override
-                public void removeAttribute(String name) {
-                    httpSession.removeAttribute(name);
-                }
-            };
+            }
+            return sessionWrapper;
         }
     }
 
@@ -155,5 +153,33 @@ public final class UserSessionUtil {
         void setAttribute(String name, Object value);
 
         void removeAttribute(String name);
+    }
+
+    static class HttpSessionWrapper implements SessionWrapper {
+        HttpSession httpSession;
+
+        HttpSessionWrapper(HttpSession httpSession) {
+            this.httpSession = httpSession;
+        }
+
+        @Override
+        public String getId() {
+            return httpSession.getId();
+        }
+
+        @Override
+        public Object getAttribute(String name) {
+            return httpSession.getAttribute(name);
+        }
+
+        @Override
+        public void setAttribute(String name, Object value) {
+            httpSession.setAttribute(name, value);
+        }
+
+        @Override
+        public void removeAttribute(String name) {
+            httpSession.removeAttribute(name);
+        }
     }
 }

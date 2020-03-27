@@ -35,7 +35,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <application.version>1.5</application.version>
+        <application.version>1.6</application.version>
         <spring.version>3.2.16.RELEASE</spring.version>
         <spring.aspects.version>3.2.16.RELEASE</spring.aspects.version>
         <spring.integration.version>3.0.8.RELEASE</spring.integration.version>
