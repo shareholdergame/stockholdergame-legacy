@@ -3,7 +3,7 @@ package com.stockholdergame.server.web.dto.game;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
-public class CardOption {
+public class CardOption implements GameOption {
 
     public int major;
 
