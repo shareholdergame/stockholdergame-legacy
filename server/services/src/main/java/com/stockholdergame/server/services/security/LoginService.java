@@ -7,6 +7,7 @@ import com.stockholdergame.server.localization.LocaleRegistry;
 import com.stockholdergame.server.localization.MessageHolder;
 import com.stockholdergame.server.model.account.AccountStatus;
 import com.stockholdergame.server.model.account.GamerAccount;
+import com.stockholdergame.server.session.UserInfo;
 import com.stockholdergame.server.session.UserSessionData;
 import com.stockholdergame.server.session.UserSessionUtil;
 import org.apache.logging.log4j.LogManager;
@@ -21,7 +22,6 @@ import org.springframework.security.authentication.dao.AbstractUserDetailsAuthen
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
@@ -90,7 +90,9 @@ public class LoginService extends AbstractUserDetailsAuthenticationProvider {
             List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
             GrantedAuthority ga = new SimpleGrantedAuthority(ROLE_USER);
             grantedAuthorities.add(ga);
-            return new User(gamerAccount.getUserName(), gamerAccount.getPassword(), true, true, true, true, grantedAuthorities);
+            UserInfo userInfo = UserSessionUtil.createUserInfo(gamerAccount);
+            return new CustomUser(gamerAccount.getUserName(), gamerAccount.getPassword(), true,
+                    true, true, true, grantedAuthorities, userInfo);
         } else {
             throw new UsernameNotFoundException(username);
         }

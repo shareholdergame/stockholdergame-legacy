@@ -3,30 +3,69 @@
              xmlns="http://www.springframework.org/schema/security"
              xmlns:context="http://www.springframework.org/schema/context"
              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
              xsi:schemaLocation="
            http://www.springframework.org/schema/beans
            http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
            http://www.springframework.org/schema/context
            http://www.springframework.org/schema/context/spring-context-3.2.xsd
            http://www.springframework.org/schema/security
-           http://www.springframework.org/schema/security/spring-security-3.2.xsd">
+           http://www.springframework.org/schema/security/spring-security-3.2.xsd
+           http://www.springframework.org/schema/security/oauth2
+           http://www.springframework.org/schema/security/spring-security-oauth2.xsd">
 
-    <context:annotation-config/>
-    <context:component-scan base-package="com.stockholdergame.server.web.security"/>
+    <beans:bean id="apiEntryPoint" class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
+        <beans:property name="realmName" value="user realm"/>
+        <beans:property name="typeName" value="Bearer"/>
+    </beans:bean>
+
+    <beans:bean id="authEntryPoint" class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
+        <beans:property name="realmName" value="app realm"/>
+        <beans:property name="typeName" value="Basic"/>
+    </beans:bean>
 
     <beans:bean id="entryPoint" class="org.springframework.flex.security3.FlexAuthenticationEntryPoint"/>
 
-    <http entry-point-ref="entryPoint">
-        <!--<remember-me key="STCKHLDRGAMESERVER"/>-->
-        <anonymous granted-authority="ROLE_ANONYMOUS"/>
-        <session-management session-fixation-protection="newSession">
-            <concurrency-control max-sessions="1" error-if-maximum-exceeded="true"/>
-        </session-management>
+    <beans:bean id="sessionRegistry" class="org.springframework.security.core.session.SessionRegistryImpl" />
+
+    <beans:bean id="sas"
+                class="org.springframework.security.web.authentication.session.ConcurrentSessionControlAuthenticationStrategy" primary="true">
+        <beans:constructor-arg name="sessionRegistry" ref="sessionRegistry" />
+        <beans:property name="maximumSessions" value="1"/>
+        <beans:property name="exceptionIfMaximumExceeded" value="true"/>
+    </beans:bean>
+
+    <http pattern="/oauth/token" use-expressions="true" create-session="always">
+        <anonymous enabled="false"/>
+        <intercept-url pattern="/oauth/token" access="isFullyAuthenticated()"/>
+        <http-basic entry-point-ref="authEntryPoint"/>
+        <session-management session-authentication-strategy-ref="sas"/>
     </http>
 
-    <authentication-manager alias="authenticationManager">
+    <http entry-point-ref="entryPoint" pattern="/messagebroker/**">
+        <anonymous granted-authority="ROLE_ANONYMOUS"/>
+        <session-management session-authentication-strategy-ref="sas"/>
+    </http>
+
+    <http pattern="/**" use-expressions="true" entry-point-ref="apiEntryPoint">
+        <anonymous granted-authority="ROLE_ANONYMOUS"/>
+        <intercept-url pattern="/account/ping" access="hasAnyRole('ROLE_USER','ROLE_ANONYMOUS')"/>
+        <intercept-url pattern="/**" access="hasRole('ROLE_USER')"/>
+        <custom-filter ref="resourceServerFilter" before="PRE_AUTH_FILTER"/>
+    </http>
+
+    <authentication-manager alias="authenticationManager" id="authenticationManager">
         <authentication-provider ref="loginService"/>
     </authentication-manager>
+
+    <authentication-manager alias="clientAuthenticationManager">
+        <authentication-provider user-service-ref="clientDetailsService"/>
+    </authentication-manager>
+
+    <beans:bean id="clientCredentialsTokenEndpointFilter"
+          class="org.springframework.security.oauth2.provider.client.ClientCredentialsTokenEndpointFilter">
+        <beans:property name="authenticationManager" ref="clientAuthenticationManager"/>
+    </beans:bean>
 
     <global-method-security>
         <protect-pointcut expression="execution(* com.stockholdergame.server.facade..*Facade.*(..)) and
@@ -48,32 +87,68 @@
                           access="ROLE_USER,ROLE_ANONYMOUS"/>
     </global-method-security>
 
-    <!--<beans:bean id="rememberMeFilter" class=
-            "org.springframework.security.web.authentication.rememberme.RememberMeAuthenticationFilter">
-        <beans:property name="rememberMeServices" ref="rememberMeServices"/>
-        <beans:property name="authenticationManager" ref="authenticationManager" />
-    </beans:bean>
-
-    <beans:bean id="rememberMeServices" class=
-            "org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices">
-        <beans:property name="userDetailsService" ref="myUserDetailsService"/>
-        <beans:property name="key" value="STCKHLDRGAMESERVER"/>
-    </beans:bean>
-
-    <beans:bean id="rememberMeAuthenticationProvider" class=
-            "org.springframework.security.authentication.RememberMeAuthenticationProvider">
-        <beans:property name="key" value="STCKHLDRGAMESERVER"/>
-    </beans:bean>-->
-
     <beans:bean id="loginCommand"
                 class="org.springframework.flex.security3.SpringSecurityLoginCommand">
         <beans:constructor-arg ref="authenticationManager"/>
-        <!--<beans:property name="rememberMeServices" ref="rememberMeServices"/>-->
         <beans:property name="logoutHandlers">
             <beans:list>
                 <beans:bean class="com.stockholdergame.server.web.security.CustomLogoutHandler"/>
             </beans:list>
         </beans:property>
+        <beans:property name="sessionAuthenticationStrategy" ref="sas"/>
     </beans:bean>
+
+    <beans:bean id="tokenConverter" class="org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter">
+        <beans:property name="signingKey" value="stockholdergame"/>
+    </beans:bean>
+
+    <beans:bean id="tokenStore"
+          class="org.springframework.security.oauth2.provider.token.store.InMemoryTokenStore"/>
+
+    <beans:bean id="clientDetailsService"
+          class="org.springframework.security.oauth2.provider.client.ClientDetailsUserDetailsService">
+        <beans:constructor-arg ref="clientDetails"/>
+    </beans:bean>
+
+    <beans:bean id="tokenServices"
+          class="org.springframework.security.oauth2.provider.token.DefaultTokenServices">
+        <beans:property name="tokenStore" ref="tokenStore" />
+        <beans:property name="supportRefreshToken" value="true" />
+        <beans:property name="accessTokenValiditySeconds" value="3600"/>
+        <beans:property name="refreshTokenValiditySeconds" value="84600"/>
+        <beans:property name="clientDetailsService" ref="clientDetails"/>
+        <beans:property name="tokenEnhancer" ref="tokenConverter"/>
+    </beans:bean>
+
+    <beans:bean id="requestFactory" class="org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestFactory">
+        <beans:constructor-arg ref="clientDetails"/>
+    </beans:bean>
+
+    <oauth:resource-server id="resourceServerFilter" token-services-ref="tokenServices"/>
+
+    <beans:bean id="tokenGranter"
+                class="org.springframework.security.oauth2.provider.password.ResourceOwnerPasswordTokenGranter">
+        <beans:constructor-arg index="0" ref="authenticationManager"/>
+        <beans:constructor-arg index="1" ref="tokenServices"/>
+        <beans:constructor-arg index="2" ref="clientDetails"/>
+        <beans:constructor-arg index="3" ref="requestFactory"/>
+    </beans:bean>
+
+    <oauth:client-details-service id="clientDetails">
+        <oauth:client
+                scope="all"
+                client-id="app"
+                secret="123"
+                authorized-grant-types="password,authorization_code,refresh_token"
+                access-token-validity="3600"
+                refresh-token-validity="84600"/>
+    </oauth:client-details-service>
+
+    <oauth:authorization-server client-details-service-ref="clientDetails" token-granter-ref="tokenGranter">
+        <oauth:implicit/>
+        <oauth:refresh-token/>
+        <oauth:password/>
+        <oauth:custom-grant token-granter-ref="tokenGranter"/>
+    </oauth:authorization-server>
 
 </beans:beans>
