@@ -2,7 +2,7 @@ package com.stockholdergame.server.web.dto.game;
 
 public class SharePrice {
 
-    public short shareId;
+    public long shareId;
 
     public long price;
 

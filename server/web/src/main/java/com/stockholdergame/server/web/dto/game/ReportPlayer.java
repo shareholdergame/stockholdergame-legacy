@@ -6,7 +6,7 @@ public class ReportPlayer {
 
     public Long playerId;
 
-    public short turnOrder;
+    public int turnOrder;
 
     public Set<PlayerCard> playerCards;
 }

@@ -58,7 +58,7 @@
         select count(g) from Game g where g.gameSeries.id = ?
     </query>
     <query name="Game.findRelatedGameIds">
-        select new com.stockholdergame.server.model.game.RelatedGameProjection(g.id, g.gameLetter) from Game g, GameSeries gs
+        select new com.stockholdergame.server.model.game.RelatedGameProjection(g.id, g.gameLetter, g.gameStatus) from Game g, GameSeries gs
         where g.gameSeries = gs and g.id != ?1 and gs.id = ?2
     </query>
     <query name="Game.findCompletedGameSeries">

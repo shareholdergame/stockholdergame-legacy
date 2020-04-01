@@ -2,6 +2,7 @@ package com.stockholdergame.server.dto.game;
 
 import com.stockholdergame.server.dto.game.result.CompetitorDiffDto;
 import com.stockholdergame.server.dto.game.result.CompetitorResultDto;
+import com.stockholdergame.server.model.game.GameStatus;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
@@ -16,6 +17,8 @@ public class RelatedGame {
     private Long gameId;
 
     private String gameLetter;
+
+    private String status;
 
     private Set<CompetitorResultDto> competitorResults = new HashSet<>();
 
@@ -35,6 +38,14 @@ public class RelatedGame {
 
     public void setGameLetter(String gameLetter) {
         this.gameLetter = gameLetter;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public Set<CompetitorResultDto> getCompetitorResults() {

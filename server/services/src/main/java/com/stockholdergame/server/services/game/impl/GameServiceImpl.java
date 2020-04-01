@@ -424,10 +424,10 @@ public class GameServiceImpl extends UserInfoAware implements GameService {
         Long gameSeriesId;
         if (game == null) {
             FinishedGame finishedGame = finishedGameDao.findByIdAndUserId(gameId, userId);
-            Map<Integer, String> userNamesMap = buildUserNameMap(finishedGame.getCompetitors());
             if (finishedGame == null) {
                 throw new BusinessException(BusinessExceptionType.GAME_NOT_FOUND, gameId);
             } else {
+                Map<Integer, String> userNamesMap = buildUserNameMap(finishedGame.getCompetitors());
                 byte[] gameObject = finishedGame.getGameObject();
                 gameSeriesId = finishedGame.getGameSeries().getId();
                 gameDto = (GameDto) AMFHelper.deserializeFromAmf(gameObject);
