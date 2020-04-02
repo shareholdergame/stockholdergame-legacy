@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
 
 @Controller
 @RequestMapping("/game")
@@ -84,6 +83,12 @@ public class GameController {
         return ResponseWrapper.ok();
     }
 
+    @RequestMapping(value = "/{gameId}/report", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public @ResponseBody ResponseWrapper<GameSetReport> gameById(@PathVariable Long gameId) {
+        GameDto gameDto = gameFacade.getGameById(gameId);
+        return ResponseWrapper.ok(convertToGameSetReport(gameDto));
+    }
+
     private DoMoveDto buildDoMoveDto(Long gameId, Turn turn) {
         DoMoveDto doMoveDto = new DoMoveDto();
         doMoveDto.setGameId(gameId);
@@ -114,12 +119,6 @@ public class GameController {
             buySellDtos.add(buySellDto);
         });
         return buySellDtos;
-    }
-
-    @RequestMapping(value = "/{gameId}/report", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public @ResponseBody ResponseWrapper<GameSetReport> gameById(@PathVariable Long gameId) {
-        GameDto gameDto = gameFacade.getGameById(gameId);
-        return ResponseWrapper.ok(convertToGameSetReport(gameDto));
     }
 
     private GameSetReport convertToGameSetReport(GameDto gameDto) {
