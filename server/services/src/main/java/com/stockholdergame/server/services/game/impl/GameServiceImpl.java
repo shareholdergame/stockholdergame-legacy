@@ -254,7 +254,8 @@ public class GameServiceImpl extends UserInfoAware implements GameService {
                 gameFilterDto.getOffset(),
                 gameFilterDto.getMaxResults(),
                 gameFilterDto.isSmallAvatar(),
-                gameFilterDto.isLegacyRules() ? GameRulesVersion.RULES_1_0 : GameRulesVersion.RULES_1_3);
+                gameFilterDto.isLegacyRules() ? GameRulesVersion.RULES_1_0 : GameRulesVersion.RULES_1_3,
+                gameFilterDto.getPlayersNumber());
     }
 
     private Long validGameVariantId(Long gameVariantId) {
@@ -586,13 +587,13 @@ public class GameServiceImpl extends UserInfoAware implements GameService {
         }
 
         summary.setGameOffersNumber(gameMapperDao.countGamesByParameters(currentUserId, GameStatus.OPEN, GameInitiationMethod.GAME_OFFER,
-                false, true, null, null, GameRulesVersion.RULES_1_3));
+                false, true, null, null, GameRulesVersion.RULES_1_3, null));
         summary.setInvitationsNumber(gameMapperDao.countGamesByParameters(currentUserId, GameStatus.OPEN, GameInitiationMethod.INVITATION, true,
-                true, null, null, GameRulesVersion.RULES_1_3));
+                true, null, null, GameRulesVersion.RULES_1_3, null));
         summary.setGamesInProgressNumber(gameMapperDao.countGamesByParameters(currentUserId, GameStatus.RUNNING, null, false, false, null, null,
-                GameRulesVersion.RULES_1_3));
+                GameRulesVersion.RULES_1_3, null));
         summary.setFinishedGamesQuantity(gameMapperDao.countGamesByParameters(currentUserId, GameStatus.FINISHED, null, false, false, null, null,
-                GameRulesVersion.RULES_1_3));
+                GameRulesVersion.RULES_1_3, null));
 
         int scorersQuantity = scoreDao.countScorers(currentUserId, null, new String[] {GameRulesVersion.RULES_1_3});
         summary.setScorersQuantity(scorersQuantity);

@@ -6,8 +6,6 @@ public class GamePlayer {
 
     public Long id;
 
-    public boolean bot;
-
     public boolean initiator;
 
     public Player player;

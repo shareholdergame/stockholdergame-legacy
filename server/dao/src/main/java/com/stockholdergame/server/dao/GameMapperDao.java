@@ -22,7 +22,8 @@ public interface GameMapperDao {
                                     int offset,
                                     int limit,
                                     boolean smallAvatar,
-                                    String rulesVersion);
+                                    String rulesVersion,
+                                    Integer playersNumber);
 
     int countGamesByParameters(Long gamerId,
                                GameStatus gameStatus,
@@ -31,7 +32,8 @@ public interface GameMapperDao {
                                boolean isNotInitiator,
                                Long gameVariantId,
                                String userName,
-                               String rulesVersion);
+                               String rulesVersion,
+                               Integer playersNumber);
 
     List<GameVariantSummary> countGamesByVariant(Long gamerId);
 }

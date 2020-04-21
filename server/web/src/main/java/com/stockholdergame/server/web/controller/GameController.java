@@ -1,12 +1,15 @@
 package com.stockholdergame.server.web.controller;
 
 import com.stockholdergame.server.dto.game.*;
+import com.stockholdergame.server.dto.game.lite.CompetitorLite;
+import com.stockholdergame.server.dto.game.lite.GameLite;
+import com.stockholdergame.server.dto.game.lite.GamesList;
 import com.stockholdergame.server.dto.game.variant.GameVariantDto;
 import com.stockholdergame.server.facade.GameFacade;
 import com.stockholdergame.server.model.game.InvitationStatus;
-import com.stockholdergame.server.web.dto.ErrorBody;
-import com.stockholdergame.server.web.dto.ResponseWrapper;
+import com.stockholdergame.server.web.dto.*;
 import com.stockholdergame.server.web.dto.game.*;
+import com.stockholdergame.server.web.dto.game.InvitationAction;
 import com.stockholdergame.server.web.dto.player.Player;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -19,14 +22,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.annotation.PostConstruct;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 @Controller
 @RequestMapping("/game")
@@ -89,6 +87,116 @@ public class GameController {
         return ResponseWrapper.ok(convertToGameSetReport(gameDto));
     }
 
+    @RequestMapping(value = "/{gameOptionFilter}/{gameStatus}", method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public @ResponseBody ResponseWrapper<GameListResponse> getGames(@PathVariable GameOptionFilter gameOptionFilter,
+                                                      @PathVariable GameStatus gameStatus,
+                                                      @RequestParam(value = "playerNamePrefix", required = false) String playerNamePrefix,
+                                                      @RequestParam(value = "offset", defaultValue = "0", required = false) int offset,
+                                                      @RequestParam(value = "ipp", defaultValue = "10", required = false) int itemsPerPage) {
+        return ResponseWrapper.ok(convertToGameListResponse(
+                gameFacade.getGames(buildGameFilterDto(gameOptionFilter, gameStatus, playerNamePrefix, offset, itemsPerPage)),
+                offset, itemsPerPage));
+    }
+
+    private GameListResponse convertToGameListResponse(GamesList games, int offset, int itemsPerPage) {
+        return GameListResponse.of(buildGamesList(games), Pagination.of(games.getTotalCount(), offset, itemsPerPage));
+    }
+
+    private List<GameSet> buildGamesList(GamesList games) {
+        List<GameSet> gameList = new ArrayList<>();
+        games.getGames().forEach(gameLite -> {
+            Game game = new Game();
+            game.id = gameLite.getId();
+            game.letter = GameLetter.valueOf(gameLite.getGameLetter());
+            game.status = convertGameStatus(gameLite.getGameStatus());
+            if (gameLite.getGameStatus().equals(com.stockholdergame.server.model.game.GameStatus.RUNNING.name())) {
+                game.position = buildPosition(gameLite);
+            }
+
+            GameSet gameSet = new GameSet();
+            gameSet.id = gameLite.getGameSeriesId();
+            gameSet.options = buildGameOptions(gameLite.getGameVariantId());
+            gameSet.label = gameLite.getLabel();
+            gameSet.status = convertGameStatus(gameLite.getGameStatus());
+            gameSet.players = buildPlayers(gameLite.getCompetitors());
+            gameSet.games = new HashSet<>();
+            gameSet.games.add(game);
+
+            gameList.add(gameSet);
+        });
+        return gameList;
+    }
+
+    private PlayPosition buildPosition(GameLite gameLite) {
+        PlayPosition playPosition = new PlayPosition();
+        playPosition.round = gameLite.getLastMoveNumber();
+        playPosition.turn = gameLite.getLastMoveOrder();
+        return playPosition;
+    }
+
+    private Set<GamePlayer> buildPlayers(Set<CompetitorLite> competitors) {
+        Set<GamePlayer> players = new HashSet<>();
+        competitors.forEach(competitorDto -> {
+            GamePlayer gamePlayer = new GamePlayer();
+            Player player = new Player();
+            player.name = competitorDto.getUserName();
+            player.removed = competitorDto.isRemoved();
+            player.bot = competitorDto.isBot();
+            gamePlayer.player = player;
+            gamePlayer.initiator = competitorDto.isInitiator();
+            if (competitorDto.isInvitation()) {
+                PlayerInvitation invitation = new PlayerInvitation();
+                invitation.statusSetAt = getStatusChangedTime(competitorDto);
+                invitation.invitationStatus = convertInvitationStatus(competitorDto.getInvitationStatus());
+                gamePlayer.invitation = invitation;
+            }
+            players.add(gamePlayer);
+        });
+        return players;
+    }
+
+    private LocalDateTime getStatusChangedTime(CompetitorLite competitorDto) {
+        Date date = null;
+        switch (InvitationStatus.valueOf(competitorDto.getInvitationStatus())) {
+            case CREATED:
+                date = competitorDto.getInvitationCreated();
+                break;
+            case ACCEPTED:
+                date = competitorDto.getJoined();
+        }
+
+        return date != null ? date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime() : null;
+    }
+
+    private com.stockholdergame.server.web.dto.game.InvitationStatus convertInvitationStatus(String invitationStatus) {
+        return invitationStatus.equals("CREATED") ? com.stockholdergame.server.web.dto.game.InvitationStatus.PENDING :
+                com.stockholdergame.server.web.dto.game.InvitationStatus.valueOf(invitationStatus);
+    }
+
+    private GameFilterDto buildGameFilterDto(GameOptionFilter gameOptionFilter,
+                                             GameStatus gameStatus,
+                                             String playerNamePrefix,
+                                             int offset, int itemsPerPage) {
+        GameFilterDto gameFilterDto = new GameFilterDto();
+        gameFilterDto.setGameStatus(gameStatus.equals(GameStatus.CREATED) ? "OPEN" : gameStatus.name());
+        gameFilterDto.setGameVariantId(convertToGameVariant(gameOptionFilter));
+        gameFilterDto.setPlayersNumber(
+                gameOptionFilter.equals(GameOptionFilter.game_3x5) || gameOptionFilter.equals(GameOptionFilter.game_4x6) ? 2 : null);
+        gameFilterDto.setUserName(playerNamePrefix);
+        gameFilterDto.setOffset(offset);
+        gameFilterDto.setMaxResults(itemsPerPage);
+        return gameFilterDto;
+    }
+
+    private Long convertToGameVariant(GameOptionFilter gameOptionFilter) {
+        CardOption cardOption = gameOptionFilter.getCardOption();
+        if (cardOption != null) {
+            return matchCardOptionToGameVariant(cardOption);
+        }
+        return null;
+    }
+
     private DoMoveDto buildDoMoveDto(Long gameId, Turn turn) {
         DoMoveDto doMoveDto = new DoMoveDto();
         doMoveDto.setGameId(gameId);
@@ -125,7 +233,7 @@ public class GameController {
         GameSet gameSet = new GameSet();
         gameSet.id = gameDto.getGameSeriesId();
         gameSet.status = convertGameStatus(gameDto.getGameStatus());
-        gameSet.options = buildGameOptions(gameDto);
+        gameSet.options = buildGameOptions(gameDto.getGameVariantId());
         gameSet.label = gameDto.getLabel();
         gameSet.players = buildPlayers(gameDto);
         gameSet.games = buildGames(gameDto);
@@ -273,9 +381,9 @@ public class GameController {
             GamePlayer gamePlayer = new GamePlayer();
             Player player = new Player();
             player.name = competitorDto.getUserName();
+            player.bot = competitorDto.getBot();
             gamePlayer.id = competitorDto.getId();
             gamePlayer.player = player;
-            gamePlayer.bot = competitorDto.getBot();
             gamePlayer.initiator = competitorDto.getInitiator();
             if (!gamePlayer.initiator) {
                 PlayerInvitation playerInvitation = new PlayerInvitation();
@@ -289,8 +397,7 @@ public class GameController {
         return players;
     }
 
-    private Set<GameOption> buildGameOptions(GameDto gameDto) {
-        Long gameVariantId = gameDto.getGameVariantId();
+    private Set<GameOption> buildGameOptions(Long gameVariantId) {
         Set<GameOption> gameOptions = new HashSet<>();
         gameOptions.add(holder.getCardOption(gameVariantId));
         // todo - add other game options

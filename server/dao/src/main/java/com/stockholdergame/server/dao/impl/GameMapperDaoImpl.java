@@ -31,9 +31,10 @@ public class GameMapperDaoImpl extends BaseMapperDao implements GameMapperDao {
                                            int offset,
                                            int limit,
                                            boolean smallAvatar,
-                                           String rulesVersion) {
+                                           String rulesVersion,
+                                           Integer playersNumber) {
         Map<String, Object> params = createParametersMap(gamerId, gameStatus, initiationMethod, isInitiator, isNotInitiator, gameVariantId,
-                userName, rulesVersion);
+                userName, rulesVersion, playersNumber);
 
         Integer totalCount = (Integer) getSqlSession().selectOne("Game.countGamesByParameters", params);
 
@@ -77,7 +78,8 @@ public class GameMapperDaoImpl extends BaseMapperDao implements GameMapperDao {
                                                     boolean isNotInitiator,
                                                     Long gameVariantId,
                                                     String userName,
-                                                    String rulesVersion) {
+                                                    String rulesVersion,
+                                                    Integer playersNumber) {
         return new MapBuilder<String, Object>()
                     .append("gamerId", gamerId)
                     .append("initiationMethod", initiationMethod != null ? initiationMethod.ordinal() : null)
@@ -87,15 +89,16 @@ public class GameMapperDaoImpl extends BaseMapperDao implements GameMapperDao {
                     .append("userName", userName == null ? null : userName + "%")
                     .append("gameStatus", gameStatus != null ? gameStatus.ordinal() : null)
                     .append("rulesVersion", rulesVersion)
+                    .append("playersNumber", playersNumber)
                     .toHashMap();
     }
 
     @Override
     public int countGamesByParameters(Long gamerId, GameStatus gameStatus, GameInitiationMethod initiationMethod, boolean isInitiator,
                                       boolean isNotInitiator, Long gameVariantId,
-                                      String userName, String rulesVersion) {
+                                      String userName, String rulesVersion, Integer playersNumber) {
         Map<String, Object> params = createParametersMap(gamerId, gameStatus, initiationMethod, isInitiator, isNotInitiator, gameVariantId,
-                userName, rulesVersion);
+                userName, rulesVersion, playersNumber);
 
         return (Integer) getSqlSession().selectOne("Game.countGamesByParameters", params);
     }

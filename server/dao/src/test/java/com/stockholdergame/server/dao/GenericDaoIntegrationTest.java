@@ -307,7 +307,7 @@ public class GenericDaoIntegrationTest extends AbstractTransactionalTestNGSpring
                                           GameInitiationMethod method,
                                           boolean isInitiator) {
         GamesList games = gameMapperDao.findGamesByParameters(gamerId, gameStatus, method, isInitiator, false, null, null, 0, 5, false,
-                null);
+                null, null);
         assertNotNull(games);
         assertNotNull(games.getGames());
     }
