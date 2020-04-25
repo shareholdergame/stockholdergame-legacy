@@ -6,7 +6,7 @@
     <parent>
         <artifactId>stockholdergame-server</artifactId>
         <groupId>com.stockholdergame.server</groupId>
-        <version>1.5</version>
+        <version>1.6</version>
     </parent>
 
     <artifactId>services</artifactId>
@@ -71,6 +71,10 @@
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security.oauth</groupId>
+            <artifactId>spring-security-oauth2</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.xbean</groupId>

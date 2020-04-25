@@ -7,7 +7,7 @@
     <groupId>com.stockholdergame.server</groupId>
     <artifactId>stockholdergame-server</artifactId>
     <packaging>pom</packaging>
-    <version>1.5</version>
+    <version>1.6</version>
     <name>StockholderGame Application :: Game Server - parent</name>
 
     <repositories>
@@ -35,11 +35,13 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <application.version>1.5</application.version>
+        <application.version>1.6</application.version>
         <spring.version>3.2.16.RELEASE</spring.version>
         <spring.aspects.version>3.2.16.RELEASE</spring.aspects.version>
         <spring.integration.version>3.0.8.RELEASE</spring.integration.version>
         <spring.security.version>3.2.9.RELEASE</spring.security.version>
+        <spring.security.oauth.version>2.3.8.RELEASE</spring.security.oauth.version>
+        <spring.security.jwt>1.1.0.RELEASE</spring.security.jwt>
         <spring.flex.version>1.5.2.RELEASE</spring.flex.version>
         <testng.version>5.8</testng.version>
         <testng.classifier>jdk15</testng.classifier>
@@ -73,6 +75,7 @@
         <commons.io.version>1.4</commons.io.version>
         <xbean.version>3.9</xbean.version>
         <json.version>20160212</json.version>
+        <jackson.version>2.10.2</jackson.version>
     </properties>
 
     <dependencyManagement>
@@ -221,6 +224,16 @@
                 <groupId>org.springframework.security</groupId>
                 <artifactId>spring-security-web</artifactId>
                 <version>${spring.security.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.security.oauth</groupId>
+                <artifactId>spring-security-oauth2</artifactId>
+                <version>${spring.security.oauth.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.security</groupId>
+                <artifactId>spring-security-jwt</artifactId>
+                <version>${spring.security.jwt}</version>
             </dependency>
             <dependency>
                 <groupId>org.springframework</groupId>
@@ -386,6 +399,27 @@
                 <groupId>org.json</groupId>
                 <artifactId>json</artifactId>
                 <version>${json.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-jsr310</artifactId>
+                <version>${jackson.version}</version>
             </dependency>
 
 

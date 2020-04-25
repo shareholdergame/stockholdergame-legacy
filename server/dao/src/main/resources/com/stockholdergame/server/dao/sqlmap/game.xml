@@ -32,6 +32,7 @@
 
     <resultMap id="GameLiteResultMap" type="com.stockholdergame.server.dto.game.lite.GameLite"
                extends="Game.GameLiteBaseResultMap">
+        <result property="gameSeriesId" column="game_series_id"/>
         <result property="label" column="game_label"/>
         <result property="gameVariantId" column="game_variant_id"/>
         <result property="gameVariantName" column="variant_name"/>
@@ -106,6 +107,9 @@
             </if>
             <if test="rulesVersion != null">
                 AND g.rules_version = #{rulesVersion}
+            </if>
+            <if test="playersNumber != null">
+                AND g.competitors_quantity = #{playersNumber}
             </if>
             AND g.game_status_id = #{gameStatus}
             AND
@@ -185,6 +189,9 @@
                 <if test="rulesVersion != null">
                     AND fg.rules_version = #{rulesVersion}
                 </if>
+                <if test="playersNumber != null">
+                    AND fg.competitors_quantity = #{playersNumber}
+                </if>
                 AND #{gamerId} IN (SELECT cmp2.gamer_id FROM fg_competitors cmp2 WHERE cmp2.game_id = fg.game_id)
             </where>
         </if>
@@ -210,7 +217,8 @@
         ev2.event_initiator_id,
         g.game_letter,
         gs.rules_version,
-        gs.switch_move_order
+        gs.switch_move_order,
+        gs.game_series_id
         FROM
         ag_games g
         JOIN ag_game_series gs ON gs.game_series_id = g.game_series_id
@@ -250,6 +258,9 @@
             </if>
             <if test="rulesVersion != null">
                 AND gs.rules_version = #{rulesVersion}
+            </if>
+            <if test="playersNumber != null">
+                AND gs.competitors_quantity = #{playersNumber}
             </if>
             AND g.game_status_id = #{gameStatus}
             AND
@@ -327,7 +338,8 @@
         ev2.event_initiator_id,
         fg.game_letter,
         fgs.rules_version,
-        fgs.switch_move_order
+        fgs.switch_move_order,
+        fgs.game_series_id
         FROM
         fg_games fg
         JOIN fg_game_series fgs ON fgs.game_series_id = fg.game_series_id
@@ -352,6 +364,9 @@
             </if>
             <if test="rulesVersion != null">
                 AND fgs.rules_version = #{rulesVersion}
+            </if>
+            <if test="playersNumber != null">
+                AND fgs.competitors_quantity = #{playersNumber}
             </if>
             AND #{gamerId} IN (SELECT cmp2.gamer_id FROM fg_competitors cmp2 WHERE cmp2.game_id = fg.game_id)
         </where>

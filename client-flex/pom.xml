@@ -18,6 +18,28 @@
 
     <repositories>
         <repository>
+            <id>geomajas</id>
+            <url>http://maven.geomajas.org/</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+        <repository>
+            <id>central</id>
+            <name>Central Repository</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+            <layout>default</layout>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
             <id>sonatype-public</id>
             <url>http://repository.sonatype.org/content/groups/public/</url>
             <releases>
@@ -47,6 +69,28 @@
     </repositories>
 
     <pluginRepositories>
+        <pluginRepository>
+            <id>sonatype-flexgroup</id>
+            <url>http://repository.sonatype.org/content/groups/flexgroup/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </pluginRepository>
+        <pluginRepository>
+            <id>central</id>
+            <name>Central Repository</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+            <layout>default</layout>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
         <pluginRepository>
             <id>flex-mojos-repository</id>
             <url>http://repository.sonatype.org/content/groups/public</url>
@@ -82,7 +126,7 @@
                     <resourceBundlePath>${basedir}/src/main/resources/locale/{locale}</resourceBundlePath>
                     <compiledLocales>
                         <locale>en_US</locale>
-                        <locale>ru_RU</locale>
+                        <!--<locale>ru_RU</locale>-->
                     </compiledLocales>
                     <allowSourcePathOverlap>true</allowSourcePathOverlap>
                     <storepass/>
