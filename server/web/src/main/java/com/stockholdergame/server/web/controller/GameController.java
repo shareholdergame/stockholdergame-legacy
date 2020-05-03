@@ -186,6 +186,10 @@ public class GameController {
         gameFilterDto.setUserName(playerNamePrefix);
         gameFilterDto.setOffset(offset);
         gameFilterDto.setMaxResults(itemsPerPage);
+        if (gameStatus.equals(GameStatus.CREATED)) {
+            gameFilterDto.setInitiator(true);
+            gameFilterDto.setNotInitiator(true);
+        }
         return gameFilterDto;
     }
 

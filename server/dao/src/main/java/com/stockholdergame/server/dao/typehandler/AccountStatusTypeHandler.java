@@ -16,12 +16,17 @@ public class AccountStatusTypeHandler extends BaseTypeHandler {
 
     @Override
     public void setNonNullParameter(PreparedStatement ps, int i, Object parameter, JdbcType jdbcType) throws SQLException {
-        throw new SQLException("opeartion not supported");
+        throw new SQLException("operation not supported");
     }
 
     @Override
     public String getNullableResult(ResultSet resultSet, String columnName) throws SQLException {
         return AccountStatus.values()[resultSet.getInt(columnName)].name();
+    }
+
+    @Override
+    public Object getNullableResult(ResultSet resultSet, int i) throws SQLException {
+        return AccountStatus.values()[resultSet.getInt(i)].name();
     }
 
     @Override
