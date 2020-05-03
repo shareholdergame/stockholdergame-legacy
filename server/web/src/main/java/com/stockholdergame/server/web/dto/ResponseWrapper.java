@@ -30,10 +30,4 @@ public class ResponseWrapper<T> {
     public T getBody() {
         return body;
     }
-
-    public static class ErrorResponse extends ResponseWrapper<ErrorBody> {
-        private ErrorResponse(ResponseStatus status, ErrorBody body) {
-            super(status, body);
-        }
-    }
 }

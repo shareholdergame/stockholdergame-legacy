@@ -13,6 +13,8 @@ public class Player implements Serializable {
 
     public String name;
 
+    public boolean bot;
+
     public String avatarUrl;
 
     public boolean online;

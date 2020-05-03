@@ -1,6 +1,7 @@
 package com.stockholdergame.server.web.dto;
 
 import com.stockholdergame.server.web.dto.game.Game;
+import com.stockholdergame.server.web.dto.game.GameSet;
 
 import java.util.List;
 
@@ -11,25 +12,14 @@ import java.util.List;
  */
 public class GameListResponse {
 
-    private Pagination pagination;
+    public Pagination pagination;
 
-    private List<Game> items;
+    public List<GameSet> items;
 
-    private GameListResponse() {
-    }
-
-    public static GameListResponse of(List<Game> items, Pagination pagination) {
+    public static GameListResponse of(List<GameSet> items, Pagination pagination) {
         GameListResponse glr = new GameListResponse();
         glr.items = items;
         glr.pagination = pagination;
         return glr;
-    }
-
-    public Pagination getPagination() {
-        return pagination;
-    }
-
-    public List<Game> getItems() {
-        return items;
     }
 }

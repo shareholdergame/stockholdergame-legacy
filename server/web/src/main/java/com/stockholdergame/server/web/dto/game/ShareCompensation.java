@@ -2,7 +2,7 @@ package com.stockholdergame.server.web.dto.game;
 
 public class ShareCompensation {
 
-    public short shareId;
+    public long shareId;
 
     public long sum;
 }

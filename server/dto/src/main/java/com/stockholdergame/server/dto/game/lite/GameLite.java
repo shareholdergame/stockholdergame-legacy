@@ -11,6 +11,8 @@ public class GameLite {
 
     private Long id;
 
+    private Long gameSeriesId;
+
     private String label;
 
     private Long gameVariantId;
@@ -55,6 +57,14 @@ public class GameLite {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getGameSeriesId() {
+        return gameSeriesId;
+    }
+
+    public void setGameSeriesId(Long gameSeriesId) {
+        this.gameSeriesId = gameSeriesId;
     }
 
     public String getLabel() {

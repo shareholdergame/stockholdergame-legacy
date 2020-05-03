@@ -2,7 +2,7 @@ package com.stockholdergame.server.web.dto.game;
 
 public class PlayPosition {
 
-    public short round;
+    public int round;
 
-    public short turn;
+    public int turn;
 }

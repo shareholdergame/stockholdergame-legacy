@@ -25,6 +25,8 @@ public class GameFilterDto extends PaginationDto {
 
     private Long gameVariantId;
 
+    private Integer playersNumber;
+
     private String userName;
 
     private boolean smallAvatar;
@@ -69,6 +71,14 @@ public class GameFilterDto extends PaginationDto {
 
     public void setGameVariantId(Long gameVariantId) {
         this.gameVariantId = gameVariantId;
+    }
+
+    public Integer getPlayersNumber() {
+        return playersNumber;
+    }
+
+    public void setPlayersNumber(Integer playersNumber) {
+        this.playersNumber = playersNumber;
     }
 
     public String getUserName() {

@@ -9,6 +9,13 @@ public class CardOption implements GameOption {
 
     public int minor;
 
+    public static CardOption of(int major, int minor) {
+        CardOption cardOption = new CardOption();
+        cardOption.major = major;
+        cardOption.minor = minor;
+        return cardOption;
+    }
+
     @Override
     public int hashCode() {
         return new HashCodeBuilder()

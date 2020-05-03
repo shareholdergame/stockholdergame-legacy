@@ -4,5 +4,5 @@ public class BuySellOperation {
 
     public Long shareId;
 
-    public Long number;
+    public int number;
 }

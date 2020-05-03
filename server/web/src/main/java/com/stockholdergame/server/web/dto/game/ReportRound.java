@@ -5,9 +5,7 @@ import java.util.Set;
 
 public class ReportRound {
 
-    public short round;
+    public int round;
 
     public Set<ReportTurn> turns;
-
-    public LocalDateTime finishedTime;
 }
