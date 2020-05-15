@@ -23,8 +23,8 @@ public class StatisticsDaoImpl implements StatisticsDao {
     @SuppressWarnings("unchecked")
     public List<? extends Statistics> getUserStatistics(String userName, String statisticsVariant, int offset, int maxResults) {
         String queryStr = StringUtils.isNotBlank(userName)
-                ? String.format("select s from %1$s s where s.userName like ? order by s.notActual, s.ratio desc, s.userName", statisticsVariant)
-                : String.format("select s from %1$s s order by s.notActual, s.ratio desc, s.userName", statisticsVariant);
+                ? String.format("select s from %1$s s where s.userName like ? order by s.zyrianov desc, s.notActual, s.ratio desc, s.userName", statisticsVariant)
+                : String.format("select s from %1$s s order by s.zyrianov desc, s.notActual, s.ratio desc, s.userName", statisticsVariant);
 
         Query query = em.createQuery(queryStr);
         if (StringUtils.isNotBlank(userName)) {

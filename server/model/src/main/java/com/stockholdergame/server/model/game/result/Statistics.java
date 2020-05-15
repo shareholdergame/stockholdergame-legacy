@@ -86,6 +86,9 @@ public class Statistics {
     @Column(name = "not_actual")
     private int notActual;
 
+    @Column(name = "zyrianov")
+    private int zyrianov;
+
     @OneToOne(fetch = LAZY)
     @JoinColumn(name = "gamer_id", insertable = false, updatable = false)
     private GamerAccount gamerAccount;
@@ -264,5 +267,13 @@ public class Statistics {
 
     public void setGamerAccount(GamerAccount gamerAccount) {
         this.gamerAccount = gamerAccount;
+    }
+
+    public int getZyrianov() {
+        return zyrianov;
+    }
+
+    public void setZyrianov(int zyrianov) {
+        this.zyrianov = zyrianov;
     }
 }
