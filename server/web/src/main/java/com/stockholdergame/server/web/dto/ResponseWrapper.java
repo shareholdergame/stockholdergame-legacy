@@ -6,7 +6,7 @@ public class ResponseWrapper<T> {
 
     private T body;
 
-    private ResponseWrapper(ResponseStatus status, T body) {
+    protected ResponseWrapper(ResponseStatus status, T body) {
         this.status = status;
         this.body = body;
     }

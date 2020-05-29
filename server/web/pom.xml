@@ -33,8 +33,8 @@
                         <apiSource>
                             <springmvc>true</springmvc>
                             <locations>com.stockholdergame.server.web.controller</locations>
-                            <schemes>http</schemes>
-                            <host>stockholdergame.com</host>
+                            <schemes>http,https</schemes>
+                            <host>stockholdergame.com:8080</host>
                             <basePath>/stockholdergame</basePath>
                             <info>
                                 <title>StockholderGame REST API</title>
@@ -42,6 +42,11 @@
                             </info>
                             <outputPath>${build.directory}/generated/document.html</outputPath>
                             <swaggerDirectory>${build.directory}/swagger-ui</swaggerDirectory>
+                            <securityDefinitions>
+                                <securityDefinition>
+                                    <json>/swagger/securityDefinitions.json</json>
+                                </securityDefinition>
+                            </securityDefinitions>
                         </apiSource>
                     </apiSources>
                 </configuration>

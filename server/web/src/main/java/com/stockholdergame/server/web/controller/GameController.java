@@ -11,9 +11,9 @@ import com.stockholdergame.server.web.dto.*;
 import com.stockholdergame.server.web.dto.game.*;
 import com.stockholdergame.server.web.dto.game.InvitationAction;
 import com.stockholdergame.server.web.dto.player.Player;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.Authorization;
+import com.stockholdergame.server.web.dto.swaggerstub.ResponseWrapperGameListResponse;
+import com.stockholdergame.server.web.dto.swaggerstub.ResponseWrapperGameSetReport;
+import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
@@ -29,7 +29,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 
-@Api(value = "/", authorizations = { @Authorization("Bearer") })
+@Api(value = "/", authorizations = { @Authorization("Bearer") }, tags = "Game API")
 @Controller
 @RequestMapping("/game")
 public class GameController {
@@ -44,10 +44,10 @@ public class GameController {
         holder = new GameVariantMapHolder(gameFacade);
     }
 
-    @ApiOperation("Creates new game")
+    @ApiOperation("Create new game")
     @RequestMapping(value = "/new", method = RequestMethod.PUT,
             consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public @ResponseBody ResponseWrapper<?> startGame(@RequestBody NewGame newGame) {
+    public @ResponseBody ResponseWrapper<Long> startGame(@RequestBody NewGame newGame) {
         GameInitiationDto gameInitiationDto = new GameInitiationDto();
         gameInitiationDto.setGameVariantId(matchCardOptionToGameVariant(newGame.cardOption));
         gameInitiationDto.setOffer(false);
@@ -57,7 +57,7 @@ public class GameController {
         return ResponseWrapper.ok(gameStatusDto.getGameId());
     }
 
-    @ApiOperation("Accepts/rejects invitation")
+    @ApiOperation("Accept/reject/cancel invitation")
     @RequestMapping(value = "/{gameId}/invitation", method = RequestMethod.POST,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public @ResponseBody ResponseWrapper<?> performInvitationAction(@PathVariable("gameId") Long gameId,
@@ -80,22 +80,24 @@ public class GameController {
         return ResponseWrapper.ok();
     }
 
-    @ApiOperation("Do turn")
-    @RequestMapping(value = "/{gameId}/doturn", method = RequestMethod.PUT,
+    @ApiOperation("Make a turn")
+    @RequestMapping(value = "/{gameId}/turn", method = RequestMethod.PUT,
             consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public @ResponseBody ResponseWrapper<?> doTurn(@PathVariable Long gameId, @RequestBody Turn turn) {
         gameFacade.doMove(buildDoMoveDto(gameId, turn));
         return ResponseWrapper.ok();
     }
 
-    @ApiOperation("Gets game by identifier")
+    @ApiOperation(value = "Get game by identifier")
+    @ApiResponses({@ApiResponse(code = 200, message = "OK", response = ResponseWrapperGameSetReport.class)})
     @RequestMapping(value = "/{gameId}/report", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public @ResponseBody ResponseWrapper<GameSetReport> gameById(@PathVariable Long gameId) {
         GameDto gameDto = gameFacade.getGameById(gameId);
         return ResponseWrapper.ok(convertToGameSetReport(gameDto));
     }
 
-    @ApiOperation("Gets games list")
+    @ApiOperation("Get games list")
+    @ApiResponses({@ApiResponse(code = 200, message = "OK", response = ResponseWrapperGameListResponse.class)})
     @RequestMapping(value = "/{gameOptionFilter}/{gameStatus}", method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public @ResponseBody ResponseWrapper<GameListResponse> getGames(@PathVariable GameOptionFilter gameOptionFilter,
