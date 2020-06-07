@@ -6,6 +6,8 @@ public class CurrentTurnDto {
 
     public String gameLabel;
 
+    public String gameLetter;
+
     public int round;
 
     public int turn;
