@@ -130,7 +130,7 @@
         <oauth:client
                 scope="all"
                 client-id="stockholdergame-app"
-                secret="dgUhKhuhoH%IhiI(8("
+                secret="AqsWv5Ki"
                 authorized-grant-types="password,refresh_token"
                 access-token-validity="10800"
                 refresh-token-validity="84600"/>
