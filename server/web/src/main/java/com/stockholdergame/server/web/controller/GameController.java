@@ -83,7 +83,7 @@ public class GameController {
     @ApiOperation("Make a turn")
     @RequestMapping(value = "/{gameId}/turn", method = RequestMethod.PUT,
             consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public @ResponseBody ResponseWrapper<?> doTurn(@PathVariable Long gameId, @RequestBody Turn turn) {
+    public @ResponseBody ResponseWrapper<?> doTurn(@PathVariable("gameId") Long gameId, @RequestBody Turn turn) {
         gameFacade.doMove(buildDoMoveDto(gameId, turn));
         return ResponseWrapper.ok();
     }
@@ -91,7 +91,7 @@ public class GameController {
     @ApiOperation(value = "Get game by identifier")
     @ApiResponses({@ApiResponse(code = 200, message = "OK", response = ResponseWrapperGameSetReport.class)})
     @RequestMapping(value = "/{gameId}/report", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public @ResponseBody ResponseWrapper<GameSetReport> gameById(@PathVariable Long gameId) {
+    public @ResponseBody ResponseWrapper<GameSetReport> gameById(@PathVariable("gameId") Long gameId) {
         GameDto gameDto = gameFacade.getGameById(gameId);
         return ResponseWrapper.ok(convertToGameSetReport(gameDto));
     }
@@ -100,8 +100,8 @@ public class GameController {
     @ApiResponses({@ApiResponse(code = 200, message = "OK", response = ResponseWrapperGameListResponse.class)})
     @RequestMapping(value = "/{gameOptionFilter}/{gameStatus}", method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public @ResponseBody ResponseWrapper<GameListResponse> getGames(@PathVariable GameOptionFilter gameOptionFilter,
-                                                      @PathVariable GameStatus gameStatus,
+    public @ResponseBody ResponseWrapper<GameListResponse> getGames(@PathVariable("gameOptionFilter") GameOptionFilter gameOptionFilter,
+                                                      @PathVariable("gameStatus") GameStatus gameStatus,
                                                       @RequestParam(value = "playerNamePrefix", required = false) String playerNamePrefix,
                                                       @RequestParam(value = "offset", defaultValue = "0", required = false) int offset,
                                                       @RequestParam(value = "ipp", defaultValue = "10", required = false) int itemsPerPage) {

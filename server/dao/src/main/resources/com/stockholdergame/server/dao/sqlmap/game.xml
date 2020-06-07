@@ -71,6 +71,30 @@
                 typeHandler="com.stockholdergame.server.dao.typehandler.GameInitiationMethodTypeHandler"/>
     </resultMap>
 
+    <resultMap id="currentTurnsResultMap" type="com.stockholdergame.server.dto.game.CurrentTurnDto">
+        <result property="gameId" column="game_id"/>
+        <result property="gameLabel" column="game_label"/>
+        <result property="round" column="move_number"/>
+        <result property="turn" column="move_order"/>
+    </resultMap>
+
+    <select id="getCurrentTurns" resultMap="currentTurnsResultMap">
+        select
+        max(m.move_number) as move_number,
+        max(cm.move_order) as move_order,
+        g.game_id,
+        g.game_label
+        from
+        ag_competitors c, ag_competitor_moves cm, ag_moves m, ag_games g
+        WHERE
+        c.competitor_id = cm.competitor_id
+        and cm.move_id = m.move_id
+        and m.game_id = g.game_id
+        and g.game_status_id = 1
+        group by 3
+        order by 3, 1, 2;
+    </select>
+
     <select id="countGamesByParameters" parameterType="java.util.Map" resultType="java.lang.Integer">
         SELECT COUNT(*) FROM (
         SELECT

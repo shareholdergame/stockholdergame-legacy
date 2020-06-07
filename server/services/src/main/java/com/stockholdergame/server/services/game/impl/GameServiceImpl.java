@@ -11,22 +11,7 @@ import com.stockholdergame.server.dao.InvitationDao;
 import com.stockholdergame.server.dao.ScoreDao;
 import com.stockholdergame.server.dao.UserSessionLogDao;
 import com.stockholdergame.server.dto.account.UserDto;
-import com.stockholdergame.server.dto.game.ChangeInvitationStatusDto;
-import com.stockholdergame.server.dto.game.CompetitorCardDto;
-import com.stockholdergame.server.dto.game.CompetitorDto;
-import com.stockholdergame.server.dto.game.CreateInvitationDto;
-import com.stockholdergame.server.dto.game.GameDto;
-import com.stockholdergame.server.dto.game.GameEventDto;
-import com.stockholdergame.server.dto.game.GameFilterDto;
-import com.stockholdergame.server.dto.game.GameInitiationDto;
-import com.stockholdergame.server.dto.game.GameStatusDto;
-import com.stockholdergame.server.dto.game.GameVariantSummary;
-import com.stockholdergame.server.dto.game.GamerActivitySummary;
-import com.stockholdergame.server.dto.game.InvitationDto;
-import com.stockholdergame.server.dto.game.RelatedGame;
-import com.stockholdergame.server.dto.game.ScoreDto;
-import com.stockholdergame.server.dto.game.ScoreFilterDto;
-import com.stockholdergame.server.dto.game.TotalScoreDto;
+import com.stockholdergame.server.dto.game.*;
 import com.stockholdergame.server.dto.game.event.UserNotification;
 import com.stockholdergame.server.dto.game.lite.GamesList;
 import com.stockholdergame.server.dto.game.result.CompetitorDiffDto;
@@ -83,6 +68,7 @@ import com.stockholdergame.server.session.UserInfo;
 import com.stockholdergame.server.util.AMFHelper;
 import com.stockholdergame.server.util.collections.ChunkHandler;
 import com.stockholdergame.server.util.collections.CollectionsUtil;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -104,6 +90,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import static com.stockholdergame.server.dao.util.IdentifierHelper.generateLongId;
 import static com.stockholdergame.server.model.game.GameStatus.RUNNING;
@@ -823,6 +810,11 @@ public class GameServiceImpl extends UserInfoAware implements GameService {
         }
     }
 
+    @Override
+    public List<CurrentTurnDto> getCurrentTurns() {
+        return gameMapperDao.getCurrentTurns();
+    }
+
     private boolean canBeCanceled(Game game) {
         return game.getCompetitors().size() == 1 && invitationDao.countInvitationsByGameIdAndStatus(game.getId(), CREATED) == 0;
     }
@@ -907,7 +899,7 @@ public class GameServiceImpl extends UserInfoAware implements GameService {
     public void changeInvitationStatus(ChangeInvitationStatusDto changeInvitationStatusDto) {
         InvitationStatus newStatus = InvitationStatus.valueOf(changeInvitationStatusDto.getStatus());
         String[] userNames = InvitationStatus.CANCELLED.equals(newStatus)
-                ? changeInvitationStatusDto.getInviteeNames() : new String[]{getCurrentUser().getUserName()};
+                ? getInvitedUsers(changeInvitationStatusDto) : new String[]{getCurrentUser().getUserName()};
 
         for (String userName : userNames) {
             Invitation invitation =
@@ -948,6 +940,16 @@ public class GameServiceImpl extends UserInfoAware implements GameService {
                 startGame(game, null);
             }
         }
+    }
+
+    private String[] getInvitedUsers(ChangeInvitationStatusDto changeInvitationStatusDto) {
+        return ArrayUtils.isEmpty(changeInvitationStatusDto.getInviteeNames())
+                ? getInvitedUsers(changeInvitationStatusDto.getGameId()) : changeInvitationStatusDto.getInviteeNames();
+    }
+
+    private String[] getInvitedUsers(Long gameId) {
+        List<Invitation> invitations = invitationDao.findByGameId(gameId);
+        return invitations.stream().map(Invitation::getInviteeAccount).map(GamerAccount::getUserName).toArray(String[]::new);
     }
 
     private void changeInvitationStatus(Invitation invitation, InvitationStatus status) {

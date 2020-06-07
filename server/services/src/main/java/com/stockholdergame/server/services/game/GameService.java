@@ -1,15 +1,6 @@
 package com.stockholdergame.server.services.game;
 
-import com.stockholdergame.server.dto.game.ChangeInvitationStatusDto;
-import com.stockholdergame.server.dto.game.CreateInvitationDto;
-import com.stockholdergame.server.dto.game.GameDto;
-import com.stockholdergame.server.dto.game.GameFilterDto;
-import com.stockholdergame.server.dto.game.GameInitiationDto;
-import com.stockholdergame.server.dto.game.GameStatusDto;
-import com.stockholdergame.server.dto.game.GameVariantSummary;
-import com.stockholdergame.server.dto.game.GamerActivitySummary;
-import com.stockholdergame.server.dto.game.ScoreFilterDto;
-import com.stockholdergame.server.dto.game.TotalScoreDto;
+import com.stockholdergame.server.dto.game.*;
 import com.stockholdergame.server.dto.game.lite.GamesList;
 import com.stockholdergame.server.dto.game.variant.GameVariantDto;
 import com.stockholdergame.server.session.UserInfo;
@@ -58,4 +49,6 @@ public interface GameService {
     void tryToStartGame(Long gameId);
 
     void startGameWithPredefinedMoveOrder(Long templateGameId);
+
+    List<CurrentTurnDto> getCurrentTurns();
 }

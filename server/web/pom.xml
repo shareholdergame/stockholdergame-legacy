@@ -33,8 +33,8 @@
                         <apiSource>
                             <springmvc>true</springmvc>
                             <locations>com.stockholdergame.server.web.controller</locations>
-                            <schemes>http,https</schemes>
-                            <host>stockholdergame.com:8080</host>
+                            <schemes>https</schemes>
+                            <host>stockholdergame.com</host>
                             <basePath>/stockholdergame</basePath>
                             <info>
                                 <title>StockholderGame REST API</title>

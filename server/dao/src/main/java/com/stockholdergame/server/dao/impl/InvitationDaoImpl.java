@@ -31,8 +31,8 @@ public class InvitationDaoImpl extends BaseDao<Invitation, Long> implements Invi
         List<Long> countMyInvits = (List<Long>) findByNamedQuery("Invitation.countMyInvitations", userId);
         List<Long> countInvitsForMe = (List<Long>) findByNamedQuery("Invitation.countInvitationsForMe", userId);
         return new Long[]{
-                countMyInvits != null && !countMyInvits.isEmpty() ? countMyInvits.get(0) : 0,
-                countInvitsForMe != null && !countInvitsForMe.isEmpty() ? countInvitsForMe.get(0) : 0
+                countMyInvits != null && !countMyInvits.isEmpty() ? countMyInvits.get(0) : 0L,
+                countInvitsForMe != null && !countInvitsForMe.isEmpty() ? countInvitsForMe.get(0) : 0L
         };
     }
 
