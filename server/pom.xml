@@ -39,7 +39,7 @@
         <spring.version>3.2.16.RELEASE</spring.version>
         <spring.aspects.version>3.2.16.RELEASE</spring.aspects.version>
         <spring.integration.version>3.0.8.RELEASE</spring.integration.version>
-        <spring.security.version>3.2.9.RELEASE</spring.security.version>
+        <spring.security.version>5.3.3.RELEASE</spring.security.version>
         <spring.security.oauth.version>2.3.8.RELEASE</spring.security.oauth.version>
         <spring.security.jwt>1.1.0.RELEASE</spring.security.jwt>
         <spring.flex.version>1.5.2.RELEASE</spring.flex.version>
