@@ -63,7 +63,7 @@
         <javamail.version>1.4.1</javamail.version>
         <dozer.version>5.2.2</dozer.version>
         <xmlbeans.version>2.4.0</xmlbeans.version>
-        <hibernate.validator.version>4.0.2.GA</hibernate.validator.version>
+        <hibernate.validator.version>5.3.5.Final</hibernate.validator.version>
         <servlet.api.version>2.3</servlet.api.version>
         <ehcache.spring.annotations.version>1.1.2</ehcache.spring.annotations.version>
         <hibernate.jpamodelgen.version>1.0.0.Final</hibernate.jpamodelgen.version>
