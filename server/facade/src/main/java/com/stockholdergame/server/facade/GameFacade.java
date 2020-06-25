@@ -27,6 +27,8 @@ public interface GameFacade {
 
     GameStatusDto joinToGame(Long gameId);
 
+    GameStatusDto joinToGameByGameSetId(Long gameSetId);
+
     GameStatusDto initiateGame(GameInitiationDto gameInitiationDto);
 
     GameDto getGameById(Long gameId);

@@ -51,4 +51,6 @@ public interface GameService {
     void startGameWithPredefinedMoveOrder(Long templateGameId);
 
     List<CurrentTurnDto> getCurrentTurns();
+
+    GameStatusDto joinToGameByGameSetId(Long gameSetId);
 }

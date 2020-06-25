@@ -391,7 +391,7 @@ public class GameServiceImpl extends UserInfoAware implements GameService {
             inviteUser(ci);
         }
 
-        return new GameStatusDto(game.getId(), game.getGameStatus().name());
+        return new GameStatusDto(game.getId(), gameSeriesId, game.getGameStatus().name());
     }
 
     private Boolean isBot(Long userId) {
@@ -815,6 +815,17 @@ public class GameServiceImpl extends UserInfoAware implements GameService {
         return gameMapperDao.getCurrentTurns();
     }
 
+    @Override
+    public GameStatusDto joinToGameByGameSetId(Long gameSetId) {
+        List<Game> games = gameDao.findGamesByGameSeriesId(gameSetId);
+        return joinToGame(getGameIdFromGameSeries(games));
+    }
+
+    private Long getGameIdFromGameSeries(List<Game> games) {
+        return games.stream().findFirst().map(Game::getId)
+                .orElseThrow(() -> new ApplicationException("Game Set is empty. At least one game is expected."));
+    }
+
     private boolean canBeCanceled(Game game) {
         return game.getCompetitors().size() == 1 && invitationDao.countInvitationsByGameIdAndStatus(game.getId(), CREATED) == 0;
     }
@@ -897,6 +908,11 @@ public class GameServiceImpl extends UserInfoAware implements GameService {
 
     @DeniedForRemovedUser
     public void changeInvitationStatus(ChangeInvitationStatusDto changeInvitationStatusDto) {
+        if (changeInvitationStatusDto.getGameSetId() != null) {
+            List<Game> games = gameDao.findGamesByGameSeriesId(changeInvitationStatusDto.getGameSetId());
+            changeInvitationStatusDto.setGameId(getGameIdFromGameSeries(games));
+        }
+
         InvitationStatus newStatus = InvitationStatus.valueOf(changeInvitationStatusDto.getStatus());
         String[] userNames = InvitationStatus.CANCELLED.equals(newStatus)
                 ? getInvitedUsers(changeInvitationStatusDto) : new String[]{getCurrentUser().getUserName()};

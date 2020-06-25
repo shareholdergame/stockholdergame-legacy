@@ -49,5 +49,7 @@ public interface GameDao extends GenericDao<Game, Long> {
 
     GameSeries findGameSeriesById(Long gameSeriesId);
 
+    List<Game> findGamesByGameSeriesId(Long gameSeriesId);
+
     List<GameSeries> findOrphanGameSeries();
 }

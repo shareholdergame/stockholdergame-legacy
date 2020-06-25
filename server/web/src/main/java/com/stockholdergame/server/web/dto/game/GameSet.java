@@ -10,7 +10,7 @@ public class GameSet {
 
     public Long id;
 
-    public Set<GameOption> options;
+    public GameOptions options;
 
     public String label;
 

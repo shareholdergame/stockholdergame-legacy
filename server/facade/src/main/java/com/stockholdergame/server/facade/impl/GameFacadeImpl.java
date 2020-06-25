@@ -53,6 +53,12 @@ public class GameFacadeImpl extends AbstractFacade implements GameFacade {
         return gameService.joinToGame(gameId);
     }
 
+    @Override
+    @Transactional
+    public GameStatusDto joinToGameByGameSetId(Long gameSetId) {
+        return gameService.joinToGameByGameSetId(gameSetId);
+    }
+
     @Transactional
     public GameStatusDto initiateGame(@Validatable @NotNull GameInitiationDto gameInitiationDto) {
         return gameService.initiateGame(gameInitiationDto);

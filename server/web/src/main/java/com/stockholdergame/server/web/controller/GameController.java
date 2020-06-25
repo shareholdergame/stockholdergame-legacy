@@ -54,24 +54,24 @@ public class GameController {
         gameInitiationDto.setSwitchMoveOrder(true);
         gameInitiationDto.setInvitedUsers(new ArrayList<>(newGame.invitedPlayers));
         GameStatusDto gameStatusDto = gameFacade.initiateGame(gameInitiationDto);
-        return ResponseWrapper.ok(gameStatusDto.getGameId());
+        return ResponseWrapper.ok(gameStatusDto.getGameSeriesId());
     }
 
     @ApiOperation("Accept/reject/cancel invitation")
-    @RequestMapping(value = "/{gameId}/invitation", method = RequestMethod.POST,
+    @RequestMapping(value = "/{gameSetId}/invitation", method = RequestMethod.POST,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public @ResponseBody ResponseWrapper<?> performInvitationAction(@PathVariable("gameId") Long gameId,
+    public @ResponseBody ResponseWrapper<?> performInvitationAction(@PathVariable("gameSetId") Long gameSetId,
                                                       @RequestParam("action") InvitationAction invitationAction) {
         if (invitationAction.equals(InvitationAction.accept)) {
-            gameFacade.joinToGame(gameId);
+            gameFacade.joinToGameByGameSetId(gameSetId);
         } else if (invitationAction.equals(InvitationAction.reject)) {
             ChangeInvitationStatusDto changeInvitationStatusDto = new ChangeInvitationStatusDto();
-            changeInvitationStatusDto.setGameId(gameId);
+            changeInvitationStatusDto.setGameSetId(gameSetId);
             changeInvitationStatusDto.setStatus(InvitationStatus.REJECTED.name());
             gameFacade.changeInvitationStatus(changeInvitationStatusDto);
         } else if (invitationAction.equals(InvitationAction.cancel)) {
             ChangeInvitationStatusDto changeInvitationStatusDto = new ChangeInvitationStatusDto();
-            changeInvitationStatusDto.setGameId(gameId);
+            changeInvitationStatusDto.setGameSetId(gameSetId);
             changeInvitationStatusDto.setStatus(InvitationStatus.CANCELLED.name());
             gameFacade.changeInvitationStatus(changeInvitationStatusDto);
         } else {
@@ -412,9 +412,9 @@ public class GameController {
         return players;
     }
 
-    private Set<GameOption> buildGameOptions(Long gameVariantId) {
-        Set<GameOption> gameOptions = new HashSet<>();
-        gameOptions.add(holder.getCardOption(gameVariantId));
+    private GameOptions buildGameOptions(Long gameVariantId) {
+        GameOptions gameOptions = new GameOptions();
+        gameOptions.cardOption = holder.getCardOption(gameVariantId);
         // todo - add other game options
         return gameOptions;
     }
