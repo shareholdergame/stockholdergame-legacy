@@ -46,7 +46,7 @@
         <testng.version>5.8</testng.version>
         <testng.classifier>jdk15</testng.classifier>
         <log4j.version>2.5</log4j.version>
-        <quartz.version>2.2.2</quartz.version>
+        <quartz.version>2.3.2</quartz.version>
         <mysql-jdbc.version>5.0.8</mysql-jdbc.version>
         <commons-dbcp.version>1.4</commons-dbcp.version>
         <aspectj.version>1.8.9</aspectj.version>
