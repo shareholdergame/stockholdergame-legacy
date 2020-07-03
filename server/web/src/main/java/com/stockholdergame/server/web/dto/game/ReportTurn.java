@@ -6,7 +6,7 @@ import io.swagger.annotations.ApiModelProperty;
 import java.time.LocalDateTime;
 import java.util.Set;
 
-public class ReportTurn {
+public class ReportTurn implements Comparable<ReportTurn> {
 
     public int round;
 
@@ -17,4 +17,11 @@ public class ReportTurn {
     public LocalDateTime finishedTime;
 
     public Set<ReportStep> steps;
+
+    @Override
+    public int compareTo(ReportTurn o) {
+        int result = this.turn - o.turn;
+
+        return result != 0 ? result : this.round - o.round;
+    }
 }

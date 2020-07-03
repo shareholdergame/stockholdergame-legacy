@@ -1,6 +1,6 @@
 package com.stockholdergame.server.web.dto.game;
 
-import java.util.Set;
+import java.util.Map;
 
 public class ReportStep {
 
@@ -8,11 +8,11 @@ public class ReportStep {
 
     public long cashValue;
 
-    public Set<ShareAmount> shares;
+    public Map<Long, ShareAmount> shares;
 
-    public Set<SharePrice> sharePrices;
+    public Map<Long, SharePrice> sharePrices;
 
-    public Set<ShareCompensation> compensations;
+    public Map<Long, ShareCompensation> compensations;
 
     public Long originalStepId;
 }

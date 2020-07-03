@@ -271,8 +271,8 @@ public class GameController {
         return reports;
     }
 
-    private Set<ReportRound> buildRounds(GameDto gameDto) {
-        Set<ReportRound> rounds = new HashSet<>();
+    private TreeSet<ReportRound> buildRounds(GameDto gameDto) {
+        TreeSet<ReportRound> rounds = new TreeSet<>();
         gameDto.getMoves().forEach(moveDto -> {
             ReportRound round = new ReportRound();
             round.round = moveDto.getMoveNumber();
@@ -282,8 +282,8 @@ public class GameController {
         return rounds;
     }
 
-    private Set<ReportTurn> buildTurns(Set<CompetitorMoveDto> competitorMoves) {
-        Set<ReportTurn> reportTurns = new HashSet<>();
+    private TreeSet<ReportTurn> buildTurns(Set<CompetitorMoveDto> competitorMoves) {
+        TreeSet<ReportTurn> reportTurns = new TreeSet<>();
         competitorMoves.forEach(competitorMoveDto -> {
             ReportTurn turn = new ReportTurn();
             turn.round = competitorMoveDto.getMoveNumber();
@@ -310,40 +310,40 @@ public class GameController {
         return reportSteps;
     }
 
-    private Set<ShareCompensation> buildCompensations(Set<CompensationDto> compensations) {
-        Set<ShareCompensation> shareCompensations = new HashSet<>();
+    private Map<Long, ShareCompensation> buildCompensations(Set<CompensationDto> compensations) {
+        Map<Long, ShareCompensation> shareCompensations = new HashMap<>();
         Optional.ofNullable(compensations)
                 .ifPresent(compensationDtos -> compensationDtos.forEach(compensationDto -> {
             ShareCompensation shareCompensation = new ShareCompensation();
             shareCompensation.shareId = compensationDto.getId();
             shareCompensation.sum = compensationDto.getSum();
-            shareCompensations.add(shareCompensation);
+            shareCompensations.put(shareCompensation.shareId, shareCompensation);
         }));
         return shareCompensations;
     }
 
-    private Set<SharePrice> buildSharePrices(Set<SharePriceDto> sharePrices) {
-        Set<SharePrice> sharePrices1 = new HashSet<>();
+    private Map<Long, SharePrice> buildSharePrices(Set<SharePriceDto> sharePrices) {
+        Map<Long, SharePrice> sharePrices1 = new HashMap<>();
         Optional.ofNullable(sharePrices)
                 .ifPresent(sharePriceDtos -> sharePriceDtos.forEach(sharePriceDto -> {
             SharePrice sharePrice = new SharePrice();
             sharePrice.shareId = sharePriceDto.getId();
             sharePrice.price = sharePriceDto.getPrice();
             sharePrice.priceOperationId = sharePriceDto.getPriceOperationId();
-            sharePrices1.add(sharePrice);
+            sharePrices1.put(sharePrice.shareId, sharePrice);
         }));
         return sharePrices1;
     }
 
-    private Set<ShareAmount> buildShares(Set<ShareQuantityDto> shareQuantities) {
-        Set<ShareAmount> shareAmounts = new HashSet<>();
+    private Map<Long, ShareAmount> buildShares(Set<ShareQuantityDto> shareQuantities) {
+        Map<Long, ShareAmount> shareAmounts = new HashMap<>();
         Optional.ofNullable(shareQuantities)
                 .ifPresent(shareQuantityDtos -> shareQuantityDtos.forEach(shareQuantityDto -> {
             ShareAmount shareAmount = new ShareAmount();
             shareAmount.shareId = shareQuantityDto.getId();
             shareAmount.amount = shareQuantityDto.getQuantity();
             shareAmount.buySellAmount = shareQuantityDto.getBuySellQuantity();
-            shareAmounts.add(shareAmount);
+            shareAmounts.put(shareAmount.shareId, shareAmount);
         }));
         return shareAmounts;
     }
