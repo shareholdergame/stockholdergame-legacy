@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.annotations.ApiModelProperty;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Set;
 
 public class ReportTurn implements Comparable<ReportTurn> {
@@ -16,7 +17,7 @@ public class ReportTurn implements Comparable<ReportTurn> {
     @JsonFormat(pattern = "YYYY-MM-dd HH:mm")
     public LocalDateTime finishedTime;
 
-    public Set<ReportStep> steps;
+    public Map<StepType, ReportStep> steps;
 
     @Override
     public int compareTo(ReportTurn o) {

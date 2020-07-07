@@ -295,8 +295,8 @@ public class GameController {
         return reportTurns;
     }
 
-    private Set<ReportStep> buildTurnSteps(Set<MoveStepDto> steps) {
-        Set<ReportStep> reportSteps = new HashSet<>();
+    private Map<StepType, ReportStep> buildTurnSteps(Set<MoveStepDto> steps) {
+        Map<StepType, ReportStep> reportSteps = new HashMap<>();
         steps.forEach(moveStepDto -> {
             ReportStep step = new ReportStep();
             step.stepType = StepType.valueOf(moveStepDto.getStepType());
@@ -305,7 +305,7 @@ public class GameController {
             step.shares = buildShares(moveStepDto.getShareQuantities());
             step.sharePrices = buildSharePrices(moveStepDto.getSharePrices());
             step.compensations = buildCompensations(moveStepDto.getCompensations());
-            reportSteps.add(step);
+            reportSteps.put(step.stepType, step);
         });
         return reportSteps;
     }
