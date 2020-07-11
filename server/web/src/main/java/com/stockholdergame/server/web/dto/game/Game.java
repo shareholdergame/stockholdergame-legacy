@@ -1,6 +1,7 @@
 package com.stockholdergame.server.web.dto.game;
 
 import java.util.Set;
+import java.util.TreeSet;
 
 public class Game {
 
@@ -14,7 +15,7 @@ public class Game {
 
     public Set<GamePlayer> players;
 
-    public GameReport gameReport;
+    public TreeSet<ReportRound> rounds;
 
     public Set<TurnOrderResult> result;
 }

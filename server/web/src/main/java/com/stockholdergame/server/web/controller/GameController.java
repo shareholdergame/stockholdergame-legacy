@@ -364,11 +364,7 @@ public class GameController {
         game.letter = GameLetter.valueOf(gameDto.getGameLetter());
         game.status = convertGameStatus(gameDto.getGameStatus());
         game.players = buildGamePlayers(gameDto);
-
-        GameReport gameReport = new GameReport();
-        gameReport.rounds = buildRounds(gameDto);
-        game.gameReport = gameReport;
-
+        game.rounds = buildRounds(gameDto);
         games.add(game);
         gameDto.getRelatedGames().forEach(relatedGame -> {
             Game game1 = new Game();
@@ -464,6 +460,9 @@ public class GameController {
         }
 
         public CardOption getCardOption(Long gameVariantId) {
+            if (gameVariantMap.isEmpty()) {
+                fillGameVariantMap();
+            }
             for (Map.Entry<CardOption, Long> entry : gameVariantMap.entrySet()) {
                 if (entry.getValue().equals(gameVariantId)) {
                     return entry.getKey();
