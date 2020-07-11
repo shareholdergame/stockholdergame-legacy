@@ -12,5 +12,9 @@ public class Game {
 
     public PlayPosition position;
 
+    public Set<GamePlayer> players;
+
+    public GameReport gameReport;
+
     public Set<TurnOrderResult> result;
 }

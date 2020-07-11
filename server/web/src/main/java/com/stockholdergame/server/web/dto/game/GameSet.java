@@ -28,7 +28,7 @@ public class GameSet {
 
     public GameStatus status;
 
-    public Set<GamePlayer> players;
+    public Set<GameSetPlayer> players;
 
     public Set<PlayerResult> result;
 
