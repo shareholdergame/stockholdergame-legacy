@@ -154,6 +154,14 @@ public class GameDaoImpl extends BaseDao<Game, Long> implements GameDao {
 
     @Override
     @SuppressWarnings("unchecked")
+    public List<Game> findGamesByGameSeriesId(Long gameSeriesId) {
+        Query query = em.createNamedQuery("Game.findGamesByGameSeriesId");
+        query.setParameter(1, gameSeriesId);
+        return query.getResultList();
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
     public List<GameSeries> findOrphanGameSeries() {
         Query query = em.createNamedQuery("Game.findOrphanGameSeries");
         return query.getResultList();

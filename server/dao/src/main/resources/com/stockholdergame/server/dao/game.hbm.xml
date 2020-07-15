@@ -67,6 +67,9 @@
     <query name="Game.findGameSeriesById">
         select gs from GameSeries gs where gs.id = ?1
     </query>
+    <query name="Game.findGamesByGameSeriesId">
+        select g from Game g where g.gameSeries.id = ?1
+    </query>
     <query name="Game.findOrphanGameSeries">
         select gs from GameSeries gs where (select count(g) from Game g where g.gameSeries.id = gs.id) = 0
     </query>

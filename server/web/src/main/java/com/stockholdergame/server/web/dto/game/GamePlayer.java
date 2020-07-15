@@ -1,14 +1,17 @@
 package com.stockholdergame.server.web.dto.game;
 
-import com.stockholdergame.server.web.dto.player.Player;
+import java.util.Set;
 
-public class GamePlayer {
+public class GamePlayer implements Comparable<GamePlayer> {
 
-    public Long id;
+    public String name;
 
-    public boolean initiator;
+    public int turnOrder;
 
-    public Player player;
+    public Set<PlayerCard> playerCards;
 
-    public PlayerInvitation invitation;
+    @Override
+    public int compareTo(GamePlayer o) {
+        return turnOrder - o.turnOrder;
+    }
 }

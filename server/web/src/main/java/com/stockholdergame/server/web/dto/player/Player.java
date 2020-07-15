@@ -9,8 +9,6 @@ import java.io.Serializable;
  */
 public class Player implements Serializable {
 
-    public String id;
-
     public String name;
 
     public boolean bot;

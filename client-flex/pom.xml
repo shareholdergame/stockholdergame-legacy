@@ -126,7 +126,7 @@
                     <resourceBundlePath>${basedir}/src/main/resources/locale/{locale}</resourceBundlePath>
                     <compiledLocales>
                         <locale>en_US</locale>
-                        <!--<locale>ru_RU</locale>-->
+                        <locale>ru_RU</locale>
                     </compiledLocales>
                     <allowSourcePathOverlap>true</allowSourcePathOverlap>
                     <storepass/>

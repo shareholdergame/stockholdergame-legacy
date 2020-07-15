@@ -1,6 +1,7 @@
 package com.stockholdergame.server.dao.impl;
 
 import com.stockholdergame.server.dao.GameMapperDao;
+import com.stockholdergame.server.dto.game.CurrentTurnDto;
 import com.stockholdergame.server.dto.game.GameVariantSummary;
 import com.stockholdergame.server.dto.game.lite.CompetitorLite;
 import com.stockholdergame.server.dto.game.lite.GameLite;
@@ -118,5 +119,10 @@ public class GameMapperDaoImpl extends BaseMapperDao implements GameMapperDao {
                 .toHashMap();
 
         return getSqlSession().selectList("Game.countGamesByVariant", params);
+    }
+
+    @Override
+    public List<CurrentTurnDto> getCurrentTurns() {
+        return getSqlSession().selectList("Game.getCurrentTurns");
     }
 }

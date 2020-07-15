@@ -11,6 +11,9 @@ import com.stockholdergame.server.web.dto.*;
 import com.stockholdergame.server.web.dto.game.*;
 import com.stockholdergame.server.web.dto.game.InvitationAction;
 import com.stockholdergame.server.web.dto.player.Player;
+import com.stockholdergame.server.web.dto.swaggerstub.ResponseWrapperGameListResponse;
+import com.stockholdergame.server.web.dto.swaggerstub.ResponseWrapperGameSet;
+import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
@@ -26,6 +29,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 
+@Api(value = "/", authorizations = { @Authorization("Bearer") }, tags = "Game API")
 @Controller
 @RequestMapping("/game")
 public class GameController {
@@ -40,32 +44,34 @@ public class GameController {
         holder = new GameVariantMapHolder(gameFacade);
     }
 
+    @ApiOperation("Create new game")
     @RequestMapping(value = "/new", method = RequestMethod.PUT,
             consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public @ResponseBody ResponseWrapper<?> startGame(@RequestBody NewGame newGame) {
+    public @ResponseBody ResponseWrapper<Long> startGame(@RequestBody NewGame newGame) {
         GameInitiationDto gameInitiationDto = new GameInitiationDto();
         gameInitiationDto.setGameVariantId(matchCardOptionToGameVariant(newGame.cardOption));
         gameInitiationDto.setOffer(false);
         gameInitiationDto.setSwitchMoveOrder(true);
         gameInitiationDto.setInvitedUsers(new ArrayList<>(newGame.invitedPlayers));
         GameStatusDto gameStatusDto = gameFacade.initiateGame(gameInitiationDto);
-        return ResponseWrapper.ok(gameStatusDto.getGameId());
+        return ResponseWrapper.ok(gameStatusDto.getGameSeriesId());
     }
 
-    @RequestMapping(value = "/{gameId}/invitation", method = RequestMethod.POST,
+    @ApiOperation("Accept/reject/cancel invitation")
+    @RequestMapping(value = "/{gameSetId}/invitation", method = RequestMethod.POST,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public @ResponseBody ResponseWrapper<?> performInvitationAction(@PathVariable("gameId") Long gameId,
+    public @ResponseBody ResponseWrapper<?> performInvitationAction(@PathVariable("gameSetId") Long gameSetId,
                                                       @RequestParam("action") InvitationAction invitationAction) {
         if (invitationAction.equals(InvitationAction.accept)) {
-            gameFacade.joinToGame(gameId);
+            gameFacade.joinToGameByGameSetId(gameSetId);
         } else if (invitationAction.equals(InvitationAction.reject)) {
             ChangeInvitationStatusDto changeInvitationStatusDto = new ChangeInvitationStatusDto();
-            changeInvitationStatusDto.setGameId(gameId);
+            changeInvitationStatusDto.setGameSetId(gameSetId);
             changeInvitationStatusDto.setStatus(InvitationStatus.REJECTED.name());
             gameFacade.changeInvitationStatus(changeInvitationStatusDto);
         } else if (invitationAction.equals(InvitationAction.cancel)) {
             ChangeInvitationStatusDto changeInvitationStatusDto = new ChangeInvitationStatusDto();
-            changeInvitationStatusDto.setGameId(gameId);
+            changeInvitationStatusDto.setGameSetId(gameSetId);
             changeInvitationStatusDto.setStatus(InvitationStatus.CANCELLED.name());
             gameFacade.changeInvitationStatus(changeInvitationStatusDto);
         } else {
@@ -74,23 +80,28 @@ public class GameController {
         return ResponseWrapper.ok();
     }
 
-    @RequestMapping(value = "/{gameId}/doturn", method = RequestMethod.PUT,
+    @ApiOperation("Make a turn")
+    @RequestMapping(value = "/{gameId}/turn", method = RequestMethod.PUT,
             consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public @ResponseBody ResponseWrapper<?> doTurn(@PathVariable Long gameId, @RequestBody Turn turn) {
+    public @ResponseBody ResponseWrapper<?> doTurn(@PathVariable("gameId") Long gameId, @RequestBody Turn turn) {
         gameFacade.doMove(buildDoMoveDto(gameId, turn));
         return ResponseWrapper.ok();
     }
 
+    @ApiOperation(value = "Get game by identifier")
+    @ApiResponses({@ApiResponse(code = 200, message = "OK", response = ResponseWrapperGameSet.class)})
     @RequestMapping(value = "/{gameId}/report", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public @ResponseBody ResponseWrapper<GameSetReport> gameById(@PathVariable Long gameId) {
+    public @ResponseBody ResponseWrapper<GameSet> gameById(@PathVariable("gameId") Long gameId) {
         GameDto gameDto = gameFacade.getGameById(gameId);
-        return ResponseWrapper.ok(convertToGameSetReport(gameDto));
+        return ResponseWrapper.ok(convertToGameSet(gameDto));
     }
 
+    @ApiOperation("Get games list")
+    @ApiResponses({@ApiResponse(code = 200, message = "OK", response = ResponseWrapperGameListResponse.class)})
     @RequestMapping(value = "/{gameOptionFilter}/{gameStatus}", method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public @ResponseBody ResponseWrapper<GameListResponse> getGames(@PathVariable GameOptionFilter gameOptionFilter,
-                                                      @PathVariable GameStatus gameStatus,
+    public @ResponseBody ResponseWrapper<GameListResponse> getGames(@PathVariable("gameOptionFilter") GameOptionFilter gameOptionFilter,
+                                                      @PathVariable("gameStatus") GameStatus gameStatus,
                                                       @RequestParam(value = "playerNamePrefix", required = false) String playerNamePrefix,
                                                       @RequestParam(value = "offset", defaultValue = "0", required = false) int offset,
                                                       @RequestParam(value = "ipp", defaultValue = "10", required = false) int itemsPerPage) {
@@ -135,23 +146,23 @@ public class GameController {
         return playPosition;
     }
 
-    private Set<GamePlayer> buildPlayers(Set<CompetitorLite> competitors) {
-        Set<GamePlayer> players = new HashSet<>();
+    private Set<GameSetPlayer> buildPlayers(Set<CompetitorLite> competitors) {
+        Set<GameSetPlayer> players = new HashSet<>();
         competitors.forEach(competitorDto -> {
-            GamePlayer gamePlayer = new GamePlayer();
+            GameSetPlayer gameSetPlayer = new GameSetPlayer();
             Player player = new Player();
             player.name = competitorDto.getUserName();
             player.removed = competitorDto.isRemoved();
             player.bot = competitorDto.isBot();
-            gamePlayer.player = player;
-            gamePlayer.initiator = competitorDto.isInitiator();
+            gameSetPlayer.player = player;
+            gameSetPlayer.initiator = competitorDto.isInitiator();
             if (competitorDto.isInvitation()) {
                 PlayerInvitation invitation = new PlayerInvitation();
                 invitation.statusSetAt = getStatusChangedTime(competitorDto);
                 invitation.invitationStatus = convertInvitationStatus(competitorDto.getInvitationStatus());
-                gamePlayer.invitation = invitation;
+                gameSetPlayer.invitation = invitation;
             }
-            players.add(gamePlayer);
+            players.add(gameSetPlayer);
         });
         return players;
     }
@@ -233,7 +244,7 @@ public class GameController {
         return buySellDtos;
     }
 
-    private GameSetReport convertToGameSetReport(GameDto gameDto) {
+    private GameSet convertToGameSet(GameDto gameDto) {
         GameSet gameSet = new GameSet();
         gameSet.id = gameDto.getGameSeriesId();
         gameSet.status = convertGameStatus(gameDto.getGameStatus());
@@ -242,26 +253,11 @@ public class GameController {
         gameSet.players = buildPlayers(gameDto);
         gameSet.games = buildGames(gameDto);
 
-        GameSetReport gameSetReport = new GameSetReport();
-        gameSetReport.gameSet = gameSet;
-
-        gameSetReport.report = buildReports(gameDto);
-
-        return gameSetReport;
+        return gameSet;
     }
 
-    private Set<GameReport> buildReports(GameDto gameDto) {
-        Set<GameReport> reports = new HashSet<>();
-        GameReport gameReport = new GameReport();
-        gameReport.gameId = gameDto.getId();
-        gameReport.players = buildReportPlayers(gameDto);
-        gameReport.rounds = buildRounds(gameDto);
-        reports.add(gameReport);
-        return reports;
-    }
-
-    private Set<ReportRound> buildRounds(GameDto gameDto) {
-        Set<ReportRound> rounds = new HashSet<>();
+    private TreeSet<ReportRound> buildRounds(GameDto gameDto) {
+        TreeSet<ReportRound> rounds = new TreeSet<>();
         gameDto.getMoves().forEach(moveDto -> {
             ReportRound round = new ReportRound();
             round.round = moveDto.getMoveNumber();
@@ -271,8 +267,8 @@ public class GameController {
         return rounds;
     }
 
-    private Set<ReportTurn> buildTurns(Set<CompetitorMoveDto> competitorMoves) {
-        Set<ReportTurn> reportTurns = new HashSet<>();
+    private TreeSet<ReportTurn> buildTurns(Set<CompetitorMoveDto> competitorMoves) {
+        TreeSet<ReportTurn> reportTurns = new TreeSet<>();
         competitorMoves.forEach(competitorMoveDto -> {
             ReportTurn turn = new ReportTurn();
             turn.round = competitorMoveDto.getMoveNumber();
@@ -284,8 +280,8 @@ public class GameController {
         return reportTurns;
     }
 
-    private Set<ReportStep> buildTurnSteps(Set<MoveStepDto> steps) {
-        Set<ReportStep> reportSteps = new HashSet<>();
+    private Map<StepType, ReportStep> buildTurnSteps(Set<MoveStepDto> steps) {
+        Map<StepType, ReportStep> reportSteps = new HashMap<>();
         steps.forEach(moveStepDto -> {
             ReportStep step = new ReportStep();
             step.stepType = StepType.valueOf(moveStepDto.getStepType());
@@ -294,59 +290,59 @@ public class GameController {
             step.shares = buildShares(moveStepDto.getShareQuantities());
             step.sharePrices = buildSharePrices(moveStepDto.getSharePrices());
             step.compensations = buildCompensations(moveStepDto.getCompensations());
-            reportSteps.add(step);
+            reportSteps.put(step.stepType, step);
         });
         return reportSteps;
     }
 
-    private Set<ShareCompensation> buildCompensations(Set<CompensationDto> compensations) {
-        Set<ShareCompensation> shareCompensations = new HashSet<>();
+    private Map<Long, ShareCompensation> buildCompensations(Set<CompensationDto> compensations) {
+        Map<Long, ShareCompensation> shareCompensations = new HashMap<>();
         Optional.ofNullable(compensations)
                 .ifPresent(compensationDtos -> compensationDtos.forEach(compensationDto -> {
             ShareCompensation shareCompensation = new ShareCompensation();
             shareCompensation.shareId = compensationDto.getId();
             shareCompensation.sum = compensationDto.getSum();
-            shareCompensations.add(shareCompensation);
+            shareCompensations.put(shareCompensation.shareId, shareCompensation);
         }));
         return shareCompensations;
     }
 
-    private Set<SharePrice> buildSharePrices(Set<SharePriceDto> sharePrices) {
-        Set<SharePrice> sharePrices1 = new HashSet<>();
+    private Map<Long, SharePrice> buildSharePrices(Set<SharePriceDto> sharePrices) {
+        Map<Long, SharePrice> sharePrices1 = new HashMap<>();
         Optional.ofNullable(sharePrices)
                 .ifPresent(sharePriceDtos -> sharePriceDtos.forEach(sharePriceDto -> {
             SharePrice sharePrice = new SharePrice();
             sharePrice.shareId = sharePriceDto.getId();
             sharePrice.price = sharePriceDto.getPrice();
             sharePrice.priceOperationId = sharePriceDto.getPriceOperationId();
-            sharePrices1.add(sharePrice);
+            sharePrices1.put(sharePrice.shareId, sharePrice);
         }));
         return sharePrices1;
     }
 
-    private Set<ShareAmount> buildShares(Set<ShareQuantityDto> shareQuantities) {
-        Set<ShareAmount> shareAmounts = new HashSet<>();
+    private Map<Long, ShareAmount> buildShares(Set<ShareQuantityDto> shareQuantities) {
+        Map<Long, ShareAmount> shareAmounts = new HashMap<>();
         Optional.ofNullable(shareQuantities)
                 .ifPresent(shareQuantityDtos -> shareQuantityDtos.forEach(shareQuantityDto -> {
             ShareAmount shareAmount = new ShareAmount();
             shareAmount.shareId = shareQuantityDto.getId();
             shareAmount.amount = shareQuantityDto.getQuantity();
             shareAmount.buySellAmount = shareQuantityDto.getBuySellQuantity();
-            shareAmounts.add(shareAmount);
+            shareAmounts.put(shareAmount.shareId, shareAmount);
         }));
         return shareAmounts;
     }
 
-    private Set<ReportPlayer> buildReportPlayers(GameDto gameDto) {
-        Set<ReportPlayer> reportPlayers = new HashSet<>();
+    private Set<GamePlayer> buildGamePlayers(GameDto gameDto) {
+        Set<GamePlayer> gamePlayers = new TreeSet<>();
         gameDto.getCompetitors().forEach(competitorDto -> {
-            ReportPlayer player = new ReportPlayer();
+            GamePlayer player = new GamePlayer();
             player.turnOrder = competitorDto.getMoveOrder();
-            player.playerId = competitorDto.getId();
+            player.name = competitorDto.getUserName();
             player.playerCards = buildPlayerCards(competitorDto.getCompetitorCards());
-            reportPlayers.add(player);
+            gamePlayers.add(player);
         });
-        return reportPlayers;
+        return gamePlayers;
     }
 
     private Set<PlayerCard> buildPlayerCards(Set<CompetitorCardDto> competitorCards) {
@@ -367,6 +363,8 @@ public class GameController {
         game.id = gameDto.getId();
         game.letter = GameLetter.valueOf(gameDto.getGameLetter());
         game.status = convertGameStatus(gameDto.getGameStatus());
+        game.players = buildGamePlayers(gameDto);
+        game.rounds = buildRounds(gameDto);
         games.add(game);
         gameDto.getRelatedGames().forEach(relatedGame -> {
             Game game1 = new Game();
@@ -378,32 +376,31 @@ public class GameController {
         return games;
     }
 
-    private Set<GamePlayer> buildPlayers(GameDto gameDto) {
-        Set<GamePlayer> players = new HashSet<>();
+    private Set<GameSetPlayer> buildPlayers(GameDto gameDto) {
+        Set<GameSetPlayer> players = new HashSet<>();
         Set<CompetitorDto> competitorDtos = gameDto.getCompetitors();
         competitorDtos.forEach(competitorDto -> {
-            GamePlayer gamePlayer = new GamePlayer();
+            GameSetPlayer gameSetPlayer = new GameSetPlayer();
             Player player = new Player();
             player.name = competitorDto.getUserName();
             player.bot = competitorDto.getBot();
-            gamePlayer.id = competitorDto.getId();
-            gamePlayer.player = player;
-            gamePlayer.initiator = competitorDto.getInitiator();
-            if (!gamePlayer.initiator) {
+            gameSetPlayer.player = player;
+            gameSetPlayer.initiator = competitorDto.getInitiator();
+            if (!gameSetPlayer.initiator) {
                 PlayerInvitation playerInvitation = new PlayerInvitation();
                 playerInvitation.statusSetAt =
                         competitorDto.getJoinedTime().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
                 playerInvitation.invitationStatus = com.stockholdergame.server.web.dto.game.InvitationStatus.ACCEPTED;
-                gamePlayer.invitation = playerInvitation;
+                gameSetPlayer.invitation = playerInvitation;
             }
-            players.add(gamePlayer);
+            players.add(gameSetPlayer);
         });
         return players;
     }
 
-    private Set<GameOption> buildGameOptions(Long gameVariantId) {
-        Set<GameOption> gameOptions = new HashSet<>();
-        gameOptions.add(holder.getCardOption(gameVariantId));
+    private GameOptions buildGameOptions(Long gameVariantId) {
+        GameOptions gameOptions = new GameOptions();
+        gameOptions.cardOption = holder.getCardOption(gameVariantId);
         // todo - add other game options
         return gameOptions;
     }
@@ -463,6 +460,9 @@ public class GameController {
         }
 
         public CardOption getCardOption(Long gameVariantId) {
+            if (gameVariantMap.isEmpty()) {
+                fillGameVariantMap();
+            }
             for (Map.Entry<CardOption, Long> entry : gameVariantMap.entrySet()) {
                 if (entry.getValue().equals(gameVariantId)) {
                     return entry.getKey();

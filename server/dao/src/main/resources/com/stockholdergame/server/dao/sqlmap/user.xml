@@ -117,10 +117,12 @@
         CASE WHEN ga.gamer_id IN (SELECT requestor_id FROM a_friend_requests WHERE requestee_id = #{currentUserId} AND status_id = 0)
              THEN 1
              ELSE 0
-             END AS is_friend_requestor
+             END AS is_friend_requestor,
+        st.not_actual
         FROM
         a_gamer_accounts ga
         LEFT OUTER JOIN a_profiles p ON ga.gamer_id = p.gamer_id
+        LEFT OUTER JOIN g_statistics_10 st ON ga.gamer_id = st.gamer_id
         WHERE
         ga.gamer_id != #{currentUserId}
         AND ga.is_bot = 0
@@ -182,6 +184,6 @@
             )
             </if>
         </if>
-        ORDER BY 1
+        ORDER BY 14, 1
     </select>
 </mapper>

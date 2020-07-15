@@ -13,6 +13,8 @@ public class ChangeInvitationStatusDto {
     @NotNull
     private Long gameId;
 
+    private Long gameSetId;
+
     private String[] inviteeNames;
 
     @NotNull
@@ -25,6 +27,14 @@ public class ChangeInvitationStatusDto {
 
     public void setGameId(Long gameId) {
         this.gameId = gameId;
+    }
+
+    public Long getGameSetId() {
+        return gameSetId;
+    }
+
+    public void setGameSetId(Long gameSetId) {
+        this.gameSetId = gameSetId;
     }
 
     public String[] getInviteeNames() {

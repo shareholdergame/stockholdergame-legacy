@@ -1,5 +1,6 @@
 package com.stockholdergame.server.dao;
 
+import com.stockholdergame.server.dto.game.CurrentTurnDto;
 import com.stockholdergame.server.dto.game.GameVariantSummary;
 import com.stockholdergame.server.dto.game.lite.GamesList;
 import com.stockholdergame.server.model.game.GameInitiationMethod;
@@ -36,4 +37,6 @@ public interface GameMapperDao {
                                Integer playersNumber);
 
     List<GameVariantSummary> countGamesByVariant(Long gamerId);
+
+    List<CurrentTurnDto> getCurrentTurns();
 }

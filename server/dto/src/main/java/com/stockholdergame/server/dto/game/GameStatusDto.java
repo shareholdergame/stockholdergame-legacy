@@ -8,6 +8,8 @@ public class GameStatusDto {
 
     private Long gameId;
 
+    private Long gameSeriesId;
+
     private String gameStatus;
 
     public GameStatusDto() {
@@ -18,12 +20,26 @@ public class GameStatusDto {
         this.gameStatus = gameStatus;
     }
 
+    public GameStatusDto(Long gameId, Long gameSeriesId, String gameStatus) {
+        this.gameId = gameId;
+        this.gameSeriesId = gameSeriesId;
+        this.gameStatus = gameStatus;
+    }
+
     public Long getGameId() {
         return gameId;
     }
 
     public void setGameId(Long gameId) {
         this.gameId = gameId;
+    }
+
+    public Long getGameSeriesId() {
+        return gameSeriesId;
+    }
+
+    public void setGameSeriesId(Long gameSeriesId) {
+        this.gameSeriesId = gameSeriesId;
     }
 
     public String getGameStatus() {

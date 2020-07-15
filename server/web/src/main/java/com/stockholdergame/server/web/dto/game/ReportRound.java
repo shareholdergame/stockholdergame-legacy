@@ -1,11 +1,16 @@
 package com.stockholdergame.server.web.dto.game;
 
-import java.time.LocalDateTime;
 import java.util.Set;
+import java.util.TreeSet;
 
-public class ReportRound {
+public class ReportRound implements Comparable<ReportRound> {
 
     public int round;
 
-    public Set<ReportTurn> turns;
+    public TreeSet<ReportTurn> turns;
+
+    @Override
+    public int compareTo(ReportRound o) {
+        return this.round - o.round;
+    }
 }

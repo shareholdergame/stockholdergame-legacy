@@ -49,7 +49,7 @@
 
     <http pattern="/**" use-expressions="true" entry-point-ref="apiEntryPoint">
         <anonymous granted-authority="ROLE_ANONYMOUS"/>
-        <intercept-url pattern="/account/ping" access="hasAnyRole('ROLE_USER','ROLE_ANONYMOUS')"/>
+        <intercept-url pattern="/public/**" access="hasAnyRole('ROLE_USER','ROLE_ANONYMOUS')"/>
         <intercept-url pattern="/**" access="hasRole('ROLE_USER')"/>
         <custom-filter ref="resourceServerFilter" before="PRE_AUTH_FILTER"/>
     </http>
@@ -114,7 +114,7 @@
           class="org.springframework.security.oauth2.provider.token.DefaultTokenServices">
         <beans:property name="tokenStore" ref="tokenStore" />
         <beans:property name="supportRefreshToken" value="true" />
-        <beans:property name="accessTokenValiditySeconds" value="3600"/>
+        <beans:property name="accessTokenValiditySeconds" value="10800"/>
         <beans:property name="refreshTokenValiditySeconds" value="84600"/>
         <beans:property name="clientDetailsService" ref="clientDetails"/>
         <beans:property name="tokenEnhancer" ref="tokenConverter"/>
@@ -129,10 +129,10 @@
     <oauth:client-details-service id="clientDetails">
         <oauth:client
                 scope="all"
-                client-id="app"
-                secret="123"
+                client-id="stockholdergame-app"
+                secret="AqsWv5Ki"
                 authorized-grant-types="password,refresh_token"
-                access-token-validity="3600"
+                access-token-validity="10800"
                 refresh-token-validity="84600"/>
     </oauth:client-details-service>
 
