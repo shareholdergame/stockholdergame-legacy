@@ -273,6 +273,7 @@ public class GameController {
             ReportTurn turn = new ReportTurn();
             turn.round = competitorMoveDto.getMoveNumber();
             turn.turn = competitorMoveDto.getMoveOrder();
+            turn.appliedCardId = competitorMoveDto.getAppliedCardId();
             turn.finishedTime = competitorMoveDto.getFinishedTime().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
             turn.steps = buildTurnSteps(competitorMoveDto.getSteps());
             reportTurns.add(turn);
