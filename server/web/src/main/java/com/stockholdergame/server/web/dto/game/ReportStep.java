@@ -9,7 +9,7 @@ public class ReportStep {
 
     public StepType stepType;
 
-    public long cashValue;
+    public long cash;
 
     public Map<Long, ShareAmount> shares;
 

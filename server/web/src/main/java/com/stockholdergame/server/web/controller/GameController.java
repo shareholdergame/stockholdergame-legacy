@@ -261,19 +261,20 @@ public class GameController {
         gameDto.getMoves().forEach(moveDto -> {
             ReportRound round = new ReportRound();
             round.round = moveDto.getMoveNumber();
-            round.turns = buildTurns(moveDto.getCompetitorMoves());
+            round.turns = buildTurns(gameDto, moveDto.getCompetitorMoves());
             rounds.add(round);
         });
         return rounds;
     }
 
-    private TreeSet<ReportTurn> buildTurns(Set<CompetitorMoveDto> competitorMoves) {
+    private TreeSet<ReportTurn> buildTurns(GameDto gameDto, Set<CompetitorMoveDto> competitorMoves) {
         TreeSet<ReportTurn> reportTurns = new TreeSet<>();
         competitorMoves.forEach(competitorMoveDto -> {
             ReportTurn turn = new ReportTurn();
             turn.round = competitorMoveDto.getMoveNumber();
             turn.turn = competitorMoveDto.getMoveOrder();
             turn.appliedCardId = competitorMoveDto.getAppliedCardId();
+            turn.cardId = getCardId(gameDto, competitorMoveDto.getAppliedCardId());
             turn.finishedTime = competitorMoveDto.getFinishedTime().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
             turn.steps = buildTurnSteps(competitorMoveDto.getSteps());
             reportTurns.add(turn);
@@ -281,12 +282,23 @@ public class GameController {
         return reportTurns;
     }
 
+    private Long getCardId(GameDto gameDto, Long appliedCardId) {
+        for (CompetitorDto competitor : gameDto.getCompetitors()) {
+            for (CompetitorCardDto competitorCard : competitor.getCompetitorCards()) {
+                if (competitorCard.getId().equals(appliedCardId)) {
+                    return competitorCard.getCardId();
+                }
+            }
+        }
+        return null;
+    }
+
     private Map<StepType, ReportStep> buildTurnSteps(Set<MoveStepDto> steps) {
         Map<StepType, ReportStep> reportSteps = new HashMap<>();
         steps.forEach(moveStepDto -> {
             ReportStep step = new ReportStep();
             step.stepType = StepType.valueOf(moveStepDto.getStepType());
-            step.cashValue = moveStepDto.getCashValue();
+            step.cash = moveStepDto.getCashValue();
             step.originalStepId = moveStepDto.getOriginalStepId();
             step.shares = buildShares(moveStepDto.getShareQuantities());
             step.sharePrices = buildSharePrices(moveStepDto.getSharePrices());
