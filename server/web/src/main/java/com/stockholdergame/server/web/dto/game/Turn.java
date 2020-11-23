@@ -1,10 +1,12 @@
 package com.stockholdergame.server.web.dto.game;
 
+import java.util.Map;
+
 public class Turn {
 
-    public BuySellStep firstStep;
+    public Map<Long, Integer> firstBuySellStep;
 
     public CardStep cardStep;
 
-    public BuySellStep lastStep;
+    public Map<Long, Integer> lastBuySellStep;
 }

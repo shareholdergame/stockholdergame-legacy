@@ -216,9 +216,9 @@ public class GameController {
         DoMoveDto doMoveDto = new DoMoveDto();
         doMoveDto.setGameId(gameId);
         doMoveDto.setAppliedCardId(turn.cardStep.playerCardId);
-        doMoveDto.setFirstBuySellActions(buildBuySellActions(turn.firstStep));
+        doMoveDto.setFirstBuySellActions(buildBuySellActions(turn.firstBuySellStep));
         doMoveDto.setPriceOperations(buildPriceOperations(turn.cardStep));
-        doMoveDto.setLastBuySellActions(buildBuySellActions(turn.lastStep));
+        doMoveDto.setLastBuySellActions(buildBuySellActions(turn.lastBuySellStep));
         return doMoveDto;
     }
 
@@ -233,12 +233,12 @@ public class GameController {
         return priceOperationDtos;
     }
 
-    private Set<BuySellDto> buildBuySellActions(BuySellStep firstStep) {
+    private Set<BuySellDto> buildBuySellActions(Map<Long, Integer> buySellOperations) {
         Set<BuySellDto> buySellDtos = new HashSet<>();
-        firstStep.buySellOperations.forEach(buySellOperation -> {
+        buySellOperations.forEach((shareId, amount) -> {
             BuySellDto buySellDto = new BuySellDto();
-            buySellDto.setShareId(buySellOperation.shareId);
-            buySellDto.setBuySellQuantity(buySellOperation.number);
+            buySellDto.setShareId(shareId);
+            buySellDto.setBuySellQuantity(amount);
             buySellDtos.add(buySellDto);
         });
         return buySellDtos;
