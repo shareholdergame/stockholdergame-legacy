@@ -60,7 +60,7 @@ public class FacadeAspect {
         Locale locale = UserSessionUtil.getUserLocale();
         if(throwable instanceof BusinessException) {
             throw new BusinessException(MessageHolder.getMessage(locale, ((BusinessException) throwable).getType().getMessageKey(),
-                ((BusinessException) throwable).getArgs()));
+                ((BusinessException) throwable).getArgs()), ((BusinessException) throwable).getType());
         } else {
             Message message = MessageBuilder.withPayload(throwable).build();
             exceptionHandlingChannel.send(message);

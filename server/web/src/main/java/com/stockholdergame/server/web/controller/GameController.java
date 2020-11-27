@@ -1,5 +1,6 @@
 package com.stockholdergame.server.web.controller;
 
+import com.google.common.collect.Sets;
 import com.stockholdergame.server.dto.game.*;
 import com.stockholdergame.server.dto.game.lite.CompetitorLite;
 import com.stockholdergame.server.dto.game.lite.GameLite;
@@ -7,6 +8,7 @@ import com.stockholdergame.server.dto.game.lite.GamesList;
 import com.stockholdergame.server.dto.game.variant.GameVariantDto;
 import com.stockholdergame.server.facade.GameFacade;
 import com.stockholdergame.server.model.game.InvitationStatus;
+import com.stockholdergame.server.session.UserSessionUtil;
 import com.stockholdergame.server.web.dto.*;
 import com.stockholdergame.server.web.dto.game.*;
 import com.stockholdergame.server.web.dto.game.InvitationAction;
@@ -14,6 +16,7 @@ import com.stockholdergame.server.web.dto.player.Player;
 import com.stockholdergame.server.web.dto.swaggerstub.ResponseWrapperGameListResponse;
 import com.stockholdergame.server.web.dto.swaggerstub.ResponseWrapperGameSet;
 import io.swagger.annotations.*;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
@@ -28,6 +31,7 @@ import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Api(value = "/", authorizations = { @Authorization("Bearer") }, tags = "Game API")
 @Controller
@@ -103,18 +107,20 @@ public class GameController {
     public @ResponseBody ResponseWrapper<GameListResponse> getGames(@PathVariable("gameOptionFilter") GameOptionFilter gameOptionFilter,
                                                       @PathVariable("gameStatus") GameStatus gameStatus,
                                                       @RequestParam(value = "playerNamePrefix", required = false) String playerNamePrefix,
+                                                      @RequestParam(value = "initiator", required = false) Boolean initiator,
+                                                      @RequestParam(value = "myTurnOnly", required = false) Boolean myTurnOnly,
                                                       @RequestParam(value = "offset", defaultValue = "0", required = false) int offset,
                                                       @RequestParam(value = "ipp", defaultValue = "10", required = false) int itemsPerPage) {
         return ResponseWrapper.ok(convertToGameListResponse(
-                gameFacade.getGames(buildGameFilterDto(gameOptionFilter, gameStatus, playerNamePrefix, offset, itemsPerPage)),
-                offset, itemsPerPage));
+                gameFacade.getGames(buildGameFilterDto(gameOptionFilter, gameStatus, playerNamePrefix, initiator, offset, itemsPerPage)),
+                offset, itemsPerPage, gameStatus.equals(GameStatus.RUNNING) && myTurnOnly != null && myTurnOnly));
     }
 
-    private GameListResponse convertToGameListResponse(GamesList games, int offset, int itemsPerPage) {
-        return GameListResponse.of(buildGamesList(games), Pagination.of(games.getTotalCount(), offset, itemsPerPage));
+    private GameListResponse convertToGameListResponse(GamesList games, int offset, int itemsPerPage, boolean myTurnOnly) {
+        return GameListResponse.of(buildGamesList(games, myTurnOnly), Pagination.of(games.getTotalCount(), offset, itemsPerPage));
     }
 
-    private List<GameSet> buildGamesList(GamesList games) {
+    private List<GameSet> buildGamesList(GamesList games, boolean myTurnOnly) {
         List<GameSet> gameList = new ArrayList<>();
         games.getGames().forEach(gameLite -> {
             Game game = new Game();
@@ -122,6 +128,7 @@ public class GameController {
             game.letter = GameLetter.valueOf(gameLite.getGameLetter());
             game.status = convertGameStatus(gameLite.getGameStatus());
             if (gameLite.getGameStatus().equals(com.stockholdergame.server.model.game.GameStatus.RUNNING.name())) {
+                game.players = buildPlayersOrder(gameLite.getCompetitors());
                 game.position = buildPosition(gameLite);
             }
 
@@ -136,14 +143,55 @@ public class GameController {
 
             gameList.add(gameSet);
         });
-        return gameList;
+        if (myTurnOnly) {
+            final String userName = UserSessionUtil.getCurrentUser().getUserName();
+            return gameList.stream().filter(gameSet -> isMyTurn(gameSet, userName)).collect(Collectors.toList());
+        } else {
+            return gameList;
+        }
+    }
+
+    private boolean isMyTurn(GameSet gameSet, String userName) {
+        for (Game game : gameSet.games) {
+            for (GamePlayer player : game.players) {
+                if (player.name.equals(userName) && game.position.turn == player.turnOrder) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private Set<GamePlayer> buildPlayersOrder(Set<CompetitorLite> competitors) {
+        Set<GamePlayer> gamePlayers = Sets.newHashSet();
+        competitors.forEach(competitorLite -> {
+            GamePlayer gamePlayer = new GamePlayer();
+            gamePlayer.name = competitorLite.getUserName();
+            gamePlayer.turnOrder = competitorLite.getMoveOrder();
+            gamePlayers.add(gamePlayer);
+        });
+        return gamePlayers;
     }
 
     private PlayPosition buildPosition(GameLite gameLite) {
         PlayPosition playPosition = new PlayPosition();
-        playPosition.round = gameLite.getLastMoveNumber();
-        playPosition.turn = gameLite.getLastMoveOrder();
+        Pair<Integer, Integer> currentRoundTurn = calculateCurrentTurn(gameLite.getCompetitorsQuantity(),
+                gameLite.getLastMoveNumber(), gameLite.getLastMoveOrder());
+        playPosition.round = currentRoundTurn.getLeft();
+        playPosition.turn = currentRoundTurn.getRight();
         return playPosition;
+    }
+
+    private Pair<Integer, Integer> calculateCurrentTurn(int competitorsQuantity, int lastMoveNumber, int lastMoveOrder) {
+        int round = lastMoveNumber;
+        int turn = lastMoveOrder;
+        if (lastMoveOrder == competitorsQuantity) {
+            round++;
+            turn = 1;
+        } else {
+            turn++;
+        }
+        return Pair.of(round, turn);
     }
 
     private Set<GameSetPlayer> buildPlayers(Set<CompetitorLite> competitors) {
@@ -188,6 +236,7 @@ public class GameController {
     private GameFilterDto buildGameFilterDto(GameOptionFilter gameOptionFilter,
                                              GameStatus gameStatus,
                                              String playerNamePrefix,
+                                             Boolean initiator,
                                              int offset, int itemsPerPage) {
         GameFilterDto gameFilterDto = new GameFilterDto();
         gameFilterDto.setGameStatus(gameStatus.equals(GameStatus.CREATED) ? "OPEN" : gameStatus.name());
@@ -195,12 +244,15 @@ public class GameController {
         gameFilterDto.setPlayersNumber(
                 gameOptionFilter.equals(GameOptionFilter.game_3x5) || gameOptionFilter.equals(GameOptionFilter.game_4x6) ? 2 : null);
         gameFilterDto.setUserName(playerNamePrefix);
+        if (initiator != null) {
+            if (initiator) {
+                gameFilterDto.setInitiator(true);
+            } else {
+                gameFilterDto.setNotInitiator(true);
+            }
+        }
         gameFilterDto.setOffset(offset);
         gameFilterDto.setMaxResults(itemsPerPage);
-        if (gameStatus.equals(GameStatus.CREATED)) {
-            gameFilterDto.setInitiator(true);
-            gameFilterDto.setNotInitiator(true);
-        }
         return gameFilterDto;
     }
 

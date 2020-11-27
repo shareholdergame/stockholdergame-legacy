@@ -45,6 +45,19 @@ public enum BusinessExceptionType {
     VALIDATION_FAILED(ErrorsResourceBundleKeys.VALIDATION_FAILED),
     COMPETITORS_NUMBER_EXCEEDED(ErrorsResourceBundleKeys.COMPETITORS_NUMBER_EXCEEDED);
 
+    public static BusinessExceptionType[] NOT_FOUND_GROUP = {
+            FRIEND_REQUEST_NOT_FOUND,
+            GAME_NOT_FOUND,
+            GAME_VARIANT_NOT_FOUND,
+            INVITATION_NOT_FOUND,
+            USER_NOT_FOUND,
+            OPERATION_NOT_FOUND
+    };
+
+    public static BusinessExceptionType[] NOT_PERMITTED_GROUP = {
+            OPERATION_NOT_PERMITTED
+    };
+
     private String messageKey;
 
     BusinessExceptionType(String messageKey) {
