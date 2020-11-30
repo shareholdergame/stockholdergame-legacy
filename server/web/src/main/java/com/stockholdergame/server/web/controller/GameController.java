@@ -107,20 +107,19 @@ public class GameController {
     public @ResponseBody ResponseWrapper<GameListResponse> getGames(@PathVariable("gameOptionFilter") GameOptionFilter gameOptionFilter,
                                                       @PathVariable("gameStatus") GameStatus gameStatus,
                                                       @RequestParam(value = "playerNamePrefix", required = false) String playerNamePrefix,
-                                                      @RequestParam(value = "initiator", required = false) Boolean initiator,
-                                                      @RequestParam(value = "myTurnOnly", required = false) Boolean myTurnOnly,
                                                       @RequestParam(value = "offset", defaultValue = "0", required = false) int offset,
                                                       @RequestParam(value = "ipp", defaultValue = "10", required = false) int itemsPerPage) {
         return ResponseWrapper.ok(convertToGameListResponse(
-                gameFacade.getGames(buildGameFilterDto(gameOptionFilter, gameStatus, playerNamePrefix, initiator, offset, itemsPerPage)),
-                offset, itemsPerPage, gameStatus.equals(GameStatus.RUNNING) && myTurnOnly != null && myTurnOnly));
+                gameFacade.getGames(buildGameFilterDto(gameOptionFilter, gameStatus, playerNamePrefix, offset, itemsPerPage)),
+                offset, itemsPerPage));
     }
 
-    private GameListResponse convertToGameListResponse(GamesList games, int offset, int itemsPerPage, boolean myTurnOnly) {
-        return GameListResponse.of(buildGamesList(games, myTurnOnly), Pagination.of(games.getTotalCount(), offset, itemsPerPage));
+    private GameListResponse convertToGameListResponse(GamesList games, int offset, int itemsPerPage) {
+        return GameListResponse.of(buildGamesList(games), Pagination.of(games.getTotalCount(), offset, itemsPerPage));
     }
 
-    private List<GameSet> buildGamesList(GamesList games, boolean myTurnOnly) {
+    private List<GameSet> buildGamesList(GamesList games) {
+        final String userName = UserSessionUtil.getCurrentUser().getUserName();
         List<GameSet> gameList = new ArrayList<>();
         games.getGames().forEach(gameLite -> {
             Game game = new Game();
@@ -129,7 +128,7 @@ public class GameController {
             game.status = convertGameStatus(gameLite.getGameStatus());
             if (gameLite.getGameStatus().equals(com.stockholdergame.server.model.game.GameStatus.RUNNING.name())) {
                 game.players = buildPlayersOrder(gameLite.getCompetitors());
-                game.position = buildPosition(gameLite);
+                game.position = buildPosition(gameLite, userName);
             }
 
             GameSet gameSet = new GameSet();
@@ -143,20 +142,13 @@ public class GameController {
 
             gameList.add(gameSet);
         });
-        if (myTurnOnly) {
-            final String userName = UserSessionUtil.getCurrentUser().getUserName();
-            return gameList.stream().filter(gameSet -> isMyTurn(gameSet, userName)).collect(Collectors.toList());
-        } else {
-            return gameList;
-        }
+        return gameList;
     }
 
-    private boolean isMyTurn(GameSet gameSet, String userName) {
-        for (Game game : gameSet.games) {
-            for (GamePlayer player : game.players) {
-                if (player.name.equals(userName) && game.position.turn == player.turnOrder) {
-                    return true;
-                }
+    private boolean isMyTurn(GameLite gameLite, String userName, int turn) {
+        for (CompetitorLite competitor : gameLite.getCompetitors()) {
+            if (competitor.getUserName().equals(userName) && turn == competitor.getMoveOrder()) {
+                return true;
             }
         }
         return false;
@@ -173,12 +165,13 @@ public class GameController {
         return gamePlayers;
     }
 
-    private PlayPosition buildPosition(GameLite gameLite) {
+    private PlayPosition buildPosition(GameLite gameLite, String userName) {
         PlayPosition playPosition = new PlayPosition();
         Pair<Integer, Integer> currentRoundTurn = calculateCurrentTurn(gameLite.getCompetitorsQuantity(),
                 gameLite.getLastMoveNumber(), gameLite.getLastMoveOrder());
         playPosition.round = currentRoundTurn.getLeft();
         playPosition.turn = currentRoundTurn.getRight();
+        playPosition.myTurn = isMyTurn(gameLite, userName, playPosition.turn);
         return playPosition;
     }
 
@@ -236,7 +229,6 @@ public class GameController {
     private GameFilterDto buildGameFilterDto(GameOptionFilter gameOptionFilter,
                                              GameStatus gameStatus,
                                              String playerNamePrefix,
-                                             Boolean initiator,
                                              int offset, int itemsPerPage) {
         GameFilterDto gameFilterDto = new GameFilterDto();
         gameFilterDto.setGameStatus(gameStatus.equals(GameStatus.CREATED) ? "OPEN" : gameStatus.name());
@@ -244,13 +236,8 @@ public class GameController {
         gameFilterDto.setPlayersNumber(
                 gameOptionFilter.equals(GameOptionFilter.game_3x5) || gameOptionFilter.equals(GameOptionFilter.game_4x6) ? 2 : null);
         gameFilterDto.setUserName(playerNamePrefix);
-        if (initiator != null) {
-            if (initiator) {
-                gameFilterDto.setInitiator(true);
-            } else {
-                gameFilterDto.setNotInitiator(true);
-            }
-        }
+        gameFilterDto.setInitiator(true);
+        gameFilterDto.setNotInitiator(true);
         gameFilterDto.setOffset(offset);
         gameFilterDto.setMaxResults(itemsPerPage);
         return gameFilterDto;

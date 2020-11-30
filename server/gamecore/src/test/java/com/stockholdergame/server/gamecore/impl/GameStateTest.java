@@ -103,11 +103,11 @@ public class GameStateTest {
     public void testRepurchase(GameState gameState, int repurchaseCompetitorMoveOrder, int[] sharesQuantity, int cashValue)
             throws Exception {
         gameState.setSharePrice(1L, ArithmeticOperation.SUBTRACTION, 60);
-        List<SharePrice> sharePrices = gameState.getSharePricesOrderedByRedemptionSumAndOldPrice();
+        List<SharePrice> sharePrices = gameState.getSharePricesOrderedByRepurchaseSumAndOldPrice();
         int redemptionSum = 0;
         for (SharePrice sharePrice : sharePrices) {
             if (sharePrice.getShareId().equals(1L)) {
-                redemptionSum = sharePrice.getRedemptionSum();
+                redemptionSum = sharePrice.getRepurchaseSum();
             }
         }
         int repurchasedSharesQuantity = gameState.repurchase(repurchaseCompetitorMoveOrder, redemptionSum, 1L);
@@ -128,12 +128,12 @@ public class GameStateTest {
         for (int i = 0; i < oldSharePrices.length; i++) {
             SharePrice sharePrice = new SharePriceImpl((long) i + 1, oldSharePrices[i]);
             sharePrice.setValue(10);
-            sharePrice.setRedemptionSum(redemptionSums[i]);
+            sharePrice.setRepurchaseSum(redemptionSums[i]);
             sharePrices.add(sharePrice);
         }
 
         GameState gameState = new GameStateImpl(8, 1, 1, sharePrices, new ArrayList<CompetitorAccount>(0), new PriceScaleImpl(250, 10, false));
-        List<SharePrice> ordered = gameState.getSharePricesOrderedByRedemptionSumAndOldPrice();
+        List<SharePrice> ordered = gameState.getSharePricesOrderedByRepurchaseSumAndOldPrice();
         for (int i = 0; i < expectedShareIdsOrder.length; i++) {
             long expectedShareId = expectedShareIdsOrder[i];
             Assert.assertEquals(new Long(expectedShareId), ordered.get(i).getShareId());
