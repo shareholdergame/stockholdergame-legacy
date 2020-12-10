@@ -9,32 +9,9 @@ import java.util.List;
  */
 public class PlayerAchievementsResponse {
 
-    private Filter filter;
+    public Filter filter;
 
-    private Pagination pagination;
+    public Pagination pagination;
 
-    private List<PlayerAchievements> items;
-
-    private PlayerAchievementsResponse() {
-    }
-
-    public static PlayerAchievementsResponse of(Filter filter, Pagination pagination, List<PlayerAchievements> items) {
-        PlayerAchievementsResponse par = new PlayerAchievementsResponse();
-        par.filter = filter;
-        par.pagination = pagination;
-        par.items = items;
-        return par;
-    }
-
-    public Filter getFilter() {
-        return filter;
-    }
-
-    public Pagination getPagination() {
-        return pagination;
-    }
-
-    public List<PlayerAchievements> getItems() {
-        return items;
-    }
+    public List<PlayerAchievements> items;
 }

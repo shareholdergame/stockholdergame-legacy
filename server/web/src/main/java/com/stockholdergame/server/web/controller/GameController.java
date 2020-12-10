@@ -31,6 +31,9 @@ import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Api(value = "/", authorizations = { @Authorization("Bearer") }, tags = "Game API")
@@ -95,7 +98,7 @@ public class GameController {
     @ApiOperation(value = "Get game by identifier")
     @ApiResponses({@ApiResponse(code = 200, message = "OK", response = ResponseWrapperGameSet.class)})
     @RequestMapping(value = "/{gameId}/report", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public @ResponseBody ResponseWrapper<GameSet> gameById(@PathVariable("gameId") Long gameId) {
+    public @ResponseBody ResponseWrapper<GameSet> getGameReport(@PathVariable("gameId") Long gameId) {
         GameDto gameDto = gameFacade.getGameById(gameId);
         return ResponseWrapper.ok(convertToGameSet(gameDto));
     }
@@ -334,20 +337,47 @@ public class GameController {
 
     private Map<StepType, ReportStep> buildTurnSteps(Set<MoveStepDto> steps) {
         Map<StepType, ReportStep> reportSteps = new HashMap<>();
+        Set<StepType> mainStepTypes = Sets.newHashSet(StepType.ZERO_STEP, StepType.FIRST_BUY_SELL_STEP,
+                StepType.PRICE_CHANGE_STEP, StepType.LAST_BUY_SELL_STEP);
+        Set<StepType> coRepStepTypes = Sets.newHashSet(StepType.COMPENSATION_STEP, StepType.REPURCHASE_STEP);
+        List<MoveStepDto> coRepSteps = steps.stream()
+                .filter(moveStepDto -> coRepStepTypes.contains(StepType.valueOf(moveStepDto.getStepType())))
+                .sorted((o1, o2) -> {
+                    int result = StepType.valueOf(o1.getStepType()).ordinal() - StepType.valueOf(o2.getStepType()).ordinal();
+                    if (result == 0) {
+                        result = (int) (o1.getOriginalStepId() - o2.getOriginalStepId());
+                    }
+                    return result;
+                }).collect(Collectors.toList());
+        MoveStepDto lastStep = coRepSteps.size() > 0 ? coRepSteps.get(coRepSteps.size() - 1) : null;
+
         steps.forEach(moveStepDto -> {
-            ReportStep step = new ReportStep();
-            step.stepType = StepType.valueOf(moveStepDto.getStepType());
-            step.cash = moveStepDto.getCashValue();
-            step.originalStepId = moveStepDto.getOriginalStepId();
-            step.shares = buildShares(moveStepDto.getShareQuantities());
-            step.sharePrices = buildSharePrices(moveStepDto.getSharePrices());
-            step.compensations = buildCompensations(moveStepDto.getCompensations());
-            reportSteps.put(step.stepType, step);
+            if (mainStepTypes.contains(StepType.valueOf(moveStepDto.getStepType()))) {
+                ReportStep step = new ReportStep();
+                step.stepType = StepType.valueOf(moveStepDto.getStepType());
+                step.cash = moveStepDto.getCashValue();
+                step.shares = buildShares(moveStepDto.getShareQuantities());
+                step.sharePrices = buildSharePrices(moveStepDto.getSharePrices());
+                if (step.stepType.equals(StepType.LAST_BUY_SELL_STEP) && lastStep != null) {
+                    step.cash = lastStep.getCashValue();
+                    if (StepType.valueOf(lastStep.getStepType()).equals(StepType.REPURCHASE_STEP)) {
+                        lastStep.getShareQuantities().forEach(shareQuantityDto -> {
+                            if (shareQuantityDto.getBuySellQuantity() != 0) {
+                                step.shares.get(shareQuantityDto.getId()).repurchased = true;
+                                step.shares.get(shareQuantityDto.getId()).amountBeforeRepurchase =
+                                        step.shares.get(shareQuantityDto.getId()).amount;
+                                step.shares.get(shareQuantityDto.getId()).amount = shareQuantityDto.getQuantity();
+                            }
+                        });
+                    }
+                }
+                reportSteps.put(step.stepType, step);
+            }
         });
         return reportSteps;
     }
 
-    private Map<Long, ShareCompensation> buildCompensations(Set<CompensationDto> compensations) {
+    /*private Map<Long, ShareCompensation> buildCompensations(Set<CompensationDto> compensations) {
         Map<Long, ShareCompensation> shareCompensations = new HashMap<>();
         Optional.ofNullable(compensations)
                 .ifPresent(compensationDtos -> compensationDtos.forEach(compensationDto -> {
@@ -357,7 +387,7 @@ public class GameController {
             shareCompensations.put(shareCompensation.shareId, shareCompensation);
         }));
         return shareCompensations;
-    }
+    }*/
 
     private Map<Long, SharePrice> buildSharePrices(Set<SharePriceDto> sharePrices) {
         Map<Long, SharePrice> sharePrices1 = new HashMap<>();
