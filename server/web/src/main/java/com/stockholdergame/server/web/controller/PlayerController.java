@@ -2,16 +2,17 @@ package com.stockholdergame.server.web.controller;
 
 import com.google.common.collect.Lists;
 import com.stockholdergame.server.dto.account.FriendFilterType;
+import com.stockholdergame.server.dto.account.UserDto;
 import com.stockholdergame.server.dto.account.UserFilterDto;
 import com.stockholdergame.server.dto.account.UsersList;
 import com.stockholdergame.server.dto.game.UserStatisticsFilterDto;
 import com.stockholdergame.server.dto.game.UserStatisticsList;
+import com.stockholdergame.server.exceptions.BusinessException;
+import com.stockholdergame.server.exceptions.BusinessExceptionType;
 import com.stockholdergame.server.facade.SocialFacade;
 import com.stockholdergame.server.model.game.result.Statistics;
 import com.stockholdergame.server.web.dto.*;
-import com.stockholdergame.server.web.dto.player.Player;
-import com.stockholdergame.server.web.dto.player.PlayerSession;
-import com.stockholdergame.server.web.dto.player.PlayerWithLocation;
+import com.stockholdergame.server.web.dto.player.*;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.Authorization;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,6 +69,18 @@ public class PlayerController {
         return ResponseWrapper.ok(convertToPlayerAchievementsResponse(userStatisticsList, offset, itemsPerPage));
     }
 
+    @RequestMapping(value = "/{playerName}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public @ResponseBody ResponseWrapper<PlayerWithLocation> getPlayer(@PathVariable("playerName") String playerName) {
+        UserFilterDto userFilterDto = new UserFilterDto();
+        userFilterDto.setUserName(playerName);
+        UsersList usersList = socialFacade.getUsers(userFilterDto);
+        if (usersList.getTotalCount() != 1) {
+            throw new BusinessException(BusinessExceptionType.USER_NOT_FOUND, playerName);
+        }
+
+        return ResponseWrapper.ok(buildPlayerWithLocation(usersList.getUsers().get(0)));
+    }
+
     private PlayerAchievementsResponse convertToPlayerAchievementsResponse(UserStatisticsList userStatisticsList, int offset, int itemsPerPage) {
         PlayerAchievementsResponse playerAchievementsResponse = new PlayerAchievementsResponse();
         playerAchievementsResponse.pagination = Pagination.of((int) userStatisticsList.getTotalCount(), offset, itemsPerPage);
@@ -107,24 +120,27 @@ public class PlayerController {
     private PlayerListResponse convert(UsersList usersList, int offset, int itemsPerPage) {
         PlayerListResponse playerListResponse = new PlayerListResponse();
         playerListResponse.pagination = Pagination.of(usersList.getTotalCount(), offset, itemsPerPage);
-        playerListResponse.players = usersList.getUsers().stream().map(userDto -> {
-            PlayerWithLocation playerWithLocation = new PlayerWithLocation();
-            Location location = new Location();
-            if (userDto.getProfile() != null) {
-                location.city = userDto.getProfile().getCity();
-                location.country = userDto.getProfile().getCountry();
-                location.stateProvince = userDto.getProfile().getRegion();
-            }
-            playerWithLocation.location = location;
-            Player player = new Player();
-            player.name = userDto.getUserName();
-            player.removed = userDto.isRemoved();
-            player.bot = userDto.isBot();
-            player.friend = userDto.isFriend();
-            player.online = userDto.isOnline();
-            playerWithLocation.player = player;
-            return playerWithLocation;
-        }).collect(Collectors.toList());
+        playerListResponse.players = usersList.getUsers().stream().map(this::buildPlayerWithLocation)
+                .collect(Collectors.toList());
         return playerListResponse;
+    }
+
+    private PlayerWithLocation buildPlayerWithLocation(UserDto userDto) {
+        PlayerWithLocation playerWithLocation = new PlayerWithLocation();
+        Location location = new Location();
+        if (userDto.getProfile() != null) {
+            location.city = userDto.getProfile().getCity();
+            location.country = userDto.getProfile().getCountry();
+            location.stateProvince = userDto.getProfile().getRegion();
+        }
+        playerWithLocation.location = location;
+        Player player = new Player();
+        player.name = userDto.getUserName();
+        player.removed = userDto.isRemoved();
+        player.bot = userDto.isBot();
+        player.friend = userDto.isFriend();
+        player.online = userDto.isOnline();
+        playerWithLocation.player = player;
+        return playerWithLocation;
     }
 }

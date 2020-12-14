@@ -5,6 +5,8 @@ import com.stockholdergame.server.dto.game.*;
 import com.stockholdergame.server.dto.game.lite.CompetitorLite;
 import com.stockholdergame.server.dto.game.lite.GameLite;
 import com.stockholdergame.server.dto.game.lite.GamesList;
+import com.stockholdergame.server.dto.game.result.CompetitorDiffDto;
+import com.stockholdergame.server.dto.game.result.CompetitorResultDto;
 import com.stockholdergame.server.dto.game.variant.GameVariantDto;
 import com.stockholdergame.server.facade.GameFacade;
 import com.stockholdergame.server.model.game.InvitationStatus;
@@ -31,9 +33,6 @@ import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Api(value = "/", authorizations = { @Authorization("Bearer") }, tags = "Game API")
@@ -129,9 +128,13 @@ public class GameController {
             game.id = gameLite.getId();
             game.letter = GameLetter.valueOf(gameLite.getGameLetter());
             game.status = convertGameStatus(gameLite.getGameStatus());
-            if (gameLite.getGameStatus().equals(com.stockholdergame.server.model.game.GameStatus.RUNNING.name())) {
+            if (!gameLite.getGameStatus().equals(com.stockholdergame.server.model.game.GameStatus.OPEN.name())) {
                 game.players = buildPlayersOrder(gameLite.getCompetitors());
+            }
+            if (gameLite.getGameStatus().equals(com.stockholdergame.server.model.game.GameStatus.RUNNING.name())) {
                 game.position = buildPosition(gameLite, userName);
+            } else if (gameLite.getGameStatus().equals(com.stockholdergame.server.model.game.GameStatus.FINISHED.name())) {
+                game.result = buildResult(gameLite);
             }
 
             GameSet gameSet = new GameSet();
@@ -148,6 +151,24 @@ public class GameController {
         return gameList;
     }
 
+    private Set<GameResult> buildResult(GameLite gameLite) {
+        Set<GameResult> gameResultSet = Sets.newTreeSet(Comparator.comparingInt(o -> o.turnOrder));
+        gameLite.getCompetitors().forEach(competitorLite -> {
+            PlayerResult playerResult = new PlayerResult();
+            playerResult.name = competitorLite.getUserName();
+            playerResult.bankrupt = competitorLite.isOut();
+            playerResult.winner = competitorLite.isWinner();
+            playerResult.totalPoints = competitorLite.isWinner() ? 1 : 0;
+            playerResult.totalFunds = competitorLite.getTotalFunds();
+
+            GameResult gameResult = new GameResult();
+            gameResult.turnOrder = competitorLite.getMoveOrder();
+            gameResult.result = playerResult;
+            gameResultSet.add(gameResult);
+        });
+        return gameResultSet;
+    }
+
     private boolean isMyTurn(GameLite gameLite, String userName, int turn) {
         for (CompetitorLite competitor : gameLite.getCompetitors()) {
             if (competitor.getUserName().equals(userName) && turn == competitor.getMoveOrder()) {
@@ -158,7 +179,7 @@ public class GameController {
     }
 
     private Set<GamePlayer> buildPlayersOrder(Set<CompetitorLite> competitors) {
-        Set<GamePlayer> gamePlayers = Sets.newHashSet();
+        Set<GamePlayer> gamePlayers = Sets.newTreeSet(Comparator.comparingInt(o -> o.turnOrder));
         competitors.forEach(competitorLite -> {
             GamePlayer gamePlayer = new GamePlayer();
             gamePlayer.name = competitorLite.getUserName();
@@ -294,8 +315,27 @@ public class GameController {
         gameSet.label = gameDto.getLabel();
         gameSet.players = buildPlayers(gameDto);
         gameSet.games = buildGames(gameDto);
-
+        if (gameDto.getGameStatus().equals(GameStatus.FINISHED.name())) {
+            gameSet.result = buildGameSetResult(gameDto);
+        }
         return gameSet;
+    }
+
+    private Set<PlayerResult> buildGameSetResult(GameDto gameDto) {
+        Set<PlayerResult> playerResultSet = Sets.newHashSet();
+        gameDto.getGameSeriesCompetitorResults().forEach(competitorResultDto -> {
+            PlayerResult playerResult = new PlayerResult();
+            playerResult.name = competitorResultDto.getUserName();
+            playerResult.totalFunds = competitorResultDto.getTotalFunds();
+            playerResult.totalPoints = competitorResultDto.getTotalPoints();
+            playerResult.winner = competitorResultDto.getWinner();
+            playerResult.bankrupt = competitorResultDto.getOut();
+            playerResult.fundsDifference = gameDto.getGameSeriesCompetitorDiffs().stream()
+                    .filter(competitorDiffDto -> competitorResultDto.getUserName().equals(competitorDiffDto.getFirstUserName()))
+                    .map(CompetitorDiffDto::getFundsAbsoluteDiff).findFirst().orElse(0);
+            playerResultSet.add(playerResult);
+        });
+        return playerResultSet;
     }
 
     private TreeSet<ReportRound> buildRounds(GameDto gameDto) {
@@ -447,6 +487,9 @@ public class GameController {
         game.status = convertGameStatus(gameDto.getGameStatus());
         game.players = buildGamePlayers(gameDto);
         game.rounds = buildRounds(gameDto);
+        if (gameDto.getGameStatus().equals(GameStatus.FINISHED.name())) {
+            game.result = buildResult(gameDto);
+        }
         games.add(game);
         gameDto.getRelatedGames().forEach(relatedGame -> {
             Game game1 = new Game();
@@ -456,6 +499,26 @@ public class GameController {
             games.add(game1);
         });
         return games;
+    }
+
+    private Set<GameResult> buildResult(GameDto gameDto) {
+        Set<GameResult> gameResultSet = Sets.newTreeSet(Comparator.comparingInt(o -> o.turnOrder));
+        gameDto.getCompetitorResults().forEach(competitorResultDto -> {
+            PlayerResult playerResult = new PlayerResult();
+            playerResult.name = competitorResultDto.getUserName();
+            playerResult.bankrupt = competitorResultDto.getOut();
+            playerResult.winner = competitorResultDto.getWinner();
+            playerResult.totalPoints = competitorResultDto.getTotalPoints();
+            playerResult.totalFunds = competitorResultDto.getTotalFunds();
+            playerResult.fundsDifference = gameDto.getCompetitorDiffs().stream()
+                    .filter(competitorDiffDto -> competitorDiffDto.getFirstUserName().equals(competitorResultDto.getUserName()))
+                    .map(CompetitorDiffDto::getFundsAbsoluteDiff).findFirst().orElse(0);
+            GameResult gameResult = new GameResult();
+            gameResult.turnOrder = competitorResultDto.getMoveOrder();
+            gameResult.result = playerResult;
+            gameResultSet.add(gameResult);
+        });
+        return gameResultSet;
     }
 
     private Set<GameSetPlayer> buildPlayers(GameDto gameDto) {

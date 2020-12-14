@@ -17,5 +17,5 @@ public class Game {
 
     public TreeSet<ReportRound> rounds;
 
-    public Set<TurnOrderResult> result;
+    public Set<GameResult> result;
 }
