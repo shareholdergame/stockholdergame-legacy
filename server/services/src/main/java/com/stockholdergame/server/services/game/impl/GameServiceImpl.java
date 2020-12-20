@@ -729,17 +729,17 @@ public class GameServiceImpl extends UserInfoAware implements GameService {
             throw new BusinessException(BusinessExceptionType.ILLEGAL_GAME_STATUS, gameId, game.getGameStatus());
         }
 
-        GameEventType gameEventType = null;
+        //GameEventType gameEventType = null;
         if (isReadyToStart(game)) {
             startGame(game, null);
-            gameEventType = GameEventType.GAME_STARTED;
+            //gameEventType = GameEventType.GAME_STARTED;
         } else if (canBeCanceled(game)) {
             game.setGameStatus(GameStatus.CANCELLED);
             gameDao.update(game);
-            gameEventType = GameEventType.GAME_CANCELED;
+            //gameEventType = GameEventType.GAME_CANCELED;
         }
 
-        if (gameEventType != null) {
+        /*if (gameEventType != null && !gameEventType.equals(GameEventType.GAME_CANCELED)) {
             for (Competitor competitor : game.getCompetitors()) {
                 GameEventDto body = new GameEventDto(gameId, competitor.getGamerAccount().getUserName());
                 body.setGameStatus(game.getGameStatus().name());
@@ -747,7 +747,7 @@ public class GameServiceImpl extends UserInfoAware implements GameService {
                 sendNotification(competitor.getGamerId(), gameEventType, body);
                 // todo - send e-mail
             }
-        }
+        }*/
     }
 
     @Override

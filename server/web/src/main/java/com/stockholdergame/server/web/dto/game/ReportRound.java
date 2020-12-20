@@ -1,6 +1,5 @@
 package com.stockholdergame.server.web.dto.game;
 
-import java.util.Set;
 import java.util.TreeSet;
 
 public class ReportRound implements Comparable<ReportRound> {

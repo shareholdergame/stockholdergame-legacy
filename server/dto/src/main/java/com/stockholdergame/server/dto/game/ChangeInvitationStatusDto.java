@@ -10,7 +10,6 @@ import javax.validation.constraints.NotNull;
  */
 public class ChangeInvitationStatusDto {
 
-    @NotNull
     private Long gameId;
 
     private Long gameSetId;

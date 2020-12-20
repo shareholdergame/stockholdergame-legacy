@@ -132,7 +132,7 @@ public class GameStateImpl<T> extends Observable implements GameState {
     }
 
     @Override
-    public List<SharePrice> getSharePricesOrderedByRedemptionSumAndOldPrice() {
+    public List<SharePrice> getSharePricesOrderedByRepurchaseSumAndOldPrice() {
         List<SharePrice> ordered = new ArrayList<>();
         for (final SharePrice sharePrice : sharePriceMap.values()) {
             ordered.add(new SharePrice() {
@@ -155,13 +155,13 @@ public class GameStateImpl<T> extends Observable implements GameState {
                 }
 
                 @Override
-                public int getRedemptionSum() {
-                    return orig.getRedemptionSum();
+                public int getRepurchaseSum() {
+                    return orig.getRepurchaseSum();
                 }
 
                 @Override
-                public void setRedemptionSum(int value) {
-                    throw new UnsupportedOperationException("Operation 'setRedemptionSum' is not supported");
+                public void setRepurchaseSum(int value) {
+                    throw new UnsupportedOperationException("Operation 'setRepurchaseSum' is not supported");
                 }
 
                 @Override
@@ -174,7 +174,7 @@ public class GameStateImpl<T> extends Observable implements GameState {
         Collections.sort(ordered, new Comparator<SharePrice>() {
             @Override
             public int compare(SharePrice sharePrice, SharePrice sharePrice1) {
-                int result = sharePrice.getRedemptionSum() - sharePrice1.getRedemptionSum();
+                int result = sharePrice.getRepurchaseSum() - sharePrice1.getRepurchaseSum();
                 if (result == 0) {
                     result = sharePrice.getOldValue() - sharePrice1.getOldValue();
                 }
@@ -217,8 +217,8 @@ public class GameStateImpl<T> extends Observable implements GameState {
 
         boolean isZeroing = false;
         if (calculatedPrice < priceScale.getSharePriceStep()) {
-            int redemptionSum = CompensationCalculator.calculateRedemptionSum(sharePrice.getValue(), calculatedPrice);
-            sharePriceMap.get(shareId).setRedemptionSum(redemptionSum);
+            int repurchaseSum = CompensationCalculator.calculateRepurchaseSum(sharePrice.getValue(), calculatedPrice);
+            sharePriceMap.get(shareId).setRepurchaseSum(repurchaseSum);
             isZeroing = true;
         }
 

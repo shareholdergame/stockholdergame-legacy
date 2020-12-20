@@ -123,19 +123,19 @@ public class CompetitorAccountImpl<T> implements CompetitorAccount, TransactionS
     }
 
     @Override
-    public int repurchase(int redemptionSum, Long shareId) throws NotEnoughSharesException, SharesLockedException, NotEnoughFundsException {
-        if (redemptionSum == 0) {
+    public int repurchase(int repurchaseSum, Long shareId) throws NotEnoughSharesException, SharesLockedException, NotEnoughFundsException {
+        if (repurchaseSum == 0) {
             return 0;
         }
         ShareQuantity shareQuantity = shareQuantityMap.get(shareId);
-        if (cash.getValue() >= redemptionSum) {
-            int repurchasedShareQuantity = (int) Math.abs(Math.floor(cash.getValue() / redemptionSum));
+        if (cash.getValue() >= repurchaseSum) {
+            int repurchasedShareQuantity = (int) Math.abs(Math.floor(cash.getValue() / repurchaseSum));
             if (repurchasedShareQuantity > 0) {
                 if (repurchasedShareQuantity > shareQuantity.getOldQuantity()) {
                     repurchasedShareQuantity = shareQuantity.getOldQuantity();
                 }
                 shareQuantity.buySell(repurchasedShareQuantity);
-                cash.charge(-(redemptionSum * repurchasedShareQuantity));
+                cash.charge(-(repurchaseSum * repurchasedShareQuantity));
             }
         }
         recalculateTotal();

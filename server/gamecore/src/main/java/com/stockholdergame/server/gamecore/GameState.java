@@ -29,7 +29,7 @@ public interface GameState extends TransactionSupport {
 
     Map<Long, Integer> getSharePrices();
 
-    List<SharePrice> getSharePricesOrderedByRedemptionSumAndOldPrice();
+    List<SharePrice> getSharePricesOrderedByRepurchaseSumAndOldPrice();
 
     void setSharePrice(Long shareId, ArithmeticOperation operation, int operandValue) throws ShareNotFoundException,
                                                                                              SharePriceAlreadyChangedException,

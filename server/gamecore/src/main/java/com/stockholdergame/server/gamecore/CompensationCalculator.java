@@ -25,7 +25,7 @@ public final class CompensationCalculator {
         return compensation;
     }
 
-    public static int calculateRedemptionSum(int finalPrice, int calculatedPrice) {
+    public static int calculateRepurchaseSum(int finalPrice, int calculatedPrice) {
         return finalPrice - calculatedPrice;
     }
 }

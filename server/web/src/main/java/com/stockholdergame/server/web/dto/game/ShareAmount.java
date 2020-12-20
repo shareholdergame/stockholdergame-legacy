@@ -7,4 +7,8 @@ public class ShareAmount {
     public long amount;
 
     public long buySellAmount;
+
+    public boolean repurchased;
+
+    public long amountBeforeRepurchase;
 }

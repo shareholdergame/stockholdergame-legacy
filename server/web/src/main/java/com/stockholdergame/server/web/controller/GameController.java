@@ -1,12 +1,16 @@
 package com.stockholdergame.server.web.controller;
 
+import com.google.common.collect.Sets;
 import com.stockholdergame.server.dto.game.*;
 import com.stockholdergame.server.dto.game.lite.CompetitorLite;
 import com.stockholdergame.server.dto.game.lite.GameLite;
 import com.stockholdergame.server.dto.game.lite.GamesList;
+import com.stockholdergame.server.dto.game.result.CompetitorDiffDto;
+import com.stockholdergame.server.dto.game.result.CompetitorResultDto;
 import com.stockholdergame.server.dto.game.variant.GameVariantDto;
 import com.stockholdergame.server.facade.GameFacade;
 import com.stockholdergame.server.model.game.InvitationStatus;
+import com.stockholdergame.server.session.UserSessionUtil;
 import com.stockholdergame.server.web.dto.*;
 import com.stockholdergame.server.web.dto.game.*;
 import com.stockholdergame.server.web.dto.game.InvitationAction;
@@ -14,6 +18,7 @@ import com.stockholdergame.server.web.dto.player.Player;
 import com.stockholdergame.server.web.dto.swaggerstub.ResponseWrapperGameListResponse;
 import com.stockholdergame.server.web.dto.swaggerstub.ResponseWrapperGameSet;
 import io.swagger.annotations.*;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
@@ -28,6 +33,8 @@ import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 @Api(value = "/", authorizations = { @Authorization("Bearer") }, tags = "Game API")
 @Controller
@@ -91,7 +98,7 @@ public class GameController {
     @ApiOperation(value = "Get game by identifier")
     @ApiResponses({@ApiResponse(code = 200, message = "OK", response = ResponseWrapperGameSet.class)})
     @RequestMapping(value = "/{gameId}/report", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
-    public @ResponseBody ResponseWrapper<GameSet> gameById(@PathVariable("gameId") Long gameId) {
+    public @ResponseBody ResponseWrapper<GameSet> getGameReport(@PathVariable("gameId") Long gameId) {
         GameDto gameDto = gameFacade.getGameById(gameId);
         return ResponseWrapper.ok(convertToGameSet(gameDto));
     }
@@ -115,14 +122,20 @@ public class GameController {
     }
 
     private List<GameSet> buildGamesList(GamesList games) {
+        final String userName = UserSessionUtil.getCurrentUser().getUserName();
         List<GameSet> gameList = new ArrayList<>();
         games.getGames().forEach(gameLite -> {
             Game game = new Game();
             game.id = gameLite.getId();
             game.letter = GameLetter.valueOf(gameLite.getGameLetter());
             game.status = convertGameStatus(gameLite.getGameStatus());
+            if (!gameLite.getGameStatus().equals(com.stockholdergame.server.model.game.GameStatus.OPEN.name())) {
+                game.players = buildPlayersOrder(gameLite.getCompetitors());
+            }
             if (gameLite.getGameStatus().equals(com.stockholdergame.server.model.game.GameStatus.RUNNING.name())) {
-                game.position = buildPosition(gameLite);
+                game.position = buildPosition(gameLite, userName);
+            } else if (gameLite.getGameStatus().equals(com.stockholdergame.server.model.game.GameStatus.FINISHED.name())) {
+                game.result = buildResult(gameLite);
             }
 
             GameSet gameSet = new GameSet();
@@ -139,11 +152,64 @@ public class GameController {
         return gameList;
     }
 
-    private PlayPosition buildPosition(GameLite gameLite) {
+    private Set<GameResult> buildResult(GameLite gameLite) {
+        Set<GameResult> gameResultSet = Sets.newTreeSet(Comparator.comparingInt(o -> o.turnOrder));
+        gameLite.getCompetitors().forEach(competitorLite -> {
+            PlayerResult playerResult = new PlayerResult();
+            playerResult.name = competitorLite.getUserName();
+            playerResult.bankrupt = competitorLite.isOut();
+            playerResult.winner = competitorLite.isWinner();
+            playerResult.totalPoints = competitorLite.isWinner() ? 1 : 0;
+            playerResult.totalFunds = competitorLite.getTotalFunds();
+
+            GameResult gameResult = new GameResult();
+            gameResult.turnOrder = competitorLite.getMoveOrder();
+            gameResult.result = playerResult;
+            gameResultSet.add(gameResult);
+        });
+        return gameResultSet;
+    }
+
+    private boolean isMyTurn(GameLite gameLite, String userName, int turn) {
+        for (CompetitorLite competitor : gameLite.getCompetitors()) {
+            if (competitor.getUserName().equals(userName) && turn == competitor.getMoveOrder()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Set<GamePlayer> buildPlayersOrder(Set<CompetitorLite> competitors) {
+        Set<GamePlayer> gamePlayers = Sets.newTreeSet(Comparator.comparingInt(o -> o.turnOrder));
+        competitors.forEach(competitorLite -> {
+            GamePlayer gamePlayer = new GamePlayer();
+            gamePlayer.name = competitorLite.getUserName();
+            gamePlayer.turnOrder = competitorLite.getMoveOrder();
+            gamePlayers.add(gamePlayer);
+        });
+        return gamePlayers;
+    }
+
+    private PlayPosition buildPosition(GameLite gameLite, String userName) {
         PlayPosition playPosition = new PlayPosition();
-        playPosition.round = gameLite.getLastMoveNumber();
-        playPosition.turn = gameLite.getLastMoveOrder();
+        Pair<Integer, Integer> currentRoundTurn = calculateCurrentTurn(gameLite.getCompetitorsQuantity(),
+                gameLite.getLastMoveNumber(), gameLite.getLastMoveOrder());
+        playPosition.round = currentRoundTurn.getLeft();
+        playPosition.turn = currentRoundTurn.getRight();
+        playPosition.myTurn = isMyTurn(gameLite, userName, playPosition.turn);
         return playPosition;
+    }
+
+    private Pair<Integer, Integer> calculateCurrentTurn(int competitorsQuantity, int lastMoveNumber, int lastMoveOrder) {
+        int round = lastMoveNumber;
+        int turn = lastMoveOrder;
+        if (lastMoveOrder == competitorsQuantity) {
+            round++;
+            turn = 1;
+        } else {
+            turn++;
+        }
+        return Pair.of(round, turn);
     }
 
     private Set<GameSetPlayer> buildPlayers(Set<CompetitorLite> competitors) {
@@ -195,12 +261,10 @@ public class GameController {
         gameFilterDto.setPlayersNumber(
                 gameOptionFilter.equals(GameOptionFilter.game_3x5) || gameOptionFilter.equals(GameOptionFilter.game_4x6) ? 2 : null);
         gameFilterDto.setUserName(playerNamePrefix);
+        gameFilterDto.setInitiator(true);
+        gameFilterDto.setNotInitiator(true);
         gameFilterDto.setOffset(offset);
         gameFilterDto.setMaxResults(itemsPerPage);
-        if (gameStatus.equals(GameStatus.CREATED)) {
-            gameFilterDto.setInitiator(true);
-            gameFilterDto.setNotInitiator(true);
-        }
         return gameFilterDto;
     }
 
@@ -216,9 +280,9 @@ public class GameController {
         DoMoveDto doMoveDto = new DoMoveDto();
         doMoveDto.setGameId(gameId);
         doMoveDto.setAppliedCardId(turn.cardStep.playerCardId);
-        doMoveDto.setFirstBuySellActions(buildBuySellActions(turn.firstStep));
+        doMoveDto.setFirstBuySellActions(buildBuySellActions(turn.firstBuySellStep));
         doMoveDto.setPriceOperations(buildPriceOperations(turn.cardStep));
-        doMoveDto.setLastBuySellActions(buildBuySellActions(turn.lastStep));
+        doMoveDto.setLastBuySellActions(buildBuySellActions(turn.lastBuySellStep));
         return doMoveDto;
     }
 
@@ -233,12 +297,12 @@ public class GameController {
         return priceOperationDtos;
     }
 
-    private Set<BuySellDto> buildBuySellActions(BuySellStep firstStep) {
+    private Set<BuySellDto> buildBuySellActions(Map<Long, Integer> buySellOperations) {
         Set<BuySellDto> buySellDtos = new HashSet<>();
-        firstStep.buySellOperations.forEach(buySellOperation -> {
+        buySellOperations.forEach((shareId, amount) -> {
             BuySellDto buySellDto = new BuySellDto();
-            buySellDto.setShareId(buySellOperation.shareId);
-            buySellDto.setBuySellQuantity(buySellOperation.number);
+            buySellDto.setShareId(shareId);
+            buySellDto.setBuySellQuantity(amount);
             buySellDtos.add(buySellDto);
         });
         return buySellDtos;
@@ -252,8 +316,27 @@ public class GameController {
         gameSet.label = gameDto.getLabel();
         gameSet.players = buildPlayers(gameDto);
         gameSet.games = buildGames(gameDto);
-
+        if (gameDto.getGameStatus().equals(GameStatus.FINISHED.name())) {
+            gameSet.result = buildGameSetResult(gameDto);
+        }
         return gameSet;
+    }
+
+    private Set<PlayerResult> buildGameSetResult(GameDto gameDto) {
+        Set<PlayerResult> playerResultSet = Sets.newHashSet();
+        gameDto.getGameSeriesCompetitorResults().forEach(competitorResultDto -> {
+            PlayerResult playerResult = new PlayerResult();
+            playerResult.name = competitorResultDto.getUserName();
+            playerResult.totalFunds = competitorResultDto.getTotalFunds();
+            playerResult.totalPoints = competitorResultDto.getTotalPoints();
+            playerResult.winner = competitorResultDto.getWinner();
+            playerResult.bankrupt = competitorResultDto.getOut();
+            playerResult.fundsDifference = gameDto.getGameSeriesCompetitorDiffs().stream()
+                    .filter(competitorDiffDto -> competitorResultDto.getUserName().equals(competitorDiffDto.getFirstUserName()))
+                    .map(CompetitorDiffDto::getFundsAbsoluteDiff).findFirst().orElse(0);
+            playerResultSet.add(playerResult);
+        });
+        return playerResultSet;
     }
 
     private TreeSet<ReportRound> buildRounds(GameDto gameDto) {
@@ -261,18 +344,20 @@ public class GameController {
         gameDto.getMoves().forEach(moveDto -> {
             ReportRound round = new ReportRound();
             round.round = moveDto.getMoveNumber();
-            round.turns = buildTurns(moveDto.getCompetitorMoves());
+            round.turns = buildTurns(gameDto, moveDto.getCompetitorMoves());
             rounds.add(round);
         });
         return rounds;
     }
 
-    private TreeSet<ReportTurn> buildTurns(Set<CompetitorMoveDto> competitorMoves) {
+    private TreeSet<ReportTurn> buildTurns(GameDto gameDto, Set<CompetitorMoveDto> competitorMoves) {
         TreeSet<ReportTurn> reportTurns = new TreeSet<>();
         competitorMoves.forEach(competitorMoveDto -> {
             ReportTurn turn = new ReportTurn();
             turn.round = competitorMoveDto.getMoveNumber();
             turn.turn = competitorMoveDto.getMoveOrder();
+            turn.appliedCardId = competitorMoveDto.getAppliedCardId();
+            turn.cardId = getCardId(gameDto, competitorMoveDto.getAppliedCardId());
             turn.finishedTime = competitorMoveDto.getFinishedTime().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
             turn.steps = buildTurnSteps(competitorMoveDto.getSteps());
             reportTurns.add(turn);
@@ -280,22 +365,60 @@ public class GameController {
         return reportTurns;
     }
 
+    private Long getCardId(GameDto gameDto, Long appliedCardId) {
+        for (CompetitorDto competitor : gameDto.getCompetitors()) {
+            for (CompetitorCardDto competitorCard : competitor.getCompetitorCards()) {
+                if (competitorCard.getId().equals(appliedCardId)) {
+                    return competitorCard.getCardId();
+                }
+            }
+        }
+        return null;
+    }
+
     private Map<StepType, ReportStep> buildTurnSteps(Set<MoveStepDto> steps) {
         Map<StepType, ReportStep> reportSteps = new HashMap<>();
+        Set<StepType> mainStepTypes = Sets.newHashSet(StepType.ZERO_STEP, StepType.FIRST_BUY_SELL_STEP,
+                StepType.PRICE_CHANGE_STEP, StepType.LAST_BUY_SELL_STEP);
+        Set<StepType> coRepStepTypes = Sets.newHashSet(StepType.COMPENSATION_STEP, StepType.REPURCHASE_STEP);
+        List<MoveStepDto> coRepSteps = steps.stream()
+                .filter(moveStepDto -> coRepStepTypes.contains(StepType.valueOf(moveStepDto.getStepType())))
+                .sorted((o1, o2) -> {
+                    int result = StepType.valueOf(o1.getStepType()).ordinal() - StepType.valueOf(o2.getStepType()).ordinal();
+                    if (result == 0) {
+                        result = (int) (o1.getOriginalStepId() - o2.getOriginalStepId());
+                    }
+                    return result;
+                }).collect(Collectors.toList());
+        MoveStepDto lastStep = coRepSteps.size() > 0 ? coRepSteps.get(coRepSteps.size() - 1) : null;
+
         steps.forEach(moveStepDto -> {
-            ReportStep step = new ReportStep();
-            step.stepType = StepType.valueOf(moveStepDto.getStepType());
-            step.cashValue = moveStepDto.getCashValue();
-            step.originalStepId = moveStepDto.getOriginalStepId();
-            step.shares = buildShares(moveStepDto.getShareQuantities());
-            step.sharePrices = buildSharePrices(moveStepDto.getSharePrices());
-            step.compensations = buildCompensations(moveStepDto.getCompensations());
-            reportSteps.put(step.stepType, step);
+            if (mainStepTypes.contains(StepType.valueOf(moveStepDto.getStepType()))) {
+                ReportStep step = new ReportStep();
+                step.stepType = StepType.valueOf(moveStepDto.getStepType());
+                step.cash = moveStepDto.getCashValue();
+                step.shares = buildShares(moveStepDto.getShareQuantities());
+                step.sharePrices = buildSharePrices(moveStepDto.getSharePrices());
+                if (step.stepType.equals(StepType.LAST_BUY_SELL_STEP) && lastStep != null) {
+                    step.cash = lastStep.getCashValue();
+                    if (StepType.valueOf(lastStep.getStepType()).equals(StepType.REPURCHASE_STEP)) {
+                        lastStep.getShareQuantities().forEach(shareQuantityDto -> {
+                            if (shareQuantityDto.getBuySellQuantity() != 0) {
+                                step.shares.get(shareQuantityDto.getId()).repurchased = true;
+                                step.shares.get(shareQuantityDto.getId()).amountBeforeRepurchase =
+                                        step.shares.get(shareQuantityDto.getId()).amount;
+                                step.shares.get(shareQuantityDto.getId()).amount = shareQuantityDto.getQuantity();
+                            }
+                        });
+                    }
+                }
+                reportSteps.put(step.stepType, step);
+            }
         });
         return reportSteps;
     }
 
-    private Map<Long, ShareCompensation> buildCompensations(Set<CompensationDto> compensations) {
+    /*private Map<Long, ShareCompensation> buildCompensations(Set<CompensationDto> compensations) {
         Map<Long, ShareCompensation> shareCompensations = new HashMap<>();
         Optional.ofNullable(compensations)
                 .ifPresent(compensationDtos -> compensationDtos.forEach(compensationDto -> {
@@ -305,7 +428,7 @@ public class GameController {
             shareCompensations.put(shareCompensation.shareId, shareCompensation);
         }));
         return shareCompensations;
-    }
+    }*/
 
     private Map<Long, SharePrice> buildSharePrices(Set<SharePriceDto> sharePrices) {
         Map<Long, SharePrice> sharePrices1 = new HashMap<>();
@@ -365,15 +488,61 @@ public class GameController {
         game.status = convertGameStatus(gameDto.getGameStatus());
         game.players = buildGamePlayers(gameDto);
         game.rounds = buildRounds(gameDto);
+        if (gameDto.getGameStatus().equals(GameStatus.FINISHED.name())) {
+            game.result = buildResult(gameDto);
+        }
         games.add(game);
         gameDto.getRelatedGames().forEach(relatedGame -> {
             Game game1 = new Game();
             game1.id = relatedGame.getGameId();
             game1.letter = GameLetter.valueOf(relatedGame.getGameLetter());
             game1.status = convertGameStatus(relatedGame.getStatus());
+            if (relatedGame.getStatus().equals(GameStatus.FINISHED.name())) {
+                game1.result = buildRelatedGameResult(relatedGame);
+            }
             games.add(game1);
         });
         return games;
+    }
+
+    private Set<GameResult> buildRelatedGameResult(RelatedGame relatedGame) {
+        Set<GameResult> gameResultSet = Sets.newTreeSet(Comparator.comparingInt(o -> o.turnOrder));
+        relatedGame.getCompetitorResults().forEach(competitorResultDto -> {
+            PlayerResult playerResult = new PlayerResult();
+            playerResult.name = competitorResultDto.getUserName();
+            playerResult.bankrupt = competitorResultDto.getOut();
+            playerResult.winner = competitorResultDto.getWinner();
+            playerResult.totalPoints = competitorResultDto.getTotalPoints();
+            playerResult.totalFunds = competitorResultDto.getTotalFunds();
+            playerResult.fundsDifference = relatedGame.getCompetitorDiffs().stream()
+                    .filter(competitorDiffDto -> competitorDiffDto.getFirstUserName().equals(competitorResultDto.getUserName()))
+                    .map(CompetitorDiffDto::getFundsAbsoluteDiff).findFirst().orElse(0);
+            GameResult gameResult = new GameResult();
+            gameResult.turnOrder = competitorResultDto.getMoveOrder();
+            gameResult.result = playerResult;
+            gameResultSet.add(gameResult);
+        });
+        return gameResultSet;
+    }
+
+    private Set<GameResult> buildResult(GameDto gameDto) {
+        Set<GameResult> gameResultSet = Sets.newTreeSet(Comparator.comparingInt(o -> o.turnOrder));
+        gameDto.getCompetitorResults().forEach(competitorResultDto -> {
+            PlayerResult playerResult = new PlayerResult();
+            playerResult.name = competitorResultDto.getUserName();
+            playerResult.bankrupt = competitorResultDto.getOut();
+            playerResult.winner = competitorResultDto.getWinner();
+            playerResult.totalPoints = competitorResultDto.getTotalPoints();
+            playerResult.totalFunds = competitorResultDto.getTotalFunds();
+            playerResult.fundsDifference = gameDto.getCompetitorDiffs().stream()
+                    .filter(competitorDiffDto -> competitorDiffDto.getFirstUserName().equals(competitorResultDto.getUserName()))
+                    .map(CompetitorDiffDto::getFundsAbsoluteDiff).findFirst().orElse(0);
+            GameResult gameResult = new GameResult();
+            gameResult.turnOrder = competitorResultDto.getMoveOrder();
+            gameResult.result = playerResult;
+            gameResultSet.add(gameResult);
+        });
+        return gameResultSet;
     }
 
     private Set<GameSetPlayer> buildPlayers(GameDto gameDto) {

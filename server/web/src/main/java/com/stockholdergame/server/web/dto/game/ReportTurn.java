@@ -13,6 +13,10 @@ public class ReportTurn implements Comparable<ReportTurn> {
 
     public int turn;
 
+    public Long appliedCardId;
+
+    public Long cardId;
+
     @ApiModelProperty(dataType = "String")
     @JsonFormat(pattern = "YYYY-MM-dd HH:mm")
     public LocalDateTime finishedTime;

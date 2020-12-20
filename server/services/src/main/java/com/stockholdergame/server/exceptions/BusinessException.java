@@ -20,12 +20,13 @@ public class BusinessException extends RuntimeException {
         this.args = args;
     }
 
-    public BusinessException(String message) {
+    public BusinessException(String message, BusinessExceptionType type) {
         super(message);
+        this.type = type;
     }
 
     public String getMessage() {
-        return type != null ? MessageHolder.getMessage(type.getMessageKey(), args) : super.getMessage();
+        return type != null && args != null ? MessageHolder.getMessage(type.getMessageKey(), args) : super.getMessage();
     }
 
     public BusinessExceptionType getType() {

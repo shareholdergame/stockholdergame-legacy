@@ -20,7 +20,7 @@ public class CompensationCalculatorTest {
 
     @Test(dataProvider = "data4testCalculateRedemptionSum")
     public void testCalculateRedemptionSum(int finalPrice, int calculatedPrice, int expectedSum) throws Exception {
-        int actualSum = CompensationCalculator.calculateRedemptionSum(finalPrice, calculatedPrice);
+        int actualSum = CompensationCalculator.calculateRepurchaseSum(finalPrice, calculatedPrice);
         Assert.assertEquals(expectedSum, actualSum);
     }
 

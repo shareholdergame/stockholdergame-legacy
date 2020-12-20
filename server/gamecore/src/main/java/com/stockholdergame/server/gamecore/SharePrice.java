@@ -14,7 +14,7 @@ public interface SharePrice extends Share {
 
     void setValue(int value) throws SharePriceAlreadyChangedException;
 
-    int getRedemptionSum();
+    int getRepurchaseSum();
 
-    void setRedemptionSum(int value);
+    void setRepurchaseSum(int value);
 }

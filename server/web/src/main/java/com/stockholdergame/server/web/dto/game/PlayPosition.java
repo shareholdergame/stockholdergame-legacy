@@ -5,4 +5,6 @@ public class PlayPosition {
     public int round;
 
     public int turn;
+
+    public boolean myTurn;
 }

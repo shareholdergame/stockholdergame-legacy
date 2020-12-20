@@ -49,12 +49,12 @@ public class SharePriceImpl implements SharePrice, TransactionSupport {
     }
 
     @Override
-    public int getRedemptionSum() {
+    public int getRepurchaseSum() {
         return redemptionSum;
     }
 
     @Override
-    public void setRedemptionSum(int value) {
+    public void setRepurchaseSum(int value) {
         if (this.redemptionSum > 0 || value <= 0) {
             return;
         }

@@ -9,15 +9,15 @@ public class ReportStep {
 
     public StepType stepType;
 
-    public long cashValue;
+    public long cash;
 
     public Map<Long, ShareAmount> shares;
 
     public Map<Long, SharePrice> sharePrices;
 
-    public Map<Long, ShareCompensation> compensations;
+    //public Map<Long, ShareCompensation> compensations;
 
-    public Long originalStepId;
+    //public Long originalStepId;
 
     @Override
     public boolean equals(Object o) {
@@ -29,7 +29,7 @@ public class ReportStep {
 
         return new EqualsBuilder()
                 .append(stepType, step.stepType)
-                .append(originalStepId, step.originalStepId)
+                //.append(originalStepId, step.originalStepId)
                 .isEquals();
     }
 
@@ -37,7 +37,7 @@ public class ReportStep {
     public int hashCode() {
         return new HashCodeBuilder(17, 37)
                 .append(stepType)
-                .append(originalStepId)
+                //.append(originalStepId)
                 .toHashCode();
     }
 }

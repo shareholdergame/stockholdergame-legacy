@@ -171,7 +171,7 @@ public class MovePerformerImpl implements MovePerformer {
             int moveOrder = competitorAccount.getMoveOrder();
             if (!competitorAccount.isOut() && competitorAccount.getMoveOrder() != gameState.getCurrentMoveOrder()
                     && isSharesWithdraw(competitorAccount, gameState.getShareIds())) {
-                SortedSet<BuySellActionResult> buySellStepResults = startRedemptionProcedure(gameState, moveOrder);
+                SortedSet<BuySellActionResult> buySellStepResults = startRepurchaseProcedure(gameState, moveOrder);
                 if (buySellStepResults.size() > 0) {
                     repurchaseResultMap.put(moveOrder, new RepurchaseResult(buySellStepResults, competitorAccount.getCash()));
                 }
@@ -191,15 +191,15 @@ public class MovePerformerImpl implements MovePerformer {
         return isWithdraw;
     }
 
-    private SortedSet<BuySellActionResult> startRedemptionProcedure(GameState gameState, int moveOrder)
+    private SortedSet<BuySellActionResult> startRepurchaseProcedure(GameState gameState, int moveOrder)
             throws NotEnoughSharesException, SharesLockedException, NotEnoughFundsException, IllegalMoveOrderException {
         SortedSet<BuySellActionResult> buySellStepResults = new TreeSet<>();
-        List<SharePrice> ordered = gameState.getSharePricesOrderedByRedemptionSumAndOldPrice();
+        List<SharePrice> ordered = gameState.getSharePricesOrderedByRepurchaseSumAndOldPrice();
         for (SharePrice sharePrice : ordered) {
             int repurchasedQuantity = 0;
             if (gameState.getCompetitorAccount(moveOrder).isWithdrawal(sharePrice.getShareId())
-                && sharePrice.getRedemptionSum() > 0) {
-                repurchasedQuantity = gameState.repurchase(moveOrder, sharePrice.getRedemptionSum(), sharePrice.getShareId());
+                && sharePrice.getRepurchaseSum() > 0) {
+                repurchasedQuantity = gameState.repurchase(moveOrder, sharePrice.getRepurchaseSum(), sharePrice.getShareId());
                 if (moveOrder - 1 == gameState.getCurrentMoveOrder()) {
                     gameState.markAsBankrupt(moveOrder);
                 }

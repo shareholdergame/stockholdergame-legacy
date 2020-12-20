@@ -1,8 +1,8 @@
 package com.stockholdergame.server.web.dto.game;
 
-public class TurnOrderResult {
+public class GameResult {
 
-    public short turnOrder;
+    public int turnOrder;
 
     public PlayerResult result;
 }

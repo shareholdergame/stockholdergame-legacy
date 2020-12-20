@@ -3,6 +3,7 @@ package com.stockholdergame.server.services.messaging.impl;
 import com.stockholdergame.server.dao.GamerAccountDao;
 import com.stockholdergame.server.exceptions.ApplicationException;
 import com.stockholdergame.server.model.account.GamerAccount;
+import com.stockholdergame.server.services.messaging.MessageBuffer;
 import com.stockholdergame.server.services.messaging.MessagingService;
 import flex.messaging.messages.AsyncMessage;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,9 +25,13 @@ public class MessagingServiceImpl implements MessagingService {
     @Autowired
     private MessageChannel toFlex;
 
+    @Autowired
+    private MessageBuffer messageBuffer;
+
     public <T> void send(Long gamerId, T notificationBody) {
         String subTopic = getSubtopic(gamerId);
-        Message message = MessageBuilder.withPayload(notificationBody).setHeader(AsyncMessage.SUBTOPIC_HEADER_NAME, subTopic).build();
+        Message<T> message = MessageBuilder.withPayload(notificationBody).setHeader(AsyncMessage.SUBTOPIC_HEADER_NAME, subTopic).build();
+        messageBuffer.addMessage(gamerId, notificationBody);
         try {
             toFlex.send(message);
         } catch (Exception e) {
