@@ -403,7 +403,7 @@ public class GameController {
                     step.cash = lastStep.getCashValue();
                     if (StepType.valueOf(lastStep.getStepType()).equals(StepType.REPURCHASE_STEP)) {
                         lastStep.getShareQuantities().forEach(shareQuantityDto -> {
-                            if (shareQuantityDto.getBuySellQuantity() != 0) {
+                            if (step.shares.get(shareQuantityDto.getId()).amount != shareQuantityDto.getQuantity()) {
                                 step.shares.get(shareQuantityDto.getId()).repurchased = true;
                                 step.shares.get(shareQuantityDto.getId()).amountBeforeRepurchase =
                                         step.shares.get(shareQuantityDto.getId()).amount;
