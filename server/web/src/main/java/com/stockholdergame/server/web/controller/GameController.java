@@ -33,6 +33,7 @@ import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Api(value = "/", authorizations = { @Authorization("Bearer") }, tags = "Game API")
@@ -496,9 +497,32 @@ public class GameController {
             game1.id = relatedGame.getGameId();
             game1.letter = GameLetter.valueOf(relatedGame.getGameLetter());
             game1.status = convertGameStatus(relatedGame.getStatus());
+            if (relatedGame.getStatus().equals(GameStatus.FINISHED.name())) {
+                game1.result = buildRelatedGameResult(relatedGame);
+            }
             games.add(game1);
         });
         return games;
+    }
+
+    private Set<GameResult> buildRelatedGameResult(RelatedGame relatedGame) {
+        Set<GameResult> gameResultSet = Sets.newTreeSet(Comparator.comparingInt(o -> o.turnOrder));
+        relatedGame.getCompetitorResults().forEach(competitorResultDto -> {
+            PlayerResult playerResult = new PlayerResult();
+            playerResult.name = competitorResultDto.getUserName();
+            playerResult.bankrupt = competitorResultDto.getOut();
+            playerResult.winner = competitorResultDto.getWinner();
+            playerResult.totalPoints = competitorResultDto.getTotalPoints();
+            playerResult.totalFunds = competitorResultDto.getTotalFunds();
+            playerResult.fundsDifference = relatedGame.getCompetitorDiffs().stream()
+                    .filter(competitorDiffDto -> competitorDiffDto.getFirstUserName().equals(competitorResultDto.getUserName()))
+                    .map(CompetitorDiffDto::getFundsAbsoluteDiff).findFirst().orElse(0);
+            GameResult gameResult = new GameResult();
+            gameResult.turnOrder = competitorResultDto.getMoveOrder();
+            gameResult.result = playerResult;
+            gameResultSet.add(gameResult);
+        });
+        return gameResultSet;
     }
 
     private Set<GameResult> buildResult(GameDto gameDto) {

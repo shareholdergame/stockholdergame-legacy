@@ -31,9 +31,9 @@ public class MessagingServiceImpl implements MessagingService {
     public <T> void send(Long gamerId, T notificationBody) {
         String subTopic = getSubtopic(gamerId);
         Message<T> message = MessageBuilder.withPayload(notificationBody).setHeader(AsyncMessage.SUBTOPIC_HEADER_NAME, subTopic).build();
+        messageBuffer.addMessage(gamerId, notificationBody);
         try {
             toFlex.send(message);
-            messageBuffer.addMessage(gamerId, notificationBody);
         } catch (Exception e) {
             // todo - log error
         }
