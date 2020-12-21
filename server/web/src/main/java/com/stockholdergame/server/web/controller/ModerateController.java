@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.List;
 
+@Deprecated
 @Api(value = "/", tags = "Moderation API")
 @Controller
 @RequestMapping("/public/moderation/tools")
@@ -22,6 +23,7 @@ public class ModerateController {
     @Autowired
     private GameService gameService;
 
+    @Deprecated
     @ApiOperation("Current turns")
     @RequestMapping(value = "/currentturns", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public @ResponseBody ResponseWrapper<List<CurrentTurnDto>> currentTurns() {

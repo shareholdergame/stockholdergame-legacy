@@ -5,12 +5,14 @@ import com.stockholdergame.server.dto.account.FriendFilterType;
 import com.stockholdergame.server.dto.account.UserDto;
 import com.stockholdergame.server.dto.account.UserFilterDto;
 import com.stockholdergame.server.dto.account.UsersList;
+import com.stockholdergame.server.dto.game.CurrentTurnDto;
 import com.stockholdergame.server.dto.game.UserStatisticsFilterDto;
 import com.stockholdergame.server.dto.game.UserStatisticsList;
 import com.stockholdergame.server.exceptions.BusinessException;
 import com.stockholdergame.server.exceptions.BusinessExceptionType;
 import com.stockholdergame.server.facade.SocialFacade;
 import com.stockholdergame.server.model.game.result.Statistics;
+import com.stockholdergame.server.services.game.GameService;
 import com.stockholdergame.server.web.dto.*;
 import com.stockholdergame.server.web.dto.player.*;
 import io.swagger.annotations.Api;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -39,6 +42,9 @@ public class PlayerController {
 
     @Autowired
     private SocialFacade socialFacade;
+
+    @Autowired
+    private GameService gameService;
 
     @RequestMapping(method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public @ResponseBody ResponseWrapper<PlayerListResponse> searchPlayer(
@@ -79,6 +85,11 @@ public class PlayerController {
         }
 
         return ResponseWrapper.ok(buildPlayerWithLocation(usersList.getUsers().get(0)));
+    }
+
+    @RequestMapping(value = "/whoplaysnow", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public @ResponseBody ResponseWrapper<List<CurrentTurnDto>> currentTurns() {
+        return ResponseWrapper.ok(gameService.getCurrentTurns());
     }
 
     private PlayerAchievementsResponse convertToPlayerAchievementsResponse(UserStatisticsList userStatisticsList, int offset, int itemsPerPage) {

@@ -6,7 +6,6 @@ import com.stockholdergame.server.dto.game.lite.CompetitorLite;
 import com.stockholdergame.server.dto.game.lite.GameLite;
 import com.stockholdergame.server.dto.game.lite.GamesList;
 import com.stockholdergame.server.dto.game.result.CompetitorDiffDto;
-import com.stockholdergame.server.dto.game.result.CompetitorResultDto;
 import com.stockholdergame.server.dto.game.variant.GameVariantDto;
 import com.stockholdergame.server.facade.GameFacade;
 import com.stockholdergame.server.model.game.InvitationStatus;
@@ -33,7 +32,6 @@ import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Api(value = "/", authorizations = { @Authorization("Bearer") }, tags = "Game API")
