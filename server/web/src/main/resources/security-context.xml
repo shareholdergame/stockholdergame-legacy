@@ -114,8 +114,8 @@
           class="org.springframework.security.oauth2.provider.token.DefaultTokenServices">
         <beans:property name="tokenStore" ref="tokenStore" />
         <beans:property name="supportRefreshToken" value="true" />
-        <beans:property name="accessTokenValiditySeconds" value="10800"/>
-        <beans:property name="refreshTokenValiditySeconds" value="84600"/>
+        <beans:property name="accessTokenValiditySeconds" value="604800"/>
+        <beans:property name="refreshTokenValiditySeconds" value="2592000"/>
         <beans:property name="clientDetailsService" ref="clientDetails"/>
         <beans:property name="tokenEnhancer" ref="tokenConverter"/>
     </beans:bean>
@@ -132,8 +132,8 @@
                 client-id="stockholdergame-app"
                 secret="AqsWv5Ki"
                 authorized-grant-types="password,refresh_token"
-                access-token-validity="10800"
-                refresh-token-validity="84600"/>
+                access-token-validity="604800"
+                refresh-token-validity="2592000"/>
     </oauth:client-details-service>
 
     <oauth:authorization-server client-details-service-ref="clientDetails" token-services-ref="tokenServices">
