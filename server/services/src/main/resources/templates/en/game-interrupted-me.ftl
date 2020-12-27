@@ -3,5 +3,5 @@ Hello, dear ${userName}!
 Game ${movesQuantity} moves was interrupted because you didn't make move in ${timeout} hours.
 
 ---
-This e-mail was sent automatically by mail system of http://stockholdergame.com
+This e-mail was sent automatically by mail system of https://stockholdergame.com
 You don't need to answer on it.

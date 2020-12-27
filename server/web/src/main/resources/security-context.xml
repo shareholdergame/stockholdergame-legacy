@@ -50,6 +50,10 @@
     <http pattern="/**" use-expressions="true" entry-point-ref="apiEntryPoint">
         <anonymous granted-authority="ROLE_ANONYMOUS"/>
         <intercept-url pattern="/public/**" access="hasAnyRole('ROLE_USER','ROLE_ANONYMOUS')"/>
+        <intercept-url pattern="/account/new" access="hasAnyRole('ROLE_USER','ROLE_ANONYMOUS')"/>
+        <intercept-url pattern="/account/exists/**" access="hasAnyRole('ROLE_USER','ROLE_ANONYMOUS')"/>
+        <intercept-url pattern="/account/verify/**" access="hasAnyRole('ROLE_USER','ROLE_ANONYMOUS')"/>
+        <intercept-url pattern="/account/resetpassword/**" access="hasAnyRole('ROLE_USER','ROLE_ANONYMOUS')"/>
         <intercept-url pattern="/**" access="hasRole('ROLE_USER')"/>
         <custom-filter ref="resourceServerFilter" before="PRE_AUTH_FILTER"/>
     </http>
@@ -73,6 +77,8 @@
                 !execution(* com.stockholdergame.server.facade.AccountFacade.checkUserNameExistence(..)) and
                 !execution(* com.stockholdergame.server.facade.AccountFacade.checkEmailUsage(..)) and
                 !execution(* com.stockholdergame.server.facade.AccountFacade.registerNewUser(..)) and
+                !execution(* com.stockholdergame.server.facade.AccountFacade.confirmAccountStatus(..)) and
+                !execution(* com.stockholdergame.server.facade.AccountFacade.confirmNewEmail(..)) and
                 !execution(* com.stockholdergame.server.facade.AccountFacade.getCaptcha(..)) and
                 !execution(* com.stockholdergame.server.facade.AccountFacade.resetPassword(..)) and
                 !execution(* com.stockholdergame.server.facade.SocialFacade.getServerStatistics(..))"
@@ -81,6 +87,8 @@
                 execution(* com.stockholdergame.server.facade.AccountFacade.checkUserNameExistence(..)) or
                 execution(* com.stockholdergame.server.facade.AccountFacade.checkEmailUsage(..)) or
                 execution(* com.stockholdergame.server.facade.AccountFacade.registerNewUser(..)) or
+                execution(* com.stockholdergame.server.facade.AccountFacade.confirmAccountStatus(..)) and
+                execution(* com.stockholdergame.server.facade.AccountFacade.confirmNewEmail(..)) and
                 execution(* com.stockholdergame.server.facade.AccountFacade.getCaptcha(..)) or
                 execution(* com.stockholdergame.server.facade.AccountFacade.resetPassword(..)) or
                 execution(* com.stockholdergame.server.facade.SocialFacade.getServerStatistics(..))"

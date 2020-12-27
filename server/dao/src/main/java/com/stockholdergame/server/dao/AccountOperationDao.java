@@ -15,4 +15,6 @@ public interface AccountOperationDao extends GenericDao<AccountOperation, Long> 
     List<AccountOperation> findUncompletedOperations(Long gamerId);
 
     AccountOperation findUncompletedOperationByType(Long gamerId, OperationType operationType);
+
+    AccountOperation findUncompletedOperationByCode(String verificationCode);
 }

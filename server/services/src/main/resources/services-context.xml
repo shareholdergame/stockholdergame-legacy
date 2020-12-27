@@ -38,6 +38,10 @@
         <constructor-arg value="admin@stockholdergame.com"/>
     </bean>
 
+    <bean id="hostNameForVerification" class="java.lang.String">
+        <constructor-arg value="${host.name.for.verification}"/>
+    </bean>
+
     <bean id="mapper" class="org.dozer.DozerBeanMapper">
         <property name="mappingFiles" value="dto-mapping.xml"/>
     </bean>

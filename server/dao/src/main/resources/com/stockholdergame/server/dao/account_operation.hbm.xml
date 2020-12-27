@@ -21,4 +21,9 @@
         ao.operationStatus = com.stockholdergame.server.model.account.OperationStatus.PENDING_VERIFICATION
         and ao.gamerId = ? and ao.operationType = ?
     </query>
+    <query name="AccountOperation.findUncompletedOperationByCode">
+        select ao from AccountOperation ao where
+        ao.operationStatus = com.stockholdergame.server.model.account.OperationStatus.PENDING_VERIFICATION
+        and ao.verificationCode = ?
+    </query>
 </hibernate-mapping>

@@ -18,6 +18,7 @@ import org.apache.commons.lang.math.NumberUtils;
 import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.integration.annotation.MessageEndpoint;
 import org.springframework.stereotype.Service;
 
@@ -63,6 +64,7 @@ public class MailPreparationServiceImpl implements MailPreparationService {
     private static final String VERIFICATION_CODE = "verificationCode";
     private static final String EXPIRATION_DATE = "expirationDate";
     private static final String PASSWORD = "password";
+    private static final String HOST_NAME_FOR_VERIFICATION = "hostNameForVerification";
 
     private static Map<Pair<AccountStatus, AccountStatus>, Pair<String, String>> accountLifecycleTemplatesMap;
 
@@ -70,7 +72,12 @@ public class MailPreparationServiceImpl implements MailPreparationService {
     private MailBoxService mailBoxService;
 
     @Autowired
+    @Qualifier("adminEmail")
     private String adminEmail;
+
+    @Autowired
+    @Qualifier("hostNameForVerification")
+    private String hostNameForVerification;
 
     private Configuration configuration;
 
@@ -105,6 +112,7 @@ public class MailPreparationServiceImpl implements MailPreparationService {
                                                               AccountOperation accountOperation) {
         Map<String, Object> data = new MapBuilder<String, Object>()
                 .append(USER_NAME, userName)
+                .append(HOST_NAME_FOR_VERIFICATION, hostNameForVerification)
                 .append(VERIFICATION_CODE, accountOperation.getVerificationCode())
                 .append(EXPIRATION_DATE,
                         DateFormatUtils.format(accountOperation.getExpirationDate(), ISO_DATE_FORMAT.getPattern()))
@@ -119,6 +127,7 @@ public class MailPreparationServiceImpl implements MailPreparationService {
                                                                AccountOperation accountOperation) {
         Map<String, Object> data = new MapBuilder<String, Object>()
                 .append(USER_NAME, userName)
+                .append(HOST_NAME_FOR_VERIFICATION, hostNameForVerification)
                 .append(VERIFICATION_CODE, accountOperation.getVerificationCode())
                 .append(EXPIRATION_DATE,
                         DateFormatUtils.format(accountOperation.getExpirationDate(), ISO_DATE_FORMAT.getPattern()))
