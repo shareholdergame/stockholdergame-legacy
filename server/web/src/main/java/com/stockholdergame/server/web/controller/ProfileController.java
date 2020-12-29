@@ -2,15 +2,16 @@ package com.stockholdergame.server.web.controller;
 
 import com.stockholdergame.server.dto.ProfileDto;
 import com.stockholdergame.server.dto.account.MyAccountDto;
+import com.stockholdergame.server.facade.AccountFacade;
+import com.stockholdergame.server.facade.SocialFacade;
 import com.stockholdergame.server.services.account.AccountService;
 import com.stockholdergame.server.web.dto.Location;
 import com.stockholdergame.server.web.dto.ResponseWrapper;
-import com.stockholdergame.server.web.dto.player.Player;
-import com.stockholdergame.server.web.dto.player.PlayerPersonalInfo;
-import com.stockholdergame.server.web.dto.player.PlayerProfile;
-import com.stockholdergame.server.web.dto.player.PlayerWithLocation;
+import com.stockholdergame.server.web.dto.player.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -24,12 +25,23 @@ public class ProfileController {
     SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
     @Autowired
-    private AccountService accountService;
+    private AccountFacade accountFacade;
 
     @RequestMapping(method = RequestMethod.GET)
     public @ResponseBody ResponseWrapper<PlayerProfile> getProfile() {
-        MyAccountDto myAccountDto = accountService.getAccountInfo();
+        MyAccountDto myAccountDto = accountFacade.getAccountInfo();
         return ResponseWrapper.ok(convertToPlayerProfile(myAccountDto));
+    }
+
+    @RequestMapping(value = "/update", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public @ResponseBody ResponseWrapper<?> updateProfile(@RequestBody ProfileUpdate profileUpdate) {
+        ProfileDto profileDto = new ProfileDto();
+        profileDto.setCity(profileUpdate.location.city);
+        profileDto.setCountry(profileUpdate.location.country);
+        profileDto.setRegion(profileUpdate.location.stateProvince);
+        accountFacade.changeProfileData(profileDto);
+        return ResponseWrapper.ok();
     }
 
     private PlayerProfile convertToPlayerProfile(MyAccountDto myAccountDto) {
