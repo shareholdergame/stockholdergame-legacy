@@ -69,15 +69,19 @@ public class AccountController {
         return ResponseWrapper.ok();
     }
 
-    @RequestMapping(value = "/update", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-    public @ResponseBody ResponseWrapper<?> changePassword(@RequestBody AccountUpdate accountUpdate) {
-        if (StringUtils.isNotEmpty(accountUpdate.newUserName)) {
+    @RequestMapping(value = "/update", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE,
+            consumes = MediaType.APPLICATION_JSON_VALUE)
+    public @ResponseBody ResponseWrapper<?> update(@RequestBody AccountUpdate accountUpdate) {
+        MyAccountDto myAccountDto = accountFacade.getAccountInfo();
+        if (StringUtils.isNotEmpty(accountUpdate.newUserName)
+                && !myAccountDto.getUserName().equalsIgnoreCase(accountUpdate.newUserName)) {
             ChangeUserNameDto changeUserNameDto = new ChangeUserNameDto();
             changeUserNameDto.setNewUserName(accountUpdate.newUserName);
             accountFacade.changeUserName(changeUserNameDto);
         }
 
-        if (StringUtils.isNotEmpty(accountUpdate.newEmail)) {
+        if (StringUtils.isNotEmpty(accountUpdate.newEmail)
+                && !myAccountDto.getEmail().equalsIgnoreCase(accountUpdate.newEmail)) {
             ChangeEmailDto changeEmailDto = new ChangeEmailDto();
             changeEmailDto.setNewEmail(accountUpdate.newEmail);
             accountFacade.changeEmail(changeEmailDto);
