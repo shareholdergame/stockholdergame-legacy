@@ -920,40 +920,47 @@ public class GameServiceImpl extends UserInfoAware implements GameService {
         for (String userName : userNames) {
             Invitation invitation =
                     invitationDao.findCreatedInvitationByGameIdAndInviteeName(changeInvitationStatusDto.getGameId(), userName);
-            if (invitation == null) {
-                throw new BusinessException(BusinessExceptionType.INVITATION_NOT_FOUND, changeInvitationStatusDto.getGameId(),
-                        userName);
-            } else if (!InvitationStatus.CREATED.equals(invitation.getStatus())
-                    || InvitationStatus.CREATED.equals(newStatus)
-                    || InvitationStatus.EXPIRED.equals(newStatus)
-                    || InvitationStatus.ACCEPTED.equals(newStatus)) {
-                throw new BusinessException(BusinessExceptionType.ILLEGAL_INVITATION_STATUS,
-                        changeInvitationStatusDto.getGameId(), userName);
-            }
-            changeInvitationStatus(invitation, newStatus);
-
-            InvitationDto invitationDto = DtoMapper.map(invitation, InvitationDto.class);
-            if (InvitationStatus.REJECTED.equals(newStatus)) {
-                GamerAccount recipient = invitation.getInviterAccount();
-                sendNotification(recipient.getId(), GameEventType.INVITATION_REJECTED, invitationDto);
-                if (!userSessionTrackingService.isUserOnline(recipient.getUserName())) {
-                    mailPreparationService.prepareInvitationRejectedMessage(recipient.getUserName(), recipient.getEmail(),
-                            getCurrentUser().getUserName(), recipient.getLocale());
+            if (invitation != null) {
+                if (!InvitationStatus.CREATED.equals(invitation.getStatus())
+                        || InvitationStatus.CREATED.equals(newStatus)
+                        || InvitationStatus.EXPIRED.equals(newStatus)
+                        || InvitationStatus.ACCEPTED.equals(newStatus)) {
+                    throw new BusinessException(BusinessExceptionType.ILLEGAL_INVITATION_STATUS,
+                            changeInvitationStatusDto.getGameId(), userName);
                 }
-            } else if (InvitationStatus.CANCELLED.equals(newStatus)) {
-                GamerAccount recipient = invitation.getInviteeAccount();
-                sendNotification(recipient.getId(), GameEventType.INVITATION_CANCELLED, invitationDto);
-                if (!userSessionTrackingService.isUserOnline(recipient.getUserName())) {
-                    mailPreparationService.prepareInvitationCancelledMessage(recipient.getUserName(), recipient.getEmail(),
-                            getCurrentUser().getUserName(), recipient.getLocale());
-                }
-            }
-        }
 
-        if (invitationDao.countInvitationsByGameIdAndStatus(changeInvitationStatusDto.getGameId(), CREATED) == 0) {
-            Game game = gameDao.findByPrimaryKey(changeInvitationStatusDto.getGameId());
-            if (game.getCompetitors().size() > 1) {
-                startGame(game, null);
+                changeInvitationStatus(invitation, newStatus);
+
+                InvitationDto invitationDto = DtoMapper.map(invitation, InvitationDto.class);
+                if (InvitationStatus.REJECTED.equals(newStatus)) {
+                    GamerAccount recipient = invitation.getInviterAccount();
+                    sendNotification(recipient.getId(), GameEventType.INVITATION_REJECTED, invitationDto);
+                    if (!userSessionTrackingService.isUserOnline(recipient.getUserName())) {
+                        mailPreparationService.prepareInvitationRejectedMessage(recipient.getUserName(), recipient.getEmail(),
+                                getCurrentUser().getUserName(), recipient.getLocale());
+                    }
+                } else if (InvitationStatus.CANCELLED.equals(newStatus)) {
+                    GamerAccount recipient = invitation.getInviteeAccount();
+                    sendNotification(recipient.getId(), GameEventType.INVITATION_CANCELLED, invitationDto);
+                    if (!userSessionTrackingService.isUserOnline(recipient.getUserName())) {
+                        mailPreparationService.prepareInvitationCancelledMessage(recipient.getUserName(), recipient.getEmail(),
+                                getCurrentUser().getUserName(), recipient.getLocale());
+                    }
+                }
+
+                if (invitationDao.countInvitationsByGameIdAndStatus(changeInvitationStatusDto.getGameId(), CREATED) == 0) {
+                    Game game = gameDao.findByPrimaryKey(changeInvitationStatusDto.getGameId());
+                    if (game.getCompetitors().size() > 1) {
+                        startGame(game, null);
+                    }
+                }
+            } else {
+                Game game = gameDao.findByPrimaryKey(changeInvitationStatusDto.getGameId());
+                if (game != null) {
+                    gameDao.remove(game);
+                } else {
+                    throw new BusinessException(BusinessExceptionType.INVITATION_NOT_FOUND, changeInvitationStatusDto.getGameId(), userName);
+                }
             }
         }
     }
