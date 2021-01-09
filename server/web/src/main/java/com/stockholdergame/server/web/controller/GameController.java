@@ -57,9 +57,10 @@ public class GameController {
         gameInitiationDto.setGameVariantId(matchCardOptionToGameVariant(newGame.cardOption));
         gameInitiationDto.setOffer(false);
         gameInitiationDto.setSwitchMoveOrder(true);
-        gameInitiationDto.setInvitedUsers(new ArrayList<>(newGame.invitedPlayers));
+        gameInitiationDto.setInvitedUsers(newGame.invitedPlayers != null ? new ArrayList<>(newGame.invitedPlayers) : null);
+        gameInitiationDto.setPlayWithComputer(newGame.playWithComputer);
         GameStatusDto gameStatusDto = gameFacade.initiateGame(gameInitiationDto);
-        return ResponseWrapper.ok(gameStatusDto.getGameSeriesId());
+        return ResponseWrapper.ok(gameStatusDto.getGameId());
     }
 
     @ApiOperation("Accept/reject/cancel invitation")

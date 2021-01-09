@@ -68,6 +68,7 @@ import com.stockholdergame.server.session.UserInfo;
 import com.stockholdergame.server.util.AMFHelper;
 import com.stockholdergame.server.util.collections.ChunkHandler;
 import com.stockholdergame.server.util.collections.CollectionsUtil;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.logging.log4j.LogManager;
@@ -79,17 +80,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.stockholdergame.server.dao.util.IdentifierHelper.generateLongId;
@@ -361,7 +352,6 @@ public class GameServiceImpl extends UserInfoAware implements GameService {
         game.setId(generateLongId());
         game.setMaxSharePrice(gv.getPriceScale().getMaxValue());
         game.setSharePriceStep(gv.getPriceScale().getScaleSpacing());
-        //game.setRounding(Rounding.valueOf(gameInitiationDto.getRounding().toUpperCase()));
         game.setRounding(Rounding.U);
         game.setGameVariantId(variantId);
         game.setGameStatus(GameStatus.OPEN);
@@ -382,16 +372,44 @@ public class GameServiceImpl extends UserInfoAware implements GameService {
 
         game.setCompetitors(CollectionsUtil.newSet(competitor));
 
+        if (gameInitiationDto.isPlayWithComputer()) {
+            Competitor bot = new Competitor();
+            bot.setInitiator(false);
+            bot.setJoinedTime(current);
+            bot.setGamerId(selectBotId());
+            bot.setGame(game);
+            game.getCompetitors().add(bot);
+        }
+
         gameDao.create(game);
 
-        if (gameInitiationDto.getInvitedUsers() != null) {
-            CreateInvitationDto ci = new CreateInvitationDto();
-            ci.setGameId(game.getId());
-            ci.setInviteeNames(gameInitiationDto.getInvitedUsers().toArray(new String[gameInitiationDto.getInvitedUsers().size()]));
-            inviteUser(ci);
+        if (gameInitiationDto.isPlayWithComputer()) {
+            gameDao.flush();
+            Long[] ids = new Long[2];
+            for (Competitor c : game.getCompetitors()) {
+                if (c.getGamerId() == -100L || c.getGamerId() == -200L) {
+                    ids[1] = c.getGamerId();
+                } else {
+                    ids[0] = c.getGamerId();
+                }
+            }
+            startGame(game, Arrays.asList(ids));
+        } else {
+            if (gameInitiationDto.getInvitedUsers() != null) {
+                CreateInvitationDto ci = new CreateInvitationDto();
+                ci.setGameId(game.getId());
+                ci.setInviteeNames(gameInitiationDto.getInvitedUsers().toArray(new String[gameInitiationDto.getInvitedUsers().size()]));
+                inviteUser(ci);
+            }
         }
 
         return new GameStatusDto(game.getId(), gameSeriesId, game.getGameStatus().name());
+    }
+
+    private Long selectBotId() {
+        Random r = new Random();
+        int n = r.nextInt(10);
+        return n % 2 == 0 ? -200L : -100L;
     }
 
     private Boolean isBot(Long userId) {
@@ -729,25 +747,12 @@ public class GameServiceImpl extends UserInfoAware implements GameService {
             throw new BusinessException(BusinessExceptionType.ILLEGAL_GAME_STATUS, gameId, game.getGameStatus());
         }
 
-        //GameEventType gameEventType = null;
         if (isReadyToStart(game)) {
             startGame(game, null);
-            //gameEventType = GameEventType.GAME_STARTED;
         } else if (canBeCanceled(game)) {
             game.setGameStatus(GameStatus.CANCELLED);
             gameDao.update(game);
-            //gameEventType = GameEventType.GAME_CANCELED;
         }
-
-        /*if (gameEventType != null && !gameEventType.equals(GameEventType.GAME_CANCELED)) {
-            for (Competitor competitor : game.getCompetitors()) {
-                GameEventDto body = new GameEventDto(gameId, competitor.getGamerAccount().getUserName());
-                body.setGameStatus(game.getGameStatus().name());
-                body.setOffer(GameInitiationMethod.GAME_OFFER.equals(game.getInitiationMethod()));
-                sendNotification(competitor.getGamerId(), gameEventType, body);
-                // todo - send e-mail
-            }
-        }*/
     }
 
     @Override

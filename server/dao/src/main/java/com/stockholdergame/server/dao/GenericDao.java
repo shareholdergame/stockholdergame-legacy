@@ -12,4 +12,6 @@ public interface GenericDao<T, PK> {
     void update(T object);
 
     void remove(T object);
+
+    void flush();
 }
