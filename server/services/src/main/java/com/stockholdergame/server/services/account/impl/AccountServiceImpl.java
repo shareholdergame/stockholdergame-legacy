@@ -1,5 +1,6 @@
 package com.stockholdergame.server.services.account.impl;
 
+import com.stockholdergame.server.dao.AccountOperationDao;
 import com.stockholdergame.server.dao.GamerAccountDao;
 import com.stockholdergame.server.dao.UserMapperDao;
 import com.stockholdergame.server.dto.ConfirmationDto;
@@ -54,6 +55,9 @@ public class AccountServiceImpl extends UserInfoAware implements AccountService 
     private GamerAccountDao gamerAccountDao;
 
     @Autowired
+    private AccountOperationDao accountOperationDao;
+
+    @Autowired
     private UserMapperDao userMapperDao;
 
     @Autowired
@@ -103,8 +107,14 @@ public class AccountServiceImpl extends UserInfoAware implements AccountService 
     }
 
     public void confirmAccountStatus(ConfirmationDto confirmationDto) {
-        accountLifecycleService.confirmStatusChange(getCurrentUser().getId(), confirmationDto.getVerificationCode());
-        updateUserInfo(findGamerAccount(getCurrentUser().getUserName()));
+        AccountOperation accountOperation = accountOperationDao.findUncompletedOperationByCode(confirmationDto.getVerificationCode());
+        if (accountOperation != null) {
+            Long gamerId = accountOperation.getGamerId();
+            GamerAccount gamerAccount = gamerAccountDao.findByPrimaryKey(gamerId);
+
+            accountLifecycleService.confirmStatusChange(gamerId, confirmationDto.getVerificationCode());
+            updateUserInfo(gamerAccount);
+        }
     }
 
     /**
@@ -136,12 +146,16 @@ public class AccountServiceImpl extends UserInfoAware implements AccountService 
     }
 
     public void confirmNewEmail(ConfirmationDto confirmationDto) {
-        GamerAccount gamerAccount = findGamerAccount(getCurrentUser().getUserName());
-        String newEmail = operationsService.completeOperation(getCurrentUser().getId(), OperationType.EMAIL_CHANGED,
-                confirmationDto.getVerificationCode());
-        gamerAccount.setEmail(newEmail);
-        gamerAccountDao.update(gamerAccount);
-        updateUserInfo(gamerAccount);
+        AccountOperation accountOperation = accountOperationDao.findUncompletedOperationByCode(confirmationDto.getVerificationCode());
+        if (accountOperation != null) {
+            Long gamerId = accountOperation.getGamerId();
+            GamerAccount gamerAccount = gamerAccountDao.findByPrimaryKey(gamerId);
+            String newEmail = operationsService.completeOperation(getCurrentUser().getId(), OperationType.EMAIL_CHANGED,
+                    confirmationDto.getVerificationCode());
+            gamerAccount.setEmail(newEmail);
+            gamerAccountDao.update(gamerAccount);
+            updateUserInfo(gamerAccount);
+        }
     }
 
     /**

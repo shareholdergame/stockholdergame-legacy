@@ -68,6 +68,7 @@ import com.stockholdergame.server.session.UserInfo;
 import com.stockholdergame.server.util.AMFHelper;
 import com.stockholdergame.server.util.collections.ChunkHandler;
 import com.stockholdergame.server.util.collections.CollectionsUtil;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.logging.log4j.LogManager;
@@ -79,17 +80,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.stockholdergame.server.dao.util.IdentifierHelper.generateLongId;
@@ -105,8 +96,6 @@ import static com.stockholdergame.server.model.game.StepType.ZERO_STEP;
 @Service("gameService")
 @MessageEndpoint
 public class GameServiceImpl extends UserInfoAware implements GameService {
-
-    private static Logger LOGGER = LogManager.getLogger(GameServiceImpl.class);
 
     public static final int INTERRUPT_GAME_CHUNK_SIZE = 10;
     public static final int PLAYING_USERS_MAX_RESULTS = 4;
@@ -361,7 +350,6 @@ public class GameServiceImpl extends UserInfoAware implements GameService {
         game.setId(generateLongId());
         game.setMaxSharePrice(gv.getPriceScale().getMaxValue());
         game.setSharePriceStep(gv.getPriceScale().getScaleSpacing());
-        //game.setRounding(Rounding.valueOf(gameInitiationDto.getRounding().toUpperCase()));
         game.setRounding(Rounding.U);
         game.setGameVariantId(variantId);
         game.setGameStatus(GameStatus.OPEN);
@@ -382,16 +370,44 @@ public class GameServiceImpl extends UserInfoAware implements GameService {
 
         game.setCompetitors(CollectionsUtil.newSet(competitor));
 
+        if (gameInitiationDto.isPlayWithComputer()) {
+            Competitor bot = new Competitor();
+            bot.setInitiator(false);
+            bot.setJoinedTime(current);
+            bot.setGamerId(selectBotId());
+            bot.setGame(game);
+            game.getCompetitors().add(bot);
+        }
+
         gameDao.create(game);
 
-        if (gameInitiationDto.getInvitedUsers() != null) {
-            CreateInvitationDto ci = new CreateInvitationDto();
-            ci.setGameId(game.getId());
-            ci.setInviteeNames(gameInitiationDto.getInvitedUsers().toArray(new String[gameInitiationDto.getInvitedUsers().size()]));
-            inviteUser(ci);
+        if (gameInitiationDto.isPlayWithComputer()) {
+            gameDao.flush();
+            Long[] ids = new Long[2];
+            for (Competitor c : game.getCompetitors()) {
+                if (c.getGamerId() == -100L || c.getGamerId() == -200L) {
+                    ids[1] = c.getGamerId();
+                } else {
+                    ids[0] = c.getGamerId();
+                }
+            }
+            startGame(game, Arrays.asList(ids));
+        } else {
+            if (gameInitiationDto.getInvitedUsers() != null) {
+                CreateInvitationDto ci = new CreateInvitationDto();
+                ci.setGameId(game.getId());
+                ci.setInviteeNames(gameInitiationDto.getInvitedUsers().toArray(new String[gameInitiationDto.getInvitedUsers().size()]));
+                inviteUser(ci);
+            }
         }
 
         return new GameStatusDto(game.getId(), gameSeriesId, game.getGameStatus().name());
+    }
+
+    private Long selectBotId() {
+        Random r = new Random();
+        int n = r.nextInt(10);
+        return n % 2 == 0 ? -200L : -100L;
     }
 
     private Boolean isBot(Long userId) {
@@ -729,25 +745,12 @@ public class GameServiceImpl extends UserInfoAware implements GameService {
             throw new BusinessException(BusinessExceptionType.ILLEGAL_GAME_STATUS, gameId, game.getGameStatus());
         }
 
-        //GameEventType gameEventType = null;
         if (isReadyToStart(game)) {
             startGame(game, null);
-            //gameEventType = GameEventType.GAME_STARTED;
         } else if (canBeCanceled(game)) {
             game.setGameStatus(GameStatus.CANCELLED);
             gameDao.update(game);
-            //gameEventType = GameEventType.GAME_CANCELED;
         }
-
-        /*if (gameEventType != null && !gameEventType.equals(GameEventType.GAME_CANCELED)) {
-            for (Competitor competitor : game.getCompetitors()) {
-                GameEventDto body = new GameEventDto(gameId, competitor.getGamerAccount().getUserName());
-                body.setGameStatus(game.getGameStatus().name());
-                body.setOffer(GameInitiationMethod.GAME_OFFER.equals(game.getInitiationMethod()));
-                sendNotification(competitor.getGamerId(), gameEventType, body);
-                // todo - send e-mail
-            }
-        }*/
     }
 
     @Override
@@ -920,40 +923,47 @@ public class GameServiceImpl extends UserInfoAware implements GameService {
         for (String userName : userNames) {
             Invitation invitation =
                     invitationDao.findCreatedInvitationByGameIdAndInviteeName(changeInvitationStatusDto.getGameId(), userName);
-            if (invitation == null) {
-                throw new BusinessException(BusinessExceptionType.INVITATION_NOT_FOUND, changeInvitationStatusDto.getGameId(),
-                        userName);
-            } else if (!InvitationStatus.CREATED.equals(invitation.getStatus())
-                    || InvitationStatus.CREATED.equals(newStatus)
-                    || InvitationStatus.EXPIRED.equals(newStatus)
-                    || InvitationStatus.ACCEPTED.equals(newStatus)) {
-                throw new BusinessException(BusinessExceptionType.ILLEGAL_INVITATION_STATUS,
-                        changeInvitationStatusDto.getGameId(), userName);
-            }
-            changeInvitationStatus(invitation, newStatus);
-
-            InvitationDto invitationDto = DtoMapper.map(invitation, InvitationDto.class);
-            if (InvitationStatus.REJECTED.equals(newStatus)) {
-                GamerAccount recipient = invitation.getInviterAccount();
-                sendNotification(recipient.getId(), GameEventType.INVITATION_REJECTED, invitationDto);
-                if (!userSessionTrackingService.isUserOnline(recipient.getUserName())) {
-                    mailPreparationService.prepareInvitationRejectedMessage(recipient.getUserName(), recipient.getEmail(),
-                            getCurrentUser().getUserName(), recipient.getLocale());
+            if (invitation != null) {
+                if (!InvitationStatus.CREATED.equals(invitation.getStatus())
+                        || InvitationStatus.CREATED.equals(newStatus)
+                        || InvitationStatus.EXPIRED.equals(newStatus)
+                        || InvitationStatus.ACCEPTED.equals(newStatus)) {
+                    throw new BusinessException(BusinessExceptionType.ILLEGAL_INVITATION_STATUS,
+                            changeInvitationStatusDto.getGameId(), userName);
                 }
-            } else if (InvitationStatus.CANCELLED.equals(newStatus)) {
-                GamerAccount recipient = invitation.getInviteeAccount();
-                sendNotification(recipient.getId(), GameEventType.INVITATION_CANCELLED, invitationDto);
-                if (!userSessionTrackingService.isUserOnline(recipient.getUserName())) {
-                    mailPreparationService.prepareInvitationCancelledMessage(recipient.getUserName(), recipient.getEmail(),
-                            getCurrentUser().getUserName(), recipient.getLocale());
-                }
-            }
-        }
 
-        if (invitationDao.countInvitationsByGameIdAndStatus(changeInvitationStatusDto.getGameId(), CREATED) == 0) {
-            Game game = gameDao.findByPrimaryKey(changeInvitationStatusDto.getGameId());
-            if (game.getCompetitors().size() > 1) {
-                startGame(game, null);
+                changeInvitationStatus(invitation, newStatus);
+
+                InvitationDto invitationDto = DtoMapper.map(invitation, InvitationDto.class);
+                if (InvitationStatus.REJECTED.equals(newStatus)) {
+                    GamerAccount recipient = invitation.getInviterAccount();
+                    sendNotification(recipient.getId(), GameEventType.INVITATION_REJECTED, invitationDto);
+                    if (!userSessionTrackingService.isUserOnline(recipient.getUserName())) {
+                        mailPreparationService.prepareInvitationRejectedMessage(recipient.getUserName(), recipient.getEmail(),
+                                getCurrentUser().getUserName(), recipient.getLocale());
+                    }
+                } else if (InvitationStatus.CANCELLED.equals(newStatus)) {
+                    GamerAccount recipient = invitation.getInviteeAccount();
+                    sendNotification(recipient.getId(), GameEventType.INVITATION_CANCELLED, invitationDto);
+                    if (!userSessionTrackingService.isUserOnline(recipient.getUserName())) {
+                        mailPreparationService.prepareInvitationCancelledMessage(recipient.getUserName(), recipient.getEmail(),
+                                getCurrentUser().getUserName(), recipient.getLocale());
+                    }
+                }
+
+                if (invitationDao.countInvitationsByGameIdAndStatus(changeInvitationStatusDto.getGameId(), CREATED) == 0) {
+                    Game game = gameDao.findByPrimaryKey(changeInvitationStatusDto.getGameId());
+                    if (game.getCompetitors().size() > 1) {
+                        startGame(game, null);
+                    }
+                }
+            } else {
+                Game game = gameDao.findByPrimaryKey(changeInvitationStatusDto.getGameId());
+                if (game != null) {
+                    gameDao.remove(game);
+                } else {
+                    throw new BusinessException(BusinessExceptionType.INVITATION_NOT_FOUND, changeInvitationStatusDto.getGameId(), userName);
+                }
             }
         }
     }

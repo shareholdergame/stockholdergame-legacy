@@ -7,4 +7,6 @@ public class NewGame {
     public CardOption cardOption;
 
     public Set<String> invitedPlayers;
+
+    public boolean playWithComputer;
 }

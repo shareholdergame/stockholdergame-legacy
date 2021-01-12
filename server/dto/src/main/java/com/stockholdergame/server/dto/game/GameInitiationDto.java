@@ -22,6 +22,8 @@ public class GameInitiationDto {
 
     private List<String> invitedUsers;
 
+    private boolean playWithComputer;
+
     public Long getGameVariantId() {
         return gameVariantId;
     }
@@ -62,5 +64,13 @@ public class GameInitiationDto {
 
     public void setInvitedUsers(List<String> invitedUsers) {
         this.invitedUsers = invitedUsers;
+    }
+
+    public boolean isPlayWithComputer() {
+        return playWithComputer;
+    }
+
+    public void setPlayWithComputer(boolean playWithComputer) {
+        this.playWithComputer = playWithComputer;
     }
 }

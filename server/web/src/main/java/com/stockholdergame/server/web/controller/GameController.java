@@ -6,7 +6,6 @@ import com.stockholdergame.server.dto.game.lite.CompetitorLite;
 import com.stockholdergame.server.dto.game.lite.GameLite;
 import com.stockholdergame.server.dto.game.lite.GamesList;
 import com.stockholdergame.server.dto.game.result.CompetitorDiffDto;
-import com.stockholdergame.server.dto.game.result.CompetitorResultDto;
 import com.stockholdergame.server.dto.game.variant.GameVariantDto;
 import com.stockholdergame.server.facade.GameFacade;
 import com.stockholdergame.server.model.game.InvitationStatus;
@@ -33,7 +32,6 @@ import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Api(value = "/", authorizations = { @Authorization("Bearer") }, tags = "Game API")
@@ -59,9 +57,10 @@ public class GameController {
         gameInitiationDto.setGameVariantId(matchCardOptionToGameVariant(newGame.cardOption));
         gameInitiationDto.setOffer(false);
         gameInitiationDto.setSwitchMoveOrder(true);
-        gameInitiationDto.setInvitedUsers(new ArrayList<>(newGame.invitedPlayers));
+        gameInitiationDto.setInvitedUsers(newGame.invitedPlayers != null ? new ArrayList<>(newGame.invitedPlayers) : null);
+        gameInitiationDto.setPlayWithComputer(newGame.playWithComputer);
         GameStatusDto gameStatusDto = gameFacade.initiateGame(gameInitiationDto);
-        return ResponseWrapper.ok(gameStatusDto.getGameSeriesId());
+        return ResponseWrapper.ok(gameStatusDto.getGameId());
     }
 
     @ApiOperation("Accept/reject/cancel invitation")
@@ -403,7 +402,7 @@ public class GameController {
                     step.cash = lastStep.getCashValue();
                     if (StepType.valueOf(lastStep.getStepType()).equals(StepType.REPURCHASE_STEP)) {
                         lastStep.getShareQuantities().forEach(shareQuantityDto -> {
-                            if (shareQuantityDto.getBuySellQuantity() != 0) {
+                            if (step.shares.get(shareQuantityDto.getId()).amount != shareQuantityDto.getQuantity()) {
                                 step.shares.get(shareQuantityDto.getId()).repurchased = true;
                                 step.shares.get(shareQuantityDto.getId()).amountBeforeRepurchase =
                                         step.shares.get(shareQuantityDto.getId()).amount;

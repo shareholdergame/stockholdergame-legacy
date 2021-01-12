@@ -14,7 +14,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class AccountOperationDaoImpl extends BaseDao<AccountOperation, Long> implements AccountOperationDao {
 
-    @SuppressWarnings("unchecked")
     public List<AccountOperation> findUncompletedOperationsWithExpiredTerm(Date expiredDate) {
         return findList("AccountOperation.findUncompletedOperationsWithExpiredTerm",
             expiredDate);
@@ -26,5 +25,10 @@ public class AccountOperationDaoImpl extends BaseDao<AccountOperation, Long> imp
 
     public AccountOperation findUncompletedOperationByType(Long gamerId, OperationType operationType) {
         return findSingleObject("AccountOperation.findUncompletedOperationsByType", gamerId, operationType);
+    }
+
+    @Override
+    public AccountOperation findUncompletedOperationByCode(String verificationCode) {
+        return findSingleObject("AccountOperation.findUncompletedOperationByCode", verificationCode);
     }
 }

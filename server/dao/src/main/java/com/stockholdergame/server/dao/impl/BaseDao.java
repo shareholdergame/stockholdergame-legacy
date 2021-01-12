@@ -104,4 +104,8 @@ public abstract class BaseDao<T, PK> implements GenericDao<T, PK> {
         }
         return query.getResultList();
     }
+
+    public void flush() {
+        em.flush();
+    }
 }

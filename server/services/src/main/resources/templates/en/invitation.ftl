@@ -9,8 +9,8 @@ User ${inviterName} invites you in game <#if switchMoveOrder>with move order swi
 </#list>
 </#if>
 
-To accept or reject the invitation go to http://stockholdergame.com
+To accept or reject the invitation go to https://stockholdergame.com
 
 ---
-This e-mail was sent automatically by mail system of http://stockholdergame.com
+This e-mail was sent automatically by mail system of https://stockholdergame.com
 You don't need to answer on it.

@@ -4,4 +4,5 @@ public class SignUp {
     public String userName;
     public String email;
     public String password;
+    public String language;
 }

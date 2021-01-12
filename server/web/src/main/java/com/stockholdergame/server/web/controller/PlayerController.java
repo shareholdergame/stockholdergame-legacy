@@ -5,12 +5,14 @@ import com.stockholdergame.server.dto.account.FriendFilterType;
 import com.stockholdergame.server.dto.account.UserDto;
 import com.stockholdergame.server.dto.account.UserFilterDto;
 import com.stockholdergame.server.dto.account.UsersList;
+import com.stockholdergame.server.dto.game.CurrentTurnDto;
 import com.stockholdergame.server.dto.game.UserStatisticsFilterDto;
 import com.stockholdergame.server.dto.game.UserStatisticsList;
 import com.stockholdergame.server.exceptions.BusinessException;
 import com.stockholdergame.server.exceptions.BusinessExceptionType;
 import com.stockholdergame.server.facade.SocialFacade;
 import com.stockholdergame.server.model.game.result.Statistics;
+import com.stockholdergame.server.services.game.GameService;
 import com.stockholdergame.server.web.dto.*;
 import com.stockholdergame.server.web.dto.player.*;
 import io.swagger.annotations.Api;
@@ -22,7 +24,9 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Api(value = "/", authorizations = { @Authorization("Bearer") }, tags = "Player API")
@@ -39,6 +43,9 @@ public class PlayerController {
 
     @Autowired
     private SocialFacade socialFacade;
+
+    @Autowired
+    private GameService gameService;
 
     @RequestMapping(method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     public @ResponseBody ResponseWrapper<PlayerListResponse> searchPlayer(
@@ -81,6 +88,11 @@ public class PlayerController {
         return ResponseWrapper.ok(buildPlayerWithLocation(usersList.getUsers().get(0)));
     }
 
+    @RequestMapping(value = "/whoplaysnow", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    public @ResponseBody ResponseWrapper<List<CurrentTurnDto>> currentTurns() {
+        return ResponseWrapper.ok(gameService.getCurrentTurns());
+    }
+
     private PlayerAchievementsResponse convertToPlayerAchievementsResponse(UserStatisticsList userStatisticsList, int offset, int itemsPerPage) {
         PlayerAchievementsResponse playerAchievementsResponse = new PlayerAchievementsResponse();
         playerAchievementsResponse.pagination = Pagination.of((int) userStatisticsList.getTotalCount(), offset, itemsPerPage);
@@ -94,18 +106,18 @@ public class PlayerController {
             location.country = userStatistics.getUser().getProfile().getCountry();
 
             PlayerSession playerSession = new PlayerSession();
-            playerSession.lastPlay = userStatistics.getDaysAfterLastPlay();
-            playerSession.lastVisit = userStatistics.getDaysAfterLastVisit();
+            playerSession.lastPlay = Optional.ofNullable(userStatistics.getDaysAfterLastPlay()).orElse(0L);
+            playerSession.lastVisit = Optional.ofNullable(userStatistics.getDaysAfterLastVisit()).orElse(0L);
 
             Achievements achievements = new Achievements();
-            achievements.totalPlayed = userStatistics.getGameSeriesCount();
-            achievements.wins = userStatistics.getGameSeriesWinsCount();
-            achievements.draws = userStatistics.getDrawsCount();
-            achievements.bankrupts = userStatistics.getBankruptsCount();
-            achievements.winPercent = userStatistics.getWinsRatio();
-            achievements.maxTotalSum = userStatistics.getMaxTotal();
-            achievements.maxWonSum = userStatistics.getMaxDiff();
-            achievements.totalWonSum = userStatistics.getTotalWinned();
+            achievements.totalPlayed = Optional.ofNullable(userStatistics.getGameSeriesCount()).orElse(0);
+            achievements.wins = Optional.ofNullable(userStatistics.getGameSeriesWinsCount()).orElse(0);
+            achievements.draws = Optional.ofNullable(userStatistics.getDrawsCount()).orElse(0);
+            achievements.bankrupts = Optional.ofNullable(userStatistics.getBankruptsCount()).orElse(0);
+            achievements.winPercent = Optional.ofNullable(userStatistics.getWinsRatio()).orElse(0.0);
+            achievements.maxTotalSum = Optional.ofNullable(userStatistics.getMaxTotal()).orElse(0);
+            achievements.maxWonSum = Optional.ofNullable(userStatistics.getMaxDiff()).orElse(0);
+            achievements.totalWonSum = Optional.ofNullable(userStatistics.getTotalWinned()).orElse(0);
 
             PlayerAchievements playerAchievements = new PlayerAchievements();
             playerAchievements.player = player;

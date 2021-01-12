@@ -163,6 +163,6 @@ public class AccountOperationsServiceImpl implements AccountOperationsService {
     }
 
     String generateVerificationCode() {
-        return RandomStringGenerator.generate(4);
+        return RandomStringGenerator.generate(16);
     }
 }
