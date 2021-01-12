@@ -97,8 +97,6 @@ import static com.stockholdergame.server.model.game.StepType.ZERO_STEP;
 @MessageEndpoint
 public class GameServiceImpl extends UserInfoAware implements GameService {
 
-    private static Logger LOGGER = LogManager.getLogger(GameServiceImpl.class);
-
     public static final int INTERRUPT_GAME_CHUNK_SIZE = 10;
     public static final int PLAYING_USERS_MAX_RESULTS = 4;
     private static final String FIRST_GAME_LETTER = "A";

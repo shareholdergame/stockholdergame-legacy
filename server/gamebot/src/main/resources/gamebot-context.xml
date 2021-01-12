@@ -39,7 +39,7 @@
     <bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
         <property name="triggers">
             <list>
-                <ref bean="gameOffersCheckTrigger"/>
+                <!--<ref bean="gameOffersCheckTrigger"/>-->
                 <ref bean="botsWakeUpTrigger"/>
             </list>
         </property>

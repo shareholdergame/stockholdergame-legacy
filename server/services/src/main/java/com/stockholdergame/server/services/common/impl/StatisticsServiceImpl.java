@@ -97,7 +97,7 @@ public class StatisticsServiceImpl implements StatisticsService {
                 userStat.setDrawsCount(statistics.getDrawsCount());
                 userStat.setGamesCount(statistics.getGamesCount());
                 userStat.setWinsCount(statistics.getWinsCount());
-                userStat.setWinsRatio(statistics.getRatio() * 100.00);
+                userStat.setWinsRatio(statistics.getRatio() == -1 ? 0.0 : statistics.getRatio() * 100.00);
                 userStat.setMaxTotal(statistics.getMaxTotal());
                 userStat.setMaxDiff(statistics.getMaxDiff());
                 userStat.setTotalWinned(statistics.getTotalWinned());
