@@ -17,6 +17,7 @@ import com.stockholdergame.server.web.dto.player.Player;
 import com.stockholdergame.server.web.dto.swaggerstub.ResponseWrapperGameListResponse;
 import com.stockholdergame.server.web.dto.swaggerstub.ResponseWrapperGameSet;
 import io.swagger.annotations.*;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -359,10 +360,23 @@ public class GameController {
             turn.cardId = getCardId(gameDto, competitorMoveDto.getAppliedCardId());
             turn.finishedTime = competitorMoveDto.getFinishedTime().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
             turn.steps = buildTurnSteps(competitorMoveDto.getSteps());
+            /*if (turn.round != 0) {
+                turn.total = calculateTotal(turn);
+            }*/
             reportTurns.add(turn);
         });
         return reportTurns;
     }
+
+    /*private long calculateTotal(ReportTurn turn) {
+        ReportStep priceStep = turn.steps.get(StepType.PRICE_CHANGE_STEP);
+        ReportStep lastStep = turn.steps.get(StepType.LAST_BUY_SELL_STEP);
+        long total = 0;
+        for (Map.Entry<Long, ShareAmount> shareAmountEntry : lastStep.shares.entrySet()) {
+            total = total + shareAmountEntry.getValue().amount * priceStep.sharePrices.get(shareAmountEntry.getKey()).price;
+        }
+        return total + lastStep.cash;
+    }*/
 
     private Long getCardId(GameDto gameDto, Long appliedCardId) {
         for (CompetitorDto competitor : gameDto.getCompetitors()) {
@@ -376,6 +390,17 @@ public class GameController {
     }
 
     private Map<StepType, ReportStep> buildTurnSteps(Set<MoveStepDto> steps) {
+        MoveStepDto priceChangeStep = steps.stream()
+                .filter(moveStepDto -> moveStepDto.getStepType().equalsIgnoreCase(StepType.PRICE_CHANGE_STEP.name()))
+                .findFirst().orElse(null);
+        if (priceChangeStep != null && CollectionUtils.isNotEmpty(priceChangeStep.getShareQuantities())) {
+            MoveStepDto newLastBuySellStep = new MoveStepDto();
+            newLastBuySellStep.setStepType(StepType.LAST_BUY_SELL_STEP.name());
+            newLastBuySellStep.setShareQuantities(priceChangeStep.getShareQuantities());
+            newLastBuySellStep.setCashValue(priceChangeStep.getCashValue());
+            steps.add(newLastBuySellStep);
+        }
+
         Map<StepType, ReportStep> reportSteps = new HashMap<>();
         Set<StepType> mainStepTypes = Sets.newHashSet(StepType.ZERO_STEP, StepType.FIRST_BUY_SELL_STEP,
                 StepType.PRICE_CHANGE_STEP, StepType.LAST_BUY_SELL_STEP);
@@ -480,7 +505,7 @@ public class GameController {
     }
 
     private Set<Game> buildGames(GameDto gameDto) {
-        Set<Game> games = new HashSet<>();
+        Set<Game> games = Sets.newTreeSet(Comparator.comparing(o -> o.letter));
         Game game = new Game();
         game.id = gameDto.getId();
         game.letter = GameLetter.valueOf(gameDto.getGameLetter());

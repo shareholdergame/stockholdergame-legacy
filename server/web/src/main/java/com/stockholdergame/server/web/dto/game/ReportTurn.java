@@ -23,6 +23,8 @@ public class ReportTurn implements Comparable<ReportTurn> {
 
     public Map<StepType, ReportStep> steps;
 
+    public long total = 0;
+
     @Override
     public int compareTo(ReportTurn o) {
         int result = this.turn - o.turn;
