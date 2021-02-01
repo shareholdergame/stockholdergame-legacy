@@ -1,6 +1,7 @@
 package com.stockholdergame.server.web.controller;
 
 import com.google.common.collect.Lists;
+import com.stockholdergame.server.dto.account.ChatDto;
 import com.stockholdergame.server.dto.account.SendMessageDto;
 import com.stockholdergame.server.facade.SocialFacade;
 import com.stockholdergame.server.web.dto.Chat;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collection;
+import java.util.List;
 
 @Controller
 @RequestMapping("/chat")
@@ -34,15 +36,16 @@ public class ChatController {
         return ResponseWrapper.ok();
     }
 
-    @RequestMapping(value = "/history/{duration}", method = RequestMethod.GET)
-    public ResponseWrapper<?> chatHistory(@PathVariable Duration duration) {
+    @RequestMapping(value = "/{chatId}", method = RequestMethod.GET)
+    public ResponseWrapper<?> getChatMessages(@PathVariable("chatId") String chatId) {
         return ResponseWrapper.ok();
     }
 
     @RequestMapping(method = RequestMethod.GET)
-    public ResponseWrapper<Collection<Chat>> getChats(@RequestParam(value = "unreadonly", defaultValue = "false") boolean unreadonly,
-                                                      @RequestParam(value = "offset", defaultValue = "0") int offset,
+    public ResponseWrapper<Collection<Chat>> getChats(@RequestParam(value = "offset", defaultValue = "0") int offset,
                                                       @RequestParam(value = "ipp", defaultValue = "10") int itemsPerPage) {
+        List<ChatDto> chatDtoList = socialFacade.getChats();
+
         return ResponseWrapper.ok(Lists.newArrayList());
     }
 }
