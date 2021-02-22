@@ -8,6 +8,7 @@ import com.stockholdergame.server.services.account.AccountService;
 import com.stockholdergame.server.web.dto.Location;
 import com.stockholdergame.server.web.dto.ResponseWrapper;
 import com.stockholdergame.server.web.dto.player.*;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.text.SimpleDateFormat;
+import java.util.Optional;
 
 @Controller
 @RequestMapping("/profile")
@@ -55,8 +57,8 @@ public class ProfileController {
 
     private PlayerPersonalInfo buildPersonalInfo(ProfileDto profile) {
         PlayerPersonalInfo playerPersonalInfo = new PlayerPersonalInfo();
-        playerPersonalInfo.about = profile.getAbout();
-        playerPersonalInfo.birthday = simpleDateFormat.format(profile.getBirthday());
+        playerPersonalInfo.about = Optional.ofNullable(profile.getAbout()).orElse(StringUtils.EMPTY);
+        playerPersonalInfo.birthday = profile.getBirthday() != null ? simpleDateFormat.format(profile.getBirthday()) : StringUtils.EMPTY;
         return playerPersonalInfo;
     }
 

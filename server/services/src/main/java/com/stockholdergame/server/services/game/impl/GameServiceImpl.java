@@ -341,7 +341,7 @@ public class GameServiceImpl extends UserInfoAware implements GameService {
         gameSeries.setId(gameSeriesId);
         gameSeries.setGameVariantId(variantId);
         gameSeries.setSwitchMoveOrder(gameInitiationDto.isSwitchMoveOrder());
-        gameSeries.setPlayWithBot(isBot(userId));
+        gameSeries.setPlayWithBot(gameInitiationDto.isPlayWithComputer() || isBot(userId));
         gameSeries.setCompetitorsQuantity(competitorsQuantity);
         gameSeries.setCreatedTime(current);
         gameSeries.setRulesVersion(GameRulesVersion.RULES_1_3);
